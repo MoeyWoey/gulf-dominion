@@ -76,6 +76,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-o
 .notice{border-radius:10px;padding:10px 12px;font-size:.85rem;border:1px solid var(--line-2);background:var(--panel)}
 .notice.ok{border-color:var(--ok);color:#c9f2de}
 .notice.bad{border-color:var(--danger);color:#ffd2cb}
+.upg.snd input[type=range]{width:110px;flex:none}
+.upg.snd .btn{min-width:52px}
+.ibtn.muted{opacity:.4;text-decoration:line-through}
 .reset{background:none;border:0;color:var(--muted);text-decoration:underline;font-size:.75rem}
 
 /* ---------- Game ---------- */
@@ -164,6 +167,14 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
       <div class="nations" id="nations"></div>
     </div>
 
+    <div class="sec">
+      <h2>Sound</h2>
+      <div class="upgs">
+        <div class="upg snd"><div class="t"><b>Music</b><small>Calm oud, pads and darbuka, played live</small></div><input type="range" id="mVol" min="0" max="100" aria-label="Music volume"><button class="btn" id="mTog">On</button></div>
+        <div class="upg snd"><div class="t"><b>Effects and warnings</b><small>Explosions, sirens, radar pings, alarms</small></div><input type="range" id="sVol" min="0" max="100" aria-label="Effects volume"><button class="btn" id="sTog">On</button></div>
+      </div>
+    </div>
+
     <div class="heat">
       <button class="step" id="heatDn" aria-label="Lower heat">−</button>
       <div class="lbl"><b id="heatLbl">Heat 1</b><small id="heatSub">Rivals grow faster at higher heat. Pearls +30% per level.</small></div>
@@ -203,6 +214,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
       </div>
       <div class="stat"><div class="v num" style="color:var(--sand)" id="hGold">0</div><div class="s num">GOLD <span id="hGoldR">+0/s</span></div></div>
       <div class="stat"><div class="v num" id="hPct">0%</div><div class="s">LAND</div></div>
+      <button class="ibtn" id="sndBtn" aria-label="Mute sound">♪</button>
       <button class="ibtn" id="pauseBtn" aria-label="Pause">II</button>
     </div>
     <div class="chips" id="chips"></div>
@@ -634,6 +646,7 @@ function launchAttack(attId,defId,troops,tx,ty,pool=true){
   if(!front.length)return 'noborder';
   if(pool)n.troops-=troops;
   attacks.push({att:attId,def:defId,troops,tx,ty,front,inF,acc:0,done:false,taken:[]});
+  if(G&&defId&&defId===G.pid)SFX.alarm();
   return 'ok';
 }
 function stepAttack(a){
@@ -722,6 +735,7 @@ function launchBoat(attId,i,troops){
   const path=findSeaPath(attId,land);if(!path)return 'nosea';
   n.troops-=troops;
   boats.push({att:attId,troops,path,land,p:0,tx:i%W,ty:(i/W)|0,done:false});
+  if(owner[land]===G.pid)SFX.alarm();
   return 'ok';
 }
 function stepBoats(dt){
@@ -960,6 +974,7 @@ function impact(m){
     victims.set(o,(victims.get(o)||0)+1);}
   for(const [o,k] of victims){const d=NATS[o];d.troops-=Math.min(d.troops,d.troops*m.tp+k*(m.kind==='drone'?4:6));hit.add(o);}
   const what=m.name;
+  SFX.explosion(hit.has(G.pid)||m.own===G.pid?1:vAt(m.tx,m.ty)*.6,m.r/2);
   if(hit.has(G.pid))toast(`A ${att.name} ${what} hit your territory.`);
   else if(m.own===G.pid&&hit.size)toast(`Your ${what} struck ${[...hit].map(o=>NATS[o].name).join(', ')}.`);
 }
@@ -976,7 +991,7 @@ function stepMissiles(dt){
     if(!tgt)return false;
     const pk=Math.min(.95,(tgt.kind==='drone'?pkD:pkM)*(tgt.pk||1));
     shots.push({ax:ox,ay:oy,bx:tgt.x,by:tgt.y,t:now,aa:1});
-    if(Math.random()<pk){tgt.done=true;booms.push({x:tgt.x,y:tgt.y,r:.8,t:now});
+    if(Math.random()<pk){tgt.done=true;booms.push({x:tgt.x,y:tgt.y,r:.8,t:now});SFX.intercept(tgt.own===G.pid||o===G.pid?1:vAt(tgt.x,tgt.y)*.6);
       if(tgt.own===G.pid)toast(`${NATS[o].name} air defense shot down your ${tgt.name}.`);
       else if(o===G.pid&&now-(G.lastAA||0)>3000){G.lastAA=now;toast(`Your air defense shot down a ${NATS[tgt.own].name} ${tgt.name}.`);}}
     return true;
@@ -1120,10 +1135,10 @@ const targetsPlayer=m=>{const cx=Math.round(m.tx),cy=Math.round(m.ty);return m.o
 function tracked(m){
   if(m.tracked)return true;
   if(!targetsPlayer(m)||!radarCovers(G.pid,m.x,m.y))return false;
-  m.tracked=true;m.seen=true;
+  m.tracked=true;m.seen=true;(m.kind==='missile'?SFX.siren:SFX.radar)();
   if(m.kind==='missile'){const now=performance.now();
     if(now-(G.lastWarn||0)>4000){G.lastWarn=now;toast(`Radar: ${m.name} inbound from ${NATS[m.own].name}. Impact in ${Math.max(1,Math.ceil(etaOf(m)))}s.`,3000);
-      try{navigator.vibrate&&navigator.vibrate([90,60,90]);}catch(e){}}}
+      try{if(navigator.vibrate&&(!navigator.userActivation||navigator.userActivation.hasBeenActive))navigator.vibrate([90,60,90]);}catch(e){}}}
   return true;
 }
 const etaOf=m=>Math.hypot(m.tx-m.x,m.ty-m.y)/m.sp/Math.max(1,G.speed);
@@ -1330,19 +1345,19 @@ cv.addEventListener('wheel',e=>{e.preventDefault();const r=cv.getBoundingClientR
 
 function handleTap(sx,sy){
   if(!G||G.over||G.paused||modalOpen)return;
-  const i=cellFromScreen(sx,sy);const ping=(bad)=>{if(i>=0)G.pings.push({x:i%W,y:(i/W)|0,t:performance.now(),bad});};
+  const i=cellFromScreen(sx,sy);const ping=(bad)=>{if(i>=0)G.pings.push({x:i%W,y:(i/W)|0,t:performance.now(),bad});if(bad)SFX.deny();};
   if(G.mode==='build'&&G.bsel==='ship'&&i>=0){
     let port=-1;const x0=i%W,y0=(i/W)|0;
     for(let dy=-2;dy<=2&&port<0;dy++)for(let dx=-2;dx<=2;dx++){const x=x0+dx,y=y0+dy;if(x<0||y<0||x>=W||y>=H)continue;const j=y*W+x;if(bld[j]===4&&owner[j]===G.pid){port=j;break;}}
     if(port<0){ping(true);toast('Tap one of your ports to launch a warship. Build a port on your coast first.');return;}
     if(ships.filter(w=>w.port===port).length>=2){ping(true);toast('This port already has 2 warships.');return;}
     const p=NATS[G.pid],c=costOf(p,'ship');if(p.gold<c){ping(true);toast(`Need ${fmt(c)} gold.`);return;}
-    spawnShip(p,port);ping(false);toast('Warship launched. It patrols nearby waters and sinks enemy dhows.');return;
+    spawnShip(p,port);ping(false);SFX.build();toast('Warship launched. It patrols nearby waters and sinks enemy dhows.');return;
   }
   if(i<0||terr[i]<2){ping(true);toast(i>=0&&terr[i]===1?'Outside the theatre of war.':'Open water. Expand over land.');return;}
   const p=NATS[G.pid],o=owner[i];
   if(G.mode==='strike'){
-    const w=weapon(G.pid,G.ssel),k=w?w.kind:'drone',r=w?launchStrike(G.pid,G.ssel,i):'locked';ping(r!=='ok');
+    const w=weapon(G.pid,G.ssel),k=w?w.kind:'drone',r=w?launchStrike(G.pid,G.ssel,i):'locked';ping(r!=='ok');if(r==='ok')(k==='missile'?SFX.missileLaunch:SFX.droneLaunch)();
     toast({ok:k==='drone'?(p.m.droneN>1?`${w.name} swarm away.`:`${w.name} away.`):`${w.name} launched.`,target:'Pick enemy territory to strike.',locked:'Your nation cannot use that weapon.',
       nolauncher:k==='drone'?'Build a drone hangar first.':'Build a missile silo first.',
       range:k==='drone'?`Out of range. Drones reach ${RANGE.drone} tiles from a hangar.`:`Out of range. Missiles reach ${RANGE.missile} tiles from a silo.`,
@@ -1354,15 +1369,15 @@ function handleTap(sx,sy){
     if(bld[i]){ping(true);toast('Something is already built here.');return;}
     if(G.bsel==='port'&&nearWater(i,3)<0){ping(true);toast('Ports need open water within 3 tiles.');return;}
     const c=costOf(p,G.bsel);if(p.gold<c){ping(true);toast(`Need ${fmt(c)} gold.`);return;}
-    place(p,i,G.bsel);ping(false);toast({city:'City founded: more troops and gold.',fort:'Fort raised: nearby land is far harder to take.',rig:oil[i]?'Oil rig on an oil field: +4 gold/s.':'Oil rig pumping: +1.2 gold/s. Oil fields pay +4.',port:'Port opened: +2 gold/s. Launch warships from here.',silo:`Missile silo ready. Missiles reach ${RANGE.missile} tiles.`,hangar:`Drone hangar ready. Drones reach ${RANGE.drone} tiles.`,sam:'Air defense battery online. It shoots down drones and missiles nearby.',radar:`Radar online: tracks incoming strikes within ${BAL.radar.range} tiles, reveals hidden drones and sharpens nearby air defense.`}[G.bsel]);econ(true);return;
+    place(p,i,G.bsel);ping(false);if(G.bsel==='radar')SFX.radar();else SFX.build();toast({city:'City founded: more troops and gold.',fort:'Fort raised: nearby land is far harder to take.',rig:oil[i]?'Oil rig on an oil field: +4 gold/s.':'Oil rig pumping: +1.2 gold/s. Oil fields pay +4.',port:'Port opened: +2 gold/s. Launch warships from here.',silo:`Missile silo ready. Missiles reach ${RANGE.missile} tiles.`,hangar:`Drone hangar ready. Drones reach ${RANGE.drone} tiles.`,sam:'Air defense battery online. It shoots down drones and missiles nearby.',radar:`Radar online: tracks incoming strikes within ${BAL.radar.range} tiles, reveals hidden drones and sharpens nearby air defense.`}[G.bsel]);econ(true);return;
   }
   if(o===G.pid){ping(true);toast(G.mode==='boat'?'Your own shore. Tap a coast you want to invade.':'Your land. Tap neutral sand or a rival next to your border.');return;}
   const troops=p.troops*G.ratio;
   if(G.mode==='attack'){const r=launchAttack(G.pid,o,troops,i%W,(i/W)|0);
-    if(r==='ok'){ping(false);return;}
-    if(r==='countered'){ping(false);toast(`Your troops meet the ${NATS[o].name} attack head-on and push back over the same ground.`);return;}
+    if(r==='ok'){ping(false);SFX.attack();return;}
+    if(r==='countered'){ping(false);SFX.attack();toast(`Your troops meet the ${NATS[o].name} attack head-on and push back over the same ground.`);return;}
     if(r==='few'){ping(true);toast('Not enough troops. Wait for them to muster.');return;}}
-  const r=launchBoat(G.pid,i,troops);
+  const r=launchBoat(G.pid,i,troops);if(r==='ok')SFX.attack();
   ping(r!=='ok');
   toast({ok:G.mode==='attack'?'No land route, so the dhows set sail.':'Dhows set sail.',few:'Not enough troops. A landing needs at least 10.',
     nocoast:o?`You don't border ${NATS[o].name}, and that spot is too far from the coast to land.`:'Not next to your border, and too far from the coast to land.',
@@ -1379,6 +1394,7 @@ function draftOptions(){
   return out;
 }
 function openDraft(){
+  SFX.chime();
   G.drafts--;const opts=draftOptions();
   openModal(`<h3>Issue a decree</h3><p class="sub">${G.ms?`You hold ${(NATS[G.pid].tiles/LANDN*100).toFixed(1)}% of the land.`:''} Choose one. It lasts for this campaign.</p>
    <div class="cards">${opts.map((c,k)=>`<button class="card r${c.r}" data-k="${k}"><span class="rar">${RAR[c.r]}</span><b>${c.name}</b><span>${c.desc}</span></button>`).join('')}</div>
@@ -1392,8 +1408,11 @@ function openPause(){
   const p=NATS[G.pid];
   openModal(`<h3>Campaign paused</h3><p class="sub">${NATS[G.pid].name} · Heat ${G.diff} · ${Math.floor(G.t/60)}m ${Math.floor(G.t%60)}s</p>
    <div class="kv"><span>Land held</span><span class="num">${(p.tiles/LANDN*100).toFixed(1)}%</span><span>Rivals defeated</span><span class="num">${G.kills}</span><span>Decrees</span><span>${G.cards.length?G.cards.map(id=>CARDS.find(c=>c.id===id).name).join(', '):'None yet'}</span></div>
+   <div class="mrow"><button class="btn" id="pMus">Music: ${audOpt().music?'On':'Off'}</button><button class="btn" id="pSfx">Effects: ${audOpt().sfx?'On':'Off'}</button></div>
    <div class="mrow"><button class="btn" id="abandon">Retreat</button><button class="btn gold" id="resume">Resume</button></div>
    <p class="sub" style="margin:0">Retreating ends the campaign. You still keep the pearls earned so far.</p>`);
+  $('#pMus').onclick=()=>{const o=audOpt();o.music=!o.music;audApply();$('#pMus').textContent='Music: '+(o.music?'On':'Off');renderSound();save();};
+  $('#pSfx').onclick=()=>{const o=audOpt();o.sfx=!o.sfx;audApply();$('#pSfx').textContent='Effects: '+(o.sfx?'On':'Off');renderSound();save();};
   $('#resume').onclick=closeModal;$('#abandon').onclick=()=>{closeModal();endRun(false,true);};
 }
 function pearlsFor(win){
@@ -1404,6 +1423,7 @@ function pearlsFor(win){
 function endRun(win,retreat){
   if(G.over)return;G.over=true;
   const earned=pearlsFor(win);
+  (win?SFX.win:SFX.lose)();
   S.pearls+=earned;S.runs++;if(win){S.wins++;if(S.diff===S.maxDiff)S.maxDiff++;}S.best=Math.max(S.best,Math.round(G.peak*10)/10);save();
   logEvent('run_end',{nation:NAT[G.pid].name,heat:G.diff,win:!!win,retreat:!!retreat,peak:Math.round(G.peak*10)/10,minutes:Math.round(G.t/6)/10,kills:G.kills,pearls:earned});
   setTimeout(()=>{
@@ -1417,11 +1437,106 @@ function endRun(win,retreat){
   },win?600:900);
 }
 
+/* ================= Sound: Web Audio synthesis, no files ================= */
+const AUD={ctx:null,master:null,music:null,musicIn:null,sfx:null,noise:null,next:0,beat:0,last:{}};
+const audOpt=()=>S.audio||(S.audio={music:true,sfx:true,mv:.6,sv:.8,muted:false});
+const midi=n=>440*Math.pow(2,(n-69)/12);
+function audInit(){
+  if(AUD.ctx)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+  try{
+    const c=new AC();AUD.ctx=c;
+    const comp=c.createDynamicsCompressor();comp.threshold.value=-16;comp.ratio.value=3;comp.connect(c.destination);
+    AUD.master=c.createGain();AUD.master.connect(comp);
+    AUD.music=c.createGain();AUD.sfx=c.createGain();AUD.music.connect(AUD.master);AUD.sfx.connect(AUD.master);
+    // a soft echo gives the music some space
+    AUD.musicIn=c.createGain();AUD.musicIn.connect(AUD.music);
+    const d=c.createDelay(1),fb=c.createGain(),wet=c.createGain();d.delayTime.value=.36;fb.gain.value=.3;wet.gain.value=.3;
+    AUD.musicIn.connect(d);d.connect(fb);fb.connect(d);d.connect(wet);wet.connect(AUD.music);
+    const len=c.sampleRate*1.5,buf=c.createBuffer(1,len,c.sampleRate),ch=buf.getChannelData(0);for(let i=0;i<len;i++)ch[i]=Math.random()*2-1;AUD.noise=buf;
+    audApply();AUD.next=c.currentTime+.15;setInterval(musicTick,100);
+  }catch(e){AUD.ctx=null;}
+}
+function audApply(){
+  if(!AUD.ctx)return;const o=audOpt(),t=AUD.ctx.currentTime;
+  AUD.master.gain.setTargetAtTime(o.muted?0:.9,t,.05);
+  AUD.music.gain.setTargetAtTime(o.music?o.mv*.34:0,t,.4);
+  AUD.sfx.gain.setTargetAtTime(o.sfx?o.sv*.85:0,t,.05);
+}
+document.addEventListener('pointerdown',()=>{audInit();if(AUD.ctx&&AUD.ctx.state==='suspended')AUD.ctx.resume();},{passive:true});
+document.addEventListener('visibilitychange',()=>{if(!AUD.ctx)return;if(document.hidden)AUD.ctx.suspend();else AUD.ctx.resume();});
+document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('button'))SFX.click();});
+
+function env(g,t,a,d,peak){g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+a+d);}
+// Music: D Hijaz (D Eb F# G A Bb C), slow 66 bpm, pad + bass + oud-like plucks + quiet darbuka
+const HIJAZ=[0,1,4,5,7,8,10],CHORDS=[[50,54,57],[48,51,55],[55,58,62],[50,54,57]],BEAT=60/66;
+function musicTick(){
+  const c=AUD.ctx;if(!c||c.state!=='running')return;
+  while(AUD.next<c.currentTime+.45){if(audOpt().music&&!audOpt().muted)musicStep(AUD.next,AUD.beat);AUD.next+=BEAT/2;AUD.beat++;}
+}
+function musicStep(t,b){
+  const step=b%8,chord=CHORDS[Math.floor(b/8)%CHORDS.length];
+  if(step===0){pad(t,chord,BEAT*4.3);bass(t,chord[0]-12,BEAT*3.2);}
+  if(step===0||(step===4&&Math.random()<.5))dum(t);
+  if(step===3||step===6)tek(t,.5);else if(Math.random()<.12)tek(t,.25);
+  if(Math.random()<(step%2?.22:.45)){const deg=HIJAZ[(Math.random()*7)|0];pluck(t,(Math.random()<.7?62:74)+deg,.6+Math.random()*.4);
+    if(Math.random()<.25)pluck(t+BEAT/4,(Math.random()<.7?62:74)+HIJAZ[(Math.random()*7)|0],.45);}
+}
+function pad(t,notes,dur){
+  const c=AUD.ctx,f=c.createBiquadFilter(),g=c.createGain();f.type='lowpass';f.frequency.value=850;f.Q.value=.4;
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.05,t+1.3);g.gain.setValueAtTime(.05,t+dur-1.3);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  f.connect(g);g.connect(AUD.musicIn);
+  for(const n of notes)for(const det of [-7,7]){const o=c.createOscillator();o.type='sawtooth';o.frequency.value=midi(n);o.detune.value=det;o.connect(f);o.start(t);o.stop(t+dur+.05);}
+}
+function bass(t,n,dur){const c=AUD.ctx,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=midi(n);env(g,t,.06,dur,.16);o.connect(g);g.connect(AUD.musicIn);o.start(t);o.stop(t+dur+.1);}
+function pluck(t,n,v){
+  const c=AUD.ctx,o=c.createOscillator(),o2=c.createOscillator(),f=c.createBiquadFilter(),g=c.createGain();
+  o.type='triangle';o2.type='sawtooth';o.frequency.value=o2.frequency.value=midi(n);o2.detune.value=5;
+  f.type='lowpass';f.frequency.setValueAtTime(2400,t);f.frequency.exponentialRampToValueAtTime(450,t+.55);env(g,t,.004,.95,.08*v);
+  o.connect(f);o2.connect(f);f.connect(g);g.connect(AUD.musicIn);o.start(t);o2.start(t);o.stop(t+1.05);o2.stop(t+1.05);
+}
+function dum(t){const c=AUD.ctx,o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(115,t);o.frequency.exponentialRampToValueAtTime(52,t+.25);env(g,t,.004,.3,.2);o.connect(g);g.connect(AUD.music);o.start(t);o.stop(t+.35);}
+function tek(t,v){const c=AUD.ctx,sr=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();sr.buffer=AUD.noise;f.type='highpass';f.frequency.value=3600;env(g,t,.002,.06,.07*v);sr.connect(f);f.connect(g);g.connect(AUD.music);sr.start(t,Math.random());sr.stop(t+.1);}
+
+// Effects
+const sfxOn=()=>AUD.ctx&&AUD.ctx.state==='running'&&audOpt().sfx&&!audOpt().muted;
+function sfxOK(key,ms){const n=performance.now();if(n-(AUD.last[key]||0)<ms)return false;AUD.last[key]=n;return true;}
+function tone(type,f0,f1,dur,vol,delay=0){if(!sfxOn())return;const c=AUD.ctx,t=c.currentTime+delay,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(f0,t);if(f1)o.frequency.exponentialRampToValueAtTime(f1,t+dur);env(g,t,.005,dur,vol);o.connect(g);g.connect(AUD.sfx);o.start(t);o.stop(t+dur+.05);}
+function hiss(dur,vol,type,f0,f1,delay=0){if(!sfxOn())return;const c=AUD.ctx,t=c.currentTime+delay,sr=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();sr.buffer=AUD.noise;f.type=type;f.frequency.setValueAtTime(f0,t);if(f1)f.frequency.exponentialRampToValueAtTime(f1,t+dur);env(g,t,.01,dur,vol);sr.connect(f);f.connect(g);g.connect(AUD.sfx);sr.start(t,Math.random()*.4);sr.stop(t+dur+.05);}
+// Volume for something happening at map cell (x,y): full near the middle of the screen, quieter far away
+function vAt(x,y){if(!cv||!cv.clientWidth)return .5;const px=view.ox+(x+.5)*view.s-cv.clientWidth/2,py=view.oy+(y+.5)*view.s-cv.clientHeight/2;return Math.max(.12,Math.min(1,1-Math.hypot(px,py)/Math.max(cv.clientWidth,cv.clientHeight)));}
+const SFX={
+  click:()=>{if(sfxOK('click',40))tone('sine',900,650,.05,.04);},
+  deny:()=>{tone('square',230,190,.08,.035);tone('square',190,160,.1,.035,.09);},
+  attack:()=>{if(sfxOK('atk',150))hiss(.35,.11,'bandpass',300,1400);},
+  build:()=>{tone('triangle',523,0,.15,.11);tone('triangle',784,0,.22,.09,.08);},
+  missileLaunch:()=>{hiss(1,.17,'bandpass',180,950);tone('sawtooth',150,520,.85,.035);},
+  droneLaunch:()=>{tone('sawtooth',125,145,.55,.045);hiss(.45,.05,'bandpass',600,700);},
+  explosion:(v=1,big=1)=>{if(!sfxOK('boom',90))return;hiss(.6+.3*big,.42*v,'lowpass',1300,110);tone('sine',95,34,.5+.2*big,.5*v);},
+  intercept:(v=1)=>{if(!sfxOK('icpt',80))return;tone('square',1400,320,.09,.05*v);hiss(.12,.1*v,'highpass',2200,0);},
+  siren:()=>{if(!sfxOK('siren',3500))return;for(let k=0;k<3;k++){tone('sawtooth',660,0,.22,.06,k*.5);tone('sawtooth',880,0,.22,.06,k*.5+.25);}},
+  radar:()=>{if(!sfxOK('radar',1200))return;tone('sine',1500,1440,.18,.06);tone('sine',1500,1440,.18,.025,.24);},
+  alarm:()=>{if(!sfxOK('alarm',6000))return;tone('sine',220,212,.35,.13);tone('sine',220,212,.35,.13,.45);},
+  chime:()=>{[62,66,69,74].forEach((n,k)=>tone('triangle',midi(n),0,.5,.08,k*.09));},
+  win:()=>{[62,66,69,74,78].forEach((n,k)=>tone('triangle',midi(n),0,.75,.1,k*.15));},
+  lose:()=>{[69,67,63,62,50].forEach((n,k)=>tone('triangle',midi(n),0,.85,.1,k*.19));}
+};
+function renderSound(){
+  const o=audOpt();
+  if($('#mVol')){$('#mVol').value=Math.round(o.mv*100);$('#sVol').value=Math.round(o.sv*100);
+    $('#mTog').textContent=o.music?'On':'Off';$('#mTog').classList.toggle('gold',o.music);$('#sTog').textContent=o.sfx?'On':'Off';$('#sTog').classList.toggle('gold',o.sfx);}
+  if($('#sndBtn'))$('#sndBtn').classList.toggle('muted',!!o.muted);
+}
+$('#mTog').onclick=()=>{const o=audOpt();o.music=!o.music;audInit();audApply();renderSound();save();};
+$('#sTog').onclick=()=>{const o=audOpt();o.sfx=!o.sfx;audInit();audApply();renderSound();save();};
+$('#mVol').oninput=e=>{audOpt().mv=e.target.value/100;audApply();};$('#mVol').onchange=()=>save();
+$('#sVol').oninput=e=>{audOpt().sv=e.target.value/100;audApply();};$('#sVol').onchange=()=>{save();SFX.explosion(.6,1);};
+$('#sndBtn').onclick=()=>{const o=audOpt();o.muted=!o.muted;audApply();renderSound();save();};
+
 /* ================= Home (Majlis) ================= */
 const IDLE_CAP_MIN=12*60;
 function idleStored(){const l=lvl('dhow');if(!l)return 0;const mins=Math.min(IDLE_CAP_MIN,(Date.now()-S.lastIdle)/60000);return mins*l*.2;}
 function renderHome(){
-  renderAccount();renderStore();renderCosmetics();
+  renderSound();renderAccount();renderStore();renderCosmetics();
   if(HASH_NOTE){showNote(HASH_NOTE[0],HASH_NOTE[1]);HASH_NOTE=null;}
   $('#pearls').textContent=fmt(S.pearls);
   const st=idleStored(),dl=lvl('dhow');
@@ -1505,7 +1620,7 @@ function frame(now){
   }
   requestAnimationFrame(frame);
 }
-applyCosmetics();
+applyCosmetics();renderSound();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(screen==='home')drawHero();});
 showScreen('home');
 loadAccount();loadStore();loadBalance();
