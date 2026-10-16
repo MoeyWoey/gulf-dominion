@@ -1,0 +1,27 @@
+name = "gulf-dominion"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Serves the game and admin dashboard from ../docs too, so the whole site can live on one Cloudflare URL.
+# If you host the game on GitHub Pages instead, this still works: the Worker just answers /api, /auth and /pay.
+[assets]
+directory = "../docs"
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gulf-dominion"
+database_id = "92de228b-eec0-4d74-9954-dcc7cabca14b"
+
+[vars]
+# Sites allowed to call this API and receive sign-in redirects, e.g. your GitHub Pages address (comma separated, no trailing slash)
+ALLOWED_ORIGINS = "https://moeywoey.github.io"
+# From Google Cloud Console > APIs & Services > Credentials > OAuth client ID (Web application)
+GOOGLE_CLIENT_ID = "993511639475-l7l8hfpk6fou0n0tognj9igq36ktjhu1.apps.googleusercontent.com"
+
+# Secrets (set with `npx wrangler secret put NAME`, never commit them):
+#   GOOGLE_CLIENT_SECRET  - from the same Google OAuth client
+#   SESSION_SECRET        - any long random string; signs logins and encrypts the MyFatoorah keys you save in the dashboard
+#   ADMIN_EMAILS          - Google emails allowed into the admin dashboard, comma separated
+# Optional fallbacks if you prefer not to paste keys into the dashboard:
+#   MF_API_KEY_TEST, MF_API_KEY_LIVE

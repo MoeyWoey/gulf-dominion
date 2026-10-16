@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gulf Dominion Admin</title>
+<meta name="robots" content="noindex">
+<!-- Must match the gd-api value in index.html. "/" = same site as this page. -->
+<meta name="gd-api" content="https://gulf-dominion.m-hotiri.workers.dev">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Reem+Kufi:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: operator console. Sticky tab rail, one working panel; summary tiles before detail tables. */
+:root{
+  --night:#0a1416; --panel:#102024; --panel-2:#132a30; --line:#24414a; --line-2:#34575f;
+  --pearl:#f2ead9; --muted:#8ea5a4; --sand:#dcb46a; --teal:#4fc1b8; --danger:#ff6f5e; --ok:#63d2a0; --warn:#f0b44c;
+  --f-display:'Reem Kufi','Trebuchet MS',sans-serif; --f-body:'IBM Plex Sans Arabic',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+[hidden]{display:none!important}
+body{background:var(--night);color:var(--pearl);font:14px/1.45 var(--f-body)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--sand);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.top{position:sticky;top:0;z-index:5;background:rgba(10,20,22,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.topin{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.top h1{font-family:var(--f-display);font-size:1.25rem;margin:0;white-space:nowrap}
+.top h1 span{color:var(--sand)}
+.tabs{display:flex;gap:4px;overflow-x:auto;flex:1;min-width:0}
+.tabs button{background:none;border:1px solid transparent;border-radius:8px;padding:6px 10px;color:var(--muted);white-space:nowrap;font-weight:600}
+.tabs button.on{color:var(--pearl);border-color:var(--line-2);background:var(--panel)}
+.who{font-size:.8rem;color:var(--muted);white-space:nowrap}
+main{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 48px;display:flex;flex-direction:column;gap:16px}
+h2{font-family:var(--f-display);font-weight:500;font-size:1.1rem;color:var(--sand);margin:0;letter-spacing:.02em}
+.hint{color:var(--muted);font-size:.85rem;margin:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.tile .k{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tile .v{font-size:1.6rem;font-weight:600;margin-top:2px}
+.tile.alert{border-color:var(--danger)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grow{flex:1;min-width:140px}
+input,select,textarea{background:var(--night);border:1px solid var(--line-2);border-radius:8px;padding:7px 9px;min-width:0}
+textarea{font-family:var(--f-mono);font-size:.82rem;width:100%}
+.btn{padding:7px 12px;border-radius:8px;border:1px solid var(--line-2);background:#16303a;font-weight:600;white-space:nowrap}
+.btn.gold{background:var(--sand);border-color:var(--sand);color:#1d1608}
+.btn.danger{border-color:var(--danger);color:#ffd2cb;background:transparent}
+.btn:disabled{opacity:.45;cursor:default}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:.84rem}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--panel);position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+td.mono,.mono{font-family:var(--f-mono);font-size:.78rem;overflow-wrap:anywhere}
+.pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:.72rem;font-weight:600;border:1px solid var(--line-2)}
+.pill.paid,.pill.info,.pill.ok{border-color:var(--ok);color:#c9f2de}
+.pill.pending,.pill.warn,.pill.test{border-color:var(--warn);color:#ffe2ad}
+.pill.failed,.pill.error,.pill.live{border-color:var(--danger);color:#ffd2cb}
+.bars{display:flex;align-items:flex-end;gap:4px;height:90px;padding-top:6px}
+.bars i{flex:1;background:var(--teal);border-radius:3px 3px 0 0;min-height:2px;position:relative}
+.bars i span{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:.66rem;color:var(--muted);font-style:normal}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:.86rem}
+.kv span:nth-child(odd){color:var(--muted)}
+.msg{font-size:.85rem;border-radius:8px;padding:8px 10px;border:1px solid var(--line-2)}
+.msg.ok{border-color:var(--ok);color:#c9f2de}
+.msg.bad{border-color:var(--danger);color:#ffd2cb}
+.gate{max-width:420px;margin:12vh auto;text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center;padding-inline:16px}
+.gate h1{font-family:var(--f-display);margin:0}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:none;padding:7px 14px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--sand);color:#1d1608}
+@media (max-width:640px){.who{display:none}}
+</style>
+</head>
+<body>
+<div id="gate" class="gate" hidden></div>
+
+<div id="app" hidden>
+  <div class="top"><div class="topin">
+    <h1>Gulf Dominion <span>Admin</span></h1>
+    <nav class="tabs" id="tabs">
+      <button data-t="overview" class="on">Overview</button>
+      <button data-t="logs">Logs</button>
+      <button data-t="users">Players</button>
+      <button data-t="orders">Orders</button>
+      <button data-t="store">Store</button>
+      <button data-t="pay">Payments API</button>
+    </nav>
+    <span class="who" id="who"></span>
+    <a class="btn" href="./" style="text-decoration:none">Game</a>
+  </div></div>
+
+  <main>
+    <section data-p="overview">
+      <div class="tiles" id="tiles"></div>
+      <div class="card"><h2>Campaigns started, last 14 days</h2><div class="bars" id="bars"></div></div>
+      <div class="card"><h2>Revenue</h2><div id="revenue"></div></div>
+    </section>
+
+    <section data-p="logs" hidden>
+      <div class="row">
+        <select id="lgEvent"><option value="">All events</option></select>
+        <select id="lgLevel"><option value="">All levels</option><option>info</option><option>warn</option><option>error</option></select>
+        <input id="lgQ" class="grow" placeholder="Search email or details" type="search">
+        <button class="btn" id="lgGo">Filter</button>
+      </div>
+      <div class="tablewrap"><table><thead><tr><th>Time</th><th>Level</th><th>Event</th><th>Player</th><th>Details</th></tr></thead><tbody id="lgRows"></tbody></table></div>
+      <div class="row"><button class="btn" id="lgMore">Load older</button></div>
+    </section>
+
+    <section data-p="users" hidden>
+      <div class="row"><input id="usQ" class="grow" placeholder="Search by email or name" type="search"><button class="btn" id="usGo">Search</button></div>
+      <div class="tablewrap"><table><thead><tr><th>Player</th><th>Joined</th><th>Last seen</th><th>Unlocks</th><th>Spent (live)</th><th></th></tr></thead><tbody id="usRows"></tbody></table></div>
+      <div class="card" id="usEdit" hidden></div>
+    </section>
+
+    <section data-p="orders" hidden>
+      <p class="hint">Pending orders are settled automatically when the player returns from MyFatoorah or when MyFatoorah calls the webhook. Recheck asks MyFatoorah for the latest status.</p>
+      <div class="tablewrap"><table><thead><tr><th>Created</th><th>Player</th><th>Item</th><th>Amount</th><th>Status</th><th>Mode</th><th>Invoice</th><th></th></tr></thead><tbody id="orRows"></tbody></table></div>
+    </section>
+
+    <section data-p="store" hidden>
+      <p class="hint">Kinds: <b>unlock</b> and <b>cosmetic</b> need payload <span class="mono">{"item":"all_nations"}</span> (the game knows all_nations, founder, theme_night, border_gold). <b>pearls</b> needs <span class="mono">{"pearls":500}</span>.</p>
+      <div class="tablewrap"><table><thead><tr><th>ID</th><th>Name</th><th>Kind</th><th>Price</th><th>Active</th><th></th></tr></thead><tbody id="prRows"></tbody></table></div>
+      <div class="card" id="prEdit"></div>
+    </section>
+
+    <section data-p="pay" hidden>
+      <div class="grid2">
+        <div class="card">
+          <h2>MyFatoorah</h2>
+          <div class="row"><span class="hint">Mode</span><div class="seg" id="pyMode"><button data-m="test">Test</button><button data-m="live">Live</button></div></div>
+          <label class="row"><span class="hint" style="min-width:90px">Live region</span>
+            <select id="pyRegion" class="grow">
+              <option value="kw">Kuwait, UAE, Bahrain, Jordan, Oman</option>
+              <option value="sa">Saudi Arabia</option>
+              <option value="qa">Qatar</option>
+              <option value="eg">Egypt</option>
+            </select></label>
+          <label class="row"><span class="hint" style="min-width:90px">Currency</span><input id="pyCur" maxlength="3" style="width:90px;text-transform:uppercase"></label>
+          <div class="kv" id="pyInfo"></div>
+          <div class="row"><button class="btn gold" id="pySave">Save settings</button><button class="btn" id="pyTest">Test connection</button></div>
+          <div id="pyMsg"></div>
+        </div>
+        <div class="card">
+          <h2>API keys</h2>
+          <p class="hint">Paste the API token from your MyFatoorah portal (Integration Settings › API Key). Keys are encrypted before they are stored and are never shown again in full.</p>
+          <label>Test key<textarea id="pyTestKey" rows="3" placeholder="Paste test API token" autocomplete="off" spellcheck="false"></textarea></label>
+          <div class="row"><span class="hint" id="pyTestCur"></span><span class="grow"></span><button class="btn danger" id="pyTestClear">Remove</button></div>
+          <label>Live key<textarea id="pyLiveKey" rows="3" placeholder="Paste live API token" autocomplete="off" spellcheck="false"></textarea></label>
+          <div class="row"><span class="hint" id="pyLiveCur"></span><span class="grow"></span><button class="btn danger" id="pyLiveClear">Remove</button></div>
+          <div class="row"><button class="btn gold" id="pyKeys">Save keys</button></div>
+          <div id="pyKeyMsg"></div>
+        </div>
+        <div class="card">
+          <h2>URLs for the MyFatoorah portal</h2>
+          <p class="hint">Set the webhook in MyFatoorah under Integration Settings › Webhook, with the "Transaction Status Changed" event, so payments settle even if a player closes the page.</p>
+          <div class="kv" id="pyUrls"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(()=>{
+'use strict';
+const $=s=>document.querySelector(s);
+const API=(()=>{const m=document.querySelector('meta[name="gd-api"]');let b=((m&&m.content)||'').trim();if(b==='/')b=location.origin;return b.replace(/\/$/,'');})();
+let TOKEN=null;try{TOKEN=localStorage.getItem('gd_token');}catch(e){}
+(function(){const q=new URLSearchParams(location.hash.slice(1));if(q.get('token')){TOKEN=q.get('token');try{localStorage.setItem('gd_token',TOKEN);}catch(e){}history.replaceState(null,'',location.pathname);}})();
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const when=t=>t?new Date(t*1000).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+const money=(v,c)=>`${Number(v||0).toFixed(['KWD','BHD','OMR','JOD'].includes(c)?3:2)} ${esc(c||'')}`;
+async function api(path,opt={}){
+  const r=await fetch(API+path,{method:opt.method||'GET',headers:{'content-type':'application/json',authorization:'Bearer '+TOKEN},body:opt.body?JSON.stringify(opt.body):undefined});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw Object.assign(new Error(j.error||('HTTP '+r.status)),{status:r.status});
+  return j;
+}
+function gate(title,text,btn){
+  $('#app').hidden=true;const g=$('#gate');g.hidden=false;
+  g.innerHTML=`<h1>${esc(title)}</h1><p class="hint">${esc(text)}</p>${btn?`<button class="btn gold" id="gBtn">${esc(btn)}</button>`:''}<a class="hint" href="./">Back to the game</a>`;
+  if(btn)$('#gBtn').onclick=()=>{location.href=API+'/auth/google/start?return='+encodeURIComponent(location.origin+location.pathname);};
+}
+
+/* ---------- tabs ---------- */
+const loaded={};
+function show(t){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  document.querySelectorAll('main section').forEach(s=>s.hidden=s.dataset.p!==t);
+  Promise.resolve().then(({overview:loadOverview,logs:()=>loadLogs(false),users:loadUsers,orders:loadOrders,store:loadProducts,pay:loadPay})[t]).catch(e=>{const sec=document.querySelector(`main section[data-p="${t}"]`);sec.insertAdjacentHTML('afterbegin',`<div class="msg bad">Could not load: ${esc(e.message)}</div>`);});
+  try{history.replaceState(null,'','#'+t);}catch(e){}
+}
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>show(b.dataset.t));
+
+/* ---------- overview ---------- */
+async function loadOverview(){
+  const o=await api('/api/admin/overview');
+  const tiles=[['Players',o.users],['Active, 24h',o.active24h],['Campaigns, 24h',o.runs24h],['Errors, 24h',o.errors24h,o.errors24h>0],['Pending orders',o.pendingOrders]];
+  $('#tiles').innerHTML=tiles.map(([k,v,a])=>`<div class="tile ${a?'alert':''}"><div class="k">${k}</div><div class="v num">${v}</div></div>`).join('');
+  const today=Math.floor(Date.now()/86400000),map=new Map(o.dailyRuns.map(d=>[d.d,d.n]));
+  const days=[];for(let d=today-13;d<=today;d++)days.push(map.get(d)||0);
+  const max=Math.max(1,...days);
+  $('#bars').innerHTML=days.map(n=>`<i style="height:${Math.max(2,n/max*100)}%" title="${n}"><span>${n||''}</span></i>`).join('');
+  $('#revenue').innerHTML=o.revenue.length?`<div class="kv">${o.revenue.map(r=>`<span>${r.mode==='live'?'Live':'Test'} · ${r.n} orders</span><span class="num">${money(r.total,r.currency)}</span>`).join('')}</div>`:'<p class="hint">No paid orders yet.</p>';
+}
+
+/* ---------- logs ---------- */
+let lgOldest=null;
+async function loadLogs(more){
+  const q=new URLSearchParams({limit:100});
+  if($('#lgEvent').value)q.set('event',$('#lgEvent').value);
+  if($('#lgLevel').value)q.set('level',$('#lgLevel').value);
+  if($('#lgQ').value.trim())q.set('q',$('#lgQ').value.trim());
+  if(more&&lgOldest)q.set('before',lgOldest);
+  const r=await api('/api/admin/logs?'+q);
+  const cur=$('#lgEvent').value;
+  $('#lgEvent').innerHTML='<option value="">All events</option>'+r.events.map(e=>`<option ${e===cur?'selected':''}>${esc(e)}</option>`).join('');
+  const rows=r.logs.map(l=>`<tr><td class="num">${when(l.ts)}</td><td><span class="pill ${esc(l.level)}">${esc(l.level)}</span></td><td>${esc(l.event)}</td><td>${esc(l.email||'—')}</td><td class="mono">${esc(l.data||'')}</td></tr>`).join('');
+  if(more)$('#lgRows').insertAdjacentHTML('beforeend',rows);else $('#lgRows').innerHTML=rows||'<tr><td colspan="5" class="hint">No log entries match.</td></tr>';
+  if(r.logs.length)lgOldest=r.logs[r.logs.length-1].id;
+  $('#lgMore').hidden=r.logs.length<100;
+}
+$('#lgGo').onclick=()=>{lgOldest=null;loadLogs(false);};
+$('#lgQ').onkeydown=e=>{if(e.key==='Enter')$('#lgGo').click();};
+$('#lgMore').onclick=()=>loadLogs(true);
+
+/* ---------- players ---------- */
+let users=[];
+async function loadUsers(){
+  const r=await api('/api/admin/users?q='+encodeURIComponent($('#usQ').value.trim()));users=r.users;
+  $('#usRows').innerHTML=users.map(u=>`<tr><td><b>${esc(u.name||'—')}</b>${u.is_admin?' <span class="pill ok">admin</span>':''}${u.banned?' <span class="pill failed">blocked</span>':''}<div class="hint">${esc(u.email)}</div></td><td class="num">${when(u.created_at)}</td><td class="num">${when(u.last_seen)}</td><td>${esc((u.items||'').split(',').filter(Boolean).join(', ')||'—')}</td><td class="num">${Number(u.spent||0).toFixed(3)}</td><td><button class="btn" data-u="${u.id}">Manage</button></td></tr>`).join('')||'<tr><td colspan="6" class="hint">No players yet.</td></tr>';
+  document.querySelectorAll('#usRows button[data-u]').forEach(b=>b.onclick=()=>editUser(+b.dataset.u));
+}
+function editUser(id){
+  const u=users.find(x=>x.id===id),box=$('#usEdit');box.hidden=false;
+  box.innerHTML=`<h2>${esc(u.name||u.email)}</h2><p class="hint">${esc(u.email)} · unlocks: ${esc(u.items||'none')}</p>
+   <div class="row"><select id="ueItem"><option value="all_nations">All nations pack</option><option value="founder">Founder's perk</option><option value="theme_night">Night map theme</option><option value="border_gold">Gold borders</option><option value="pearls">Pearls</option></select>
+   <input id="ueQty" type="number" min="1" value="500" style="width:110px" title="Pearls only">
+   <button class="btn gold" id="ueGrant">Grant</button><button class="btn" id="ueRevoke">Revoke</button>
+   <span class="grow"></span><button class="btn danger" id="ueBan">${u.banned?'Unblock player':'Block player'}</button></div><div id="ueMsg"></div>`;
+  const done=async(p,body,msg)=>{try{await api(`/api/admin/users/${id}/${p}`,{method:'POST',body});$('#ueMsg').innerHTML=`<div class="msg ok">${esc(msg)}</div>`;await loadUsers();}catch(e){$('#ueMsg').innerHTML=`<div class="msg bad">${esc(e.message)}</div>`;}};
+  $('#ueGrant').onclick=()=>done('grant',{item:$('#ueItem').value,qty:+$('#ueQty').value},'Granted. The player sees it next time the game loads.');
+  $('#ueRevoke').onclick=()=>done('revoke',{item:$('#ueItem').value},'Revoked.');
+  $('#ueBan').onclick=()=>done('ban',{banned:!u.banned},u.banned?'Player unblocked.':'Player blocked. They are signed out on their next request.');
+}
+$('#usGo').onclick=loadUsers;$('#usQ').onkeydown=e=>{if(e.key==='Enter')loadUsers();};
+
+/* ---------- orders ---------- */
+async function loadOrders(){
+  const r=await api('/api/admin/orders');
+  $('#orRows').innerHTML=r.orders.map(o=>`<tr><td class="num">${when(o.created_at)}</td><td>${esc(o.email||'—')}</td><td>${esc(o.product_id)}</td><td class="num">${money(o.amount,o.currency)}</td><td><span class="pill ${esc(o.status)}">${esc(o.status)}</span></td><td><span class="pill ${esc(o.mode)}">${esc(o.mode)}</span></td><td class="mono">${esc(o.mf_invoice_id||'—')}</td><td>${o.status!=='paid'&&o.mf_invoice_id?`<button class="btn" data-o="${esc(o.id)}">Recheck</button>`:''}</td></tr>`).join('')||'<tr><td colspan="8" class="hint">No orders yet.</td></tr>';
+  document.querySelectorAll('#orRows button[data-o]').forEach(b=>b.onclick=async()=>{b.disabled=true;b.textContent='Checking…';try{const x=await api(`/api/admin/orders/${b.dataset.o}/recheck`,{method:'POST'});b.textContent=x.paid?'Paid':'Not paid';loadOrders();}catch(e){b.textContent=e.message;}});
+}
+
+/* ---------- store ---------- */
+let products=[];
+async function loadProducts(){
+  const r=await api('/api/admin/products');products=r.products;
+  $('#prRows').innerHTML=products.map(p=>`<tr><td class="mono">${esc(p.id)}</td><td>${esc(p.name)}</td><td>${esc(p.kind)}</td><td class="num">${money(p.price,p.currency)}</td><td>${p.active?'<span class="pill ok">on sale</span>':'<span class="pill">hidden</span>'}</td><td><button class="btn" data-p="${esc(p.id)}">Edit</button></td></tr>`).join('');
+  document.querySelectorAll('#prRows button[data-p]').forEach(b=>b.onclick=()=>editProduct(products.find(x=>x.id===b.dataset.p)));
+  editProduct(null);
+}
+function editProduct(p){
+  const n=!p;p=p||{id:'',name:'',description:'',price:1,currency:'KWD',kind:'unlock',payload:'{"item":""}',active:1,sort:100};
+  $('#prEdit').innerHTML=`<h2>${n?'New item':'Edit '+esc(p.id)}</h2>
+   <div class="row"><input id="peId" placeholder="id, e.g. pearls_10000" value="${esc(p.id)}" ${n?'':'readonly'}><input id="peName" class="grow" placeholder="Name shown in the store" value="${esc(p.name)}"></div>
+   <input id="peDesc" placeholder="Description" value="${esc(p.description)}">
+   <div class="row"><select id="peKind">${['unlock','cosmetic','pearls'].map(k=>`<option ${k===p.kind?'selected':''}>${k}</option>`).join('')}</select>
+   <input id="pePrice" type="number" step="0.001" min="0.001" value="${esc(p.price)}" style="width:120px"><input id="peCur" maxlength="3" value="${esc(p.currency)}" style="width:80px;text-transform:uppercase">
+   <input id="peSort" type="number" value="${esc(p.sort)}" style="width:80px" title="Sort order">
+   <label class="row"><input id="peActive" type="checkbox" ${p.active?'checked':''}> On sale</label></div>
+   <textarea id="pePayload" rows="2">${esc(p.payload)}</textarea>
+   <div class="row"><button class="btn gold" id="peSave">Save item</button>${n?'':'<button class="btn" id="peNew">New item</button>'}</div><div id="peMsg"></div>`;
+  if(!n)$('#peNew').onclick=()=>editProduct(null);
+  $('#peSave').onclick=async()=>{
+    try{await api('/api/admin/products',{method:'PUT',body:{id:$('#peId').value.trim(),name:$('#peName').value,description:$('#peDesc').value,kind:$('#peKind').value,price:+$('#pePrice').value,currency:$('#peCur').value.trim().toUpperCase(),sort:+$('#peSort').value,active:$('#peActive').checked,payload:$('#pePayload').value}});
+      await loadProducts();$('#peMsg').innerHTML='<div class="msg ok">Saved. The store updates the next time a player opens the game.</div>';}
+    catch(e){$('#peMsg').innerHTML=`<div class="msg bad">${esc(e.message)}</div>`;}
+  };
+}
+
+/* ---------- payments API ---------- */
+let pay=null,payMode='test';
+async function loadPay(){
+  pay=await api('/api/admin/settings');payMode=pay.mode;
+  document.querySelectorAll('#pyMode button').forEach(b=>b.classList.toggle('on',b.dataset.m===payMode));
+  $('#pyRegion').value=pay.region;$('#pyCur').value=pay.currency;
+  $('#pyInfo').innerHTML=`<span>Status</span><span><span class="pill ${payMode}">${payMode==='live'?'Live: real charges':'Test: sandbox only'}</span></span><span>Endpoint</span><span class="mono">${esc(pay.base)}</span><span>Active key</span><span>${(payMode==='live'?pay.liveKey:pay.testKey)?esc((payMode==='live'?pay.liveKey:pay.testKey).masked):'<span class="pill failed">missing</span>'}</span>`;
+  const cur=k=>k?`Saved: ${esc(k.masked)} (${esc(k.source)})`:'No key saved';
+  $('#pyTestCur').innerHTML=cur(pay.testKey);$('#pyLiveCur').innerHTML=cur(pay.liveKey);
+  $('#pyUrls').innerHTML=`<span>Callback / error URL</span><span class="mono">${esc(pay.callbackUrl)}</span><span>Webhook URL</span><span class="mono">${esc(pay.webhookUrl)}</span>`;
+}
+document.querySelectorAll('#pyMode button').forEach(b=>b.onclick=()=>{payMode=b.dataset.m;document.querySelectorAll('#pyMode button').forEach(x=>x.classList.toggle('on',x===b));
+  $('#pyMsg').innerHTML=payMode==='live'?'<div class="msg bad">Live mode charges real cards once you save. Make sure a live key is saved and the test flow worked.</div>':'';});
+$('#pySave').onclick=async()=>{try{await api('/api/admin/settings',{method:'PUT',body:{mode:payMode,region:$('#pyRegion').value,currency:$('#pyCur').value.trim().toUpperCase()}});await loadPay();$('#pyMsg').innerHTML='<div class="msg ok">Settings saved.</div>';}catch(e){$('#pyMsg').innerHTML=`<div class="msg bad">${esc(e.message)}</div>`;}};
+$('#pyTest').onclick=async()=>{$('#pyMsg').innerHTML='<div class="msg">Contacting MyFatoorah…</div>';try{const r=await api('/api/admin/mf/test',{method:'POST'});$('#pyMsg').innerHTML=r.ok?`<div class="msg ok">Connected in ${esc(r.mode)} mode. Payment methods: ${esc(r.methods.join(', ')||'none returned')}.</div>`:`<div class="msg bad">${esc(r.error)}</div>`;}catch(e){$('#pyMsg').innerHTML=`<div class="msg bad">${esc(e.message)}</div>`;}};
+async function saveKeys(body,msg){try{await api('/api/admin/settings',{method:'PUT',body});$('#pyTestKey').value='';$('#pyLiveKey').value='';await loadPay();$('#pyKeyMsg').innerHTML=`<div class="msg ok">${esc(msg)}</div>`;}catch(e){$('#pyKeyMsg').innerHTML=`<div class="msg bad">${esc(e.message)}</div>`;}}
+$('#pyKeys').onclick=()=>{const b={};if($('#pyTestKey').value.trim())b.testKey=$('#pyTestKey').value.trim();if($('#pyLiveKey').value.trim())b.liveKey=$('#pyLiveKey').value.trim();
+  if(!Object.keys(b).length){$('#pyKeyMsg').innerHTML='<div class="msg bad">Paste a key first.</div>';return;}saveKeys(b,'Key saved and encrypted.');};
+$('#pyTestClear').onclick=()=>saveKeys({testKey:''},'Test key removed.');
+$('#pyLiveClear').onclick=()=>saveKeys({liveKey:''},'Live key removed.');
+
+/* ---------- boot ---------- */
+(async()=>{
+  if(!API){gate('Not connected','Set the gd-api address at the top of admin.html to your Cloudflare Worker, then reload.');return;}
+  if(!TOKEN){gate('Admin sign-in','Sign in with the Google account listed as admin.','Sign in with Google');return;}
+  try{
+    const me=await api('/api/me');
+    if(!me.user.is_admin){gate('Not an admin',`${me.user.email} is not on the admin list. Add it to ADMIN_EMAILS in the Worker settings.`,'Use another account');return;}
+    $('#who').textContent=me.user.email;$('#gate').hidden=true;$('#app').hidden=false;
+    const t=location.hash.slice(1);show(['overview','logs','users','orders','store','pay'].includes(t)?t:'overview');
+  }catch(e){
+    if(e.status===401){try{localStorage.removeItem('gd_token');}catch(_){}TOKEN=null;gate('Admin sign-in','Your session ended. Sign in again.','Sign in with Google');}
+    else gate('Cannot reach the server',`The Worker did not answer (${e.message}). Check the gd-api address and that the Worker is deployed.`);
+  }
+})();
+})();
+</script>
+</body>
+</html>

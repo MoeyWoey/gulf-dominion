@@ -1,0 +1,1415 @@
+<title>Gulf Dominion</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<!-- Backend URL for sign-in, cloud saves and the store. Empty = offline mode. "/" = same site (Worker-hosted).
+     For GitHub Pages, put your Worker address, e.g. https://gulf-dominion.YOURNAME.workers.dev -->
+<meta name="gd-api" content="https://gulf-dominion.m-hotiri.workers.dev">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Reem+Kufi:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: full-bleed pixel map of the Arabian Peninsula with floating instrument panels; the Majlis (home) is one scrolling column */
+:root{
+  --night:#0a1416; --sea:#0e3039; --panel:#102024; --panel-a:rgba(13,27,31,.9); --line:#24414a; --line-2:#34575f;
+  --pearl:#f2ead9; --muted:#8ea5a4; --sand:#dcb46a; --sand-d:#9c7a39; --teal:#4fc1b8; --danger:#ff6f5e; --ok:#63d2a0;
+  --f-display:'Reem Kufi','Trebuchet MS',sans-serif; --f-body:'IBM Plex Sans Arabic',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{background:var(--night);color:var(--pearl);font-family:var(--f-body);overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- Majlis (home) ---------- */
+#home{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;background:radial-gradient(120% 60% at 50% 0%,#12343b 0%,var(--night) 60%)}
+.wrap{max-width:540px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px;display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.brand h1{font-family:var(--f-display);font-weight:700;font-size:2.1rem;line-height:1;margin:0;letter-spacing:.01em;text-wrap:balance}
+.brand .ar{font-family:var(--f-display);color:var(--sand);font-size:1.05rem;margin-top:6px;direction:rtl}
+.pearlbox{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px 6px 8px;font-weight:600}
+.pearl{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0%,#efe4cf 35%,#b9ab92 100%);box-shadow:0 0 6px rgba(255,248,230,.35);flex:none}
+.hero{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.hero canvas{display:block;width:100%;height:auto}
+.hero .cap{position:absolute;left:12px;bottom:10px;right:12px;font-size:.78rem;color:var(--muted);letter-spacing:.04em}
+.sec h2{font-family:var(--f-display);font-weight:500;font-size:1.05rem;margin:0 0 8px;color:var(--sand);letter-spacing:.03em}
+.sec p.hint{margin:-4px 0 10px;color:var(--muted);font-size:.85rem;line-height:1.45}
+.nations{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.nat{display:flex;flex-direction:column;gap:4px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0}
+.nat .row{display:flex;align-items:center;gap:8px}
+.nat .sw{width:12px;height:12px;border-radius:3px;flex:none}
+.nat b{font-weight:600;font-size:.95rem}
+.nat small{color:var(--muted);font-size:.74rem;line-height:1.35}
+.nat.sel{border-color:var(--sand);box-shadow:inset 0 0 0 1px var(--sand)}
+.nat.locked{opacity:.75}
+.nat .lock{font-size:.74rem;color:var(--sand);font-weight:600;display:flex;align-items:center;gap:5px}
+.heat{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.heat .lbl{flex:1;min-width:0}
+.heat .lbl b{display:block}
+.heat .lbl small{color:var(--muted);font-size:.78rem}
+.step{width:36px;height:36px;border-radius:8px;background:#16303a;border:1px solid var(--line-2);font-size:1.1rem}
+.step:disabled{opacity:.35}
+.go{width:100%;padding:15px;border-radius:12px;border:0;background:linear-gradient(180deg,#e6c27c,var(--sand));color:#1d1608;font-family:var(--f-display);font-weight:700;font-size:1.2rem;letter-spacing:.04em;box-shadow:0 6px 20px rgba(220,180,106,.2)}
+.dhow{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px}
+.dhow .t{flex:1;min-width:0;font-size:.85rem;color:var(--muted)}
+.dhow .t b{color:var(--pearl);display:block;font-size:.95rem}
+.btn{padding:8px 12px;border-radius:8px;border:1px solid var(--line-2);background:#16303a;font-weight:600;font-size:.85rem;white-space:nowrap}
+.btn.gold{background:var(--sand);color:#1d1608;border-color:var(--sand)}
+.btn:disabled{opacity:.4}
+.upgs{display:flex;flex-direction:column;gap:6px}
+.upg{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+.upg .t{flex:1;min-width:0}
+.upg .t b{font-size:.9rem;font-weight:600}
+.upg .t small{display:block;color:var(--muted);font-size:.76rem}
+.pips{display:flex;gap:2px;margin-top:4px}
+.pips i{width:8px;height:3px;border-radius:2px;background:var(--line-2)}
+.pips i.on{background:var(--sand)}
+.stats{color:var(--muted);font-size:.78rem;text-align:center}
+.acct{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px}
+.acct .t{flex:1;min-width:160px;font-size:.82rem;color:var(--muted);overflow-wrap:anywhere}
+.acct .t b{display:block;color:var(--pearl);font-size:.95rem}
+.acct a.btn{text-decoration:none;color:inherit}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--sand);color:#1d1608;display:grid;place-items:center;font-weight:700;flex:none}
+.badge{font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;background:var(--sand);color:#1d1608;border-radius:4px;padding:1px 5px;vertical-align:middle;margin-left:4px}
+.notice{border-radius:10px;padding:10px 12px;font-size:.85rem;border:1px solid var(--line-2);background:var(--panel)}
+.notice.ok{border-color:var(--ok);color:#c9f2de}
+.notice.bad{border-color:var(--danger);color:#ffd2cb}
+.reset{background:none;border:0;color:var(--muted);text-decoration:underline;font-size:.75rem}
+
+/* ---------- Game ---------- */
+#game{position:fixed;inset:0;background:var(--sea)}
+#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.hud{position:absolute;left:0;right:0;top:0;padding-top:calc(8px + env(safe-area-inset-top,0px));padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px));pointer-events:none;display:flex;flex-direction:column;gap:6px}
+.bar{pointer-events:auto;display:flex;align-items:center;gap:10px;background:var(--panel-a);border:1px solid var(--line);border-radius:12px;padding:7px 8px 7px 10px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.stat{display:flex;flex-direction:column;min-width:0;gap:2px}
+.stat .v{font-weight:600;font-size:.92rem;line-height:1.1;white-space:nowrap}
+.stat .s{font-size:.66rem;color:var(--muted);letter-spacing:.04em;white-space:nowrap}
+.troops{flex:1;min-width:0}
+.tbar{height:4px;border-radius:2px;background:#203a40;overflow:hidden;margin-top:2px}
+.tbar i{display:block;height:100%;background:var(--teal);width:0}
+.ibtn{width:34px;height:34px;flex:none;border-radius:9px;background:#16303a;border:1px solid var(--line-2);display:grid;place-items:center;font-size:.8rem;font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:5px;pointer-events:none}
+.chip{font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--panel-a);border:1px solid var(--line);display:flex;align-items:center;gap:5px}
+.chip .d{width:7px;height:7px;border-radius:50%}
+.chip.warn{border-color:var(--danger);color:#ffd2cb;animation:pulse 1.2s infinite}
+.chip.evt{border-color:var(--sand);color:var(--sand)}
+@keyframes pulse{50%{box-shadow:0 0 0 3px rgba(255,111,94,.25)}}
+.lb{position:absolute;right:max(10px,env(safe-area-inset-right,0px));pointer-events:auto;background:var(--panel-a);border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-size:.72rem;display:flex;flex-direction:column;gap:3px;min-width:112px}
+.lb .r{display:flex;align-items:center;gap:6px}
+.lb .r span:nth-child(2){flex:1}
+.lb .r.me{color:var(--sand);font-weight:700}
+.lb .r.dead{opacity:.35;text-decoration:line-through}
+.dock{position:absolute;left:0;right:0;bottom:0;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px));pointer-events:none}
+.dockin{pointer-events:auto;max-width:560px;margin:0 auto;background:var(--panel-a);border:1px solid var(--line);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:8px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;min-width:0;padding:9px 2px;border-radius:9px;border:1px solid var(--line-2);background:#14292f;font-weight:600;font-size:.88rem}
+.seg button.on{background:var(--sand);color:#1d1608;border-color:var(--sand)}
+.seg .spd{flex:0 0 42px}
+.sendrow{display:flex;align-items:center;gap:10px;font-size:.82rem}
+.sendrow label{white-space:nowrap;color:var(--muted)}
+.sendrow b{min-width:88px;text-align:right}
+input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
+.builds{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.builds button{padding:7px 2px;min-width:0;border-radius:9px;border:1px solid var(--line-2);background:#14292f;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:.8rem;font-weight:600}
+.builds button small{font-size:.68rem;color:var(--muted);font-weight:500}
+.builds button.on{border-color:var(--sand);box-shadow:inset 0 0 0 1px var(--sand)}
+.builds button.poor small{color:var(--danger)}
+.toast{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(132px + env(safe-area-inset-bottom,0px));background:var(--panel-a);border:1px solid var(--line-2);padding:7px 12px;border-radius:10px;font-size:.82rem;max-width:min(88vw,420px);text-align:center;pointer-events:none;transition:opacity .3s}
+
+/* ---------- Modals ---------- */
+.modal{position:fixed;inset:0;background:rgba(4,10,12,.72);display:flex;align-items:center;justify-content:center;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(16px + env(safe-area-inset-top,0px)) calc(16px + env(safe-area-inset-bottom,0px));z-index:10}
+.mbox{width:100%;max-width:440px;max-height:100%;overflow-y:auto;background:var(--panel);border:1px solid var(--line-2);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.mbox h3{font-family:var(--f-display);font-weight:700;font-size:1.45rem;margin:0;text-wrap:balance}
+.mbox .sub{color:var(--muted);font-size:.85rem;margin:-6px 0 0}
+.cards{display:flex;flex-direction:column;gap:8px}
+.card{text-align:left;background:#132a30;border:1px solid var(--line-2);border-radius:12px;padding:11px 12px;display:flex;flex-direction:column;gap:3px}
+.card .rar{font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.card b{font-size:1rem}
+.card span{font-size:.84rem;color:#c9d6d3}
+.card.r1{border-color:var(--teal)} .card.r1 .rar{color:var(--teal)}
+.card.r2{border-color:var(--sand);background:linear-gradient(180deg,#2a2a1c,#132a30)} .card.r2 .rar{color:var(--sand)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:.9rem}
+.kv span:nth-child(odd){color:var(--muted)}
+.big{font-family:var(--f-display);font-size:1.6rem;color:var(--sand);display:flex;align-items:center;gap:8px}
+.mrow{display:flex;gap:8px}
+.mrow .btn{flex:1;padding:12px}
+@media (prefers-reduced-motion:reduce){.chip.warn{animation:none}}
+@media (min-width:700px){.troops{max-width:260px}}
+</style>
+
+<div id="home">
+  <div class="wrap">
+    <div class="brand">
+      <div>
+        <h1>Gulf Dominion</h1>
+        <div class="ar">هيمنة الخليج</div>
+      </div>
+      <div class="pearlbox"><i class="pearl"></i><span id="pearls" class="num">0</span></div>
+    </div>
+
+    <div class="notice" id="notice" hidden></div>
+    <div class="acct" id="acct" hidden></div>
+
+    <div class="hero"><canvas id="heroCv" width="528" height="440"></canvas><div class="cap">Nine capitals, from Baghdad to Sana'a. Drones, missiles, and the air defense that stops them.</div></div>
+
+    <div class="dhow" id="dhow"></div>
+
+    <div class="sec">
+      <h2>Choose your nation</h2>
+      <p class="hint">GCC states rarely attack each other, and Iraq, Iran and Yemen rarely attack each other. Your bloc's AIs mostly leave you alone too.</p>
+      <div class="nations" id="nations"></div>
+    </div>
+
+    <div class="heat">
+      <button class="step" id="heatDn" aria-label="Lower heat">−</button>
+      <div class="lbl"><b id="heatLbl">Heat 1</b><small id="heatSub">Rivals grow faster at higher heat. Pearls +30% per level.</small></div>
+      <button class="step" id="heatUp" aria-label="Raise heat">+</button>
+    </div>
+
+    <button class="go" id="go">Begin campaign</button>
+
+    <div class="sec">
+      <h2>Majlis upgrades</h2>
+      <p class="hint">Pearls earned in every campaign, won or lost, buy permanent upgrades.</p>
+      <div class="upgs" id="upgs"></div>
+    </div>
+    <div class="sec" id="storeSec" hidden>
+      <h2>Store</h2>
+      <p class="hint" id="storeHint"></p>
+      <div class="upgs" id="store"></div>
+    </div>
+
+    <div class="sec" id="cosSec" hidden>
+      <h2>Cosmetics</h2>
+      <div class="upgs" id="cos"></div>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="stats"><button class="reset" id="howBtn">How to play</button> · <button class="reset" id="resetBtn">Reset progress</button></div>
+  </div>
+</div>
+
+<div id="game" hidden>
+  <canvas id="cv"></canvas>
+  <div class="hud">
+    <div class="bar">
+      <div class="stat troops">
+        <div class="v num"><span id="hTroops">0</span><span style="color:var(--muted);font-weight:500"> / <span id="hCap">0</span></span></div>
+        <div class="tbar"><i id="hTbar"></i></div>
+        <div class="s num">TROOPS <span id="hRegen">+0/s</span></div>
+      </div>
+      <div class="stat"><div class="v num" style="color:var(--sand)" id="hGold">0</div><div class="s num">GOLD <span id="hGoldR">+0/s</span></div></div>
+      <div class="stat"><div class="v num" id="hPct">0%</div><div class="s">LAND</div></div>
+      <button class="ibtn" id="pauseBtn" aria-label="Pause">II</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="lb" id="lb"></div>
+  <div class="toast" id="toast" style="opacity:0"></div>
+  <div class="dock">
+    <div class="dockin">
+      <div class="seg">
+        <button id="mAtk" class="on">Attack</button>
+        <button id="mBoat">Boat</button>
+        <button id="mStk">Strike</button>
+        <button id="mBld">Build</button>
+        <button id="spd" class="spd num">1×</button>
+      </div>
+      <div class="sendrow" id="sendRow">
+        <label for="ratio">Send</label>
+        <input type="range" id="ratio" min="5" max="100" step="5" value="40">
+        <b class="num" id="ratioLbl">40%</b>
+      </div>
+      <div class="builds" id="strikeRow" style="grid-template-columns:1fr 1fr" hidden>
+        <button data-s="drone" class="on">Drone strike<small id="cDrone">45</small></button>
+        <button data-s="missile">Missile<small id="cMissile">200</small></button>
+      </div>
+      <div class="builds" id="buildRow" hidden>
+        <button data-b="city" class="on">City<small id="cCity">120</small></button>
+        <button data-b="fort">Fort<small id="cFort">80</small></button>
+        <button data-b="rig">Oil rig<small id="cRig">150</small></button>
+        <button data-b="port">Port<small id="cPort">120</small></button>
+        <button data-b="ship">Warship<small id="cShip">150</small></button>
+        <button data-b="silo">Silo<small id="cSilo">220</small></button>
+        <button data-b="hangar">Drone hangar<small id="cHangar">150</small></button>
+        <button data-b="sam">Air defense<small id="cSam">110</small></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden><div class="mbox" id="mbox"></div></div>
+
+<script>
+(()=>{
+'use strict';
+const $=s=>document.querySelector(s);
+
+/* ================= Geography (lon,lat pairs) ================= */
+const LON0=34.5, LAT1=38.5, STEP=0.125, W=228, H=212, N=W*H;
+const LAND=[34.9,32, 34.9,29.4, 35.1,28.9, 35.6,27.7, 36.5,26.1, 37.4,24.9, 38.1,24.0, 39.0,22.6, 39.2,21.4, 40.2,20.1, 41.2,18.9, 42.0,17.6, 42.7,16.5, 42.8,15.2, 43.2,13.6, 43.5,12.7, 45.0,12.8, 46.5,13.4, 48.0,14.0, 49.1,14.5, 50.5,15.1, 52.2,15.7, 53.5,16.6, 55.0,17.2, 56.0,17.9, 56.8,18.6, 57.7,18.9, 57.8,19.8, 58.5,20.4, 58.9,21.0, 59.5,21.8, 59.8,22.5, 59.0,23.1, 58.6,23.6, 57.4,23.9, 56.7,24.4, 56.37,24.95, 56.37,25.6, 56.4,26.0, 56.45,26.35, 56.25,26.4, 56.1,26.07, 55.9,25.8, 55.3,25.3, 54.7,24.8, 54.4,24.5, 53.5,24.15, 52.7,24.1, 51.9,23.95, 51.6,24.25, 51.6,24.6, 51.62,25.3, 51.5,25.9, 51.2,26.15, 50.95,25.95, 50.8,25.4, 50.75,24.75, 50.45,25.0, 50.2,25.6, 50.05,26.2, 50.2,26.6, 49.7,27.0, 49.3,27.4, 48.8,27.9, 48.45,28.5, 48.15,29.1, 48.1,29.45, 48.35,29.85, 48.6,29.95, 48.8,30.2, 49.5,30.0, 50.3,29.2, 51.4,27.9, 52.6,27.4, 54.0,26.6, 55.5,26.6, 56.3,27.2, 57.3,25.8, 59.0,25.4, 61.6,25.2, 63,25.1, 63,38.5, 34.9,38.5];
+const BAHRAIN=[50.35,25.75, 50.7,25.75, 50.7,26.3, 50.35,26.3];
+const OUT_N=[34.9,32, 34.9,29.35, 36.0,29.2, 37.5,30.3, 37.0,31.5, 39.2,32.15, 42.0,31.1, 44.7,29.2, 46.55,29.1, 47.7,30.1, 48.0,30.0, 48.6,29.97, 48.8,30.2, 49.5,30.0, 50.3,29.2, 51.4,27.9, 52.6,27.4, 54.0,26.6, 55.5,26.6, 56.3,27.2, 57.3,25.8, 59.0,25.4, 60.5,25.3, 60.5,32];
+const IRAQ=[46.55,29.1, 47.7,30.1, 48.0,30.0, 48.6,29.97, 48.0,30.5, 47.7,31.0, 47.85,31.8, 47.4,32.4, 46.1,33.0, 45.4,33.9, 45.6,34.5, 45.9,35.1, 46.2,35.8, 45.4,36.0, 44.8,37.15, 42.4,37.1, 41.3,36.4, 41.0,34.4, 38.8,33.4, 39.2,32.15, 42.0,31.1, 44.7,29.2];
+const IRAN=[48.6,29.97, 48.0,30.5, 47.7,31.0, 47.85,31.8, 47.4,32.4, 46.1,33.0, 45.4,33.9, 45.6,34.5, 45.9,35.1, 46.2,35.8, 45.4,36.0, 44.8,37.15, 44.4,38.5, 48.0,38.5, 48.9,38.4, 49.0,37.6, 50.3,37.1, 51.5,36.8, 53.9,36.9, 54.0,37.3, 57.3,38.2, 59.3,37.5, 60.4,36.6, 61.2,36.6, 60.6,33.7, 60.9,31.5, 61.8,31.2, 60.9,29.8, 62.4,29.4, 63.0,27.0, 62.8,26.6, 61.6,25.2, 59.0,25.4, 57.3,25.8, 56.3,27.2, 55.5,26.6, 54.0,26.6, 52.6,27.4, 51.4,27.9, 50.3,29.2, 49.5,30.0, 48.8,30.2];
+const CASPIAN=[48.9,38.4, 49.0,37.6, 50.3,37.1, 51.5,36.8, 53.9,36.9, 54.0,37.3, 53.9,38.6, 49.0,38.6];
+const YEMEN=[42.0,16.4, 43.3,16.7, 44.0,17.4, 46.5,17.3, 47.5,18.0, 49.0,18.6, 52.0,19.0, 52.6,16.0, 52.6,14.0, 42.0,12.0];
+const KUWAIT=[46.55,29.1, 47.7,30.1, 48.0,30.0, 48.45,29.95, 48.6,29.6, 48.3,29.0, 48.5,28.5, 47.7,28.5];
+const QATAR=[50.7,24.7, 51.65,24.55, 51.75,25.4, 51.6,26.0, 51.2,26.3, 50.85,26.0, 50.68,25.4];
+const UAE=[51.65,23.9, 52.6,22.9, 55.2,22.7, 55.6,23.9, 55.9,24.2, 56.0,24.9, 56.37,24.95, 56.6,25.5, 56.37,25.98, 56.0,26.2, 55.0,25.9, 51.65,24.55];
+const OMAN=[52.0,19.0, 55.0,20.0, 55.67,22.0, 55.2,22.7, 55.6,23.9, 55.9,24.2, 56.0,24.9, 56.37,24.95, 57.5,24.6, 60.5,23.0, 60.5,14.0, 52.6,14.0, 52.6,16.0];
+const MTN=[
+  [35.3,29.3, 36.3,28.9, 37.2,26.8, 38.6,24.8, 40.2,22.4, 41.8,20.0, 43.2,17.8, 43.6,16.6, 42.9,16.6, 41.6,18.5, 40.4,20.0, 39.6,21.6, 38.6,23.4, 37.3,25.0, 36.2,26.6, 35.3,28.5], // Hijaz & Asir
+  [56.0,25.9, 56.3,25.0, 56.8,24.0, 57.8,23.3, 59.0,22.7, 59.2,22.4, 58.5,22.4, 57.4,22.9, 56.4,23.7, 55.9,24.6, 55.9,25.6, 56.2,26.5, 56.5,26.4], // Hajar
+  [52.8,16.9, 55.0,17.25, 55.4,17.85, 53.0,17.6], // Dhofar
+  [45.5,35.8, 46.5,34.0, 48.0,32.5, 50.0,30.5, 52.0,29.0, 54.5,28.0, 56.5,27.6, 57.5,28.5, 55.0,29.5, 52.5,30.8, 50.5,32.5, 48.5,34.2, 47.0,35.8, 46.0,37.0], // Zagros
+  [49.5,36.8, 51.0,36.2, 53.5,36.3, 55.5,36.9, 55.2,37.4, 53.5,36.8, 51.0,36.7, 49.8,37.2], // Alborz
+  [43.3,37.1, 44.8,37.15, 46.2,35.8, 45.4,35.2, 44.0,36.4], // Kurdistan
+  [43.2,13.0, 44.5,13.3, 45.2,14.5, 44.9,16.0, 44.0,17.3, 43.3,16.6, 43.0,14.8] // Yemeni highlands
+];
+const DESERT=[
+  [45.0,19.8, 47.5,21.5, 50.0,22.5, 52.5,23.0, 55.0,22.6, 55.6,21.2, 54.5,19.6, 52.0,18.8, 48.5,18.2, 45.5,18.4], // Rub' al Khali
+  [38.3,29.3, 41.0,29.4, 42.6,28.2, 41.0,27.2, 38.6,27.6], // Nafud
+  [43.0,28.5, 44.0,28.6, 46.0,26.5, 47.5,23.5, 47.8,21.5, 47.3,21.5, 46.9,23.5, 45.6,26.0, 43.6,27.8], // Dahna
+  [52.0,35.0, 55.5,35.3, 56.5,34.0, 54.0,33.6, 52.0,34.0], // Dasht-e Kavir
+  [57.0,32.5, 59.0,32.0, 59.3,29.5, 57.8,29.5, 57.2,31.0], // Dasht-e Lut
+  [39.5,32.5, 42.5,33.5, 43.5,32.0, 44.5,30.5, 42.0,31.1] // Iraqi western desert
+];
+const OILF=[[47.95,28.95,.35],[48.1,29.75,.15],[48.7,27.95,.2],[49.6,25.95,.2],[49.25,25.4,.22],[49.3,24.8,.22],[49.35,24.2,.2],[50.55,26.0,.13],[50.85,25.4,.2],[54.0,23.6,.25],[53.7,23.1,.2],[54.0,22.45,.2],[56.5,22.3,.25],[47.3,30.4,.3],[44.4,35.5,.25],[48.8,31.3,.35],[50.8,30.3,.2]];
+
+function pip(p,x,y){let c=false;for(let i=0,j=p.length-2;i<p.length;j=i,i+=2){const xi=p[i],yi=p[i+1],xj=p[j],yj=p[j+1];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))c=!c;}return c;}
+function hash(x,y){let h=(Math.imul(x,374761393)+Math.imul(y,668265263))|0;h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296;}
+function vnoise(x,y,sc){const gx=x/sc,gy=y/sc,x0=Math.floor(gx),y0=Math.floor(gy),fx=gx-x0,fy=gy-y0;const a=hash(x0,y0),b=hash(x0+1,y0),c=hash(x0,y0+1),d=hash(x0+1,y0+1);const u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;}
+
+// terr: 0 water, 1 outside (impassable), 2 plains, 3 desert, 4 mountain
+const terr=new Uint8Array(N), ctry=new Uint8Array(N), oil=new Uint8Array(N), coast=new Uint8Array(N), cborder=new Uint8Array(N);
+const baseR=new Uint8Array(N), baseG=new Uint8Array(N), baseB=new Uint8Array(N);
+const lonOf=x=>LON0+(x+.5)*STEP, latOf=y=>LAT1-(y+.5)*STEP;
+let LANDN=0; const oilCells=[];
+(function buildMap(){
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const i=y*W+x, lon=lonOf(x), lat=latOf(y);
+    let land=(pip(LAND,lon,lat)&&!pip(CASPIAN,lon,lat))||pip(BAHRAIN,lon,lat);
+    if(!land&&Math.abs(lat-26.15)<.07&&lon>50.0&&lon<50.4){terr[i]=2;ctry[i]=3;continue;} // King Fahd Causeway
+    if(!land){terr[i]=0;continue;}
+    let c=0;
+    if(pip(KUWAIT,lon,lat))c=1;else if(pip(IRAQ,lon,lat))c=7;else if(pip(IRAN,lon,lat))c=8;else if(pip(YEMEN,lon,lat))c=9;
+    if(!c&&(pip(OUT_N,lon,lat)||lat>32.2||lon>60)){terr[i]=1;continue;}
+    if(c){}else if(pip(QATAR,lon,lat))c=4;else if(pip(BAHRAIN,lon,lat))c=3;else if(pip(UAE,lon,lat))c=5;
+    else if((lat>25.95&&lon>56.05)||pip(OMAN,lon,lat))c=6;else c=2;
+    ctry[i]=c;
+    let t=2;
+    if(MTN.some(p=>pip(p,lon,lat)))t=4;else if(DESERT.some(p=>pip(p,lon,lat)))t=3;
+    const n=vnoise(x,y,5);
+    if(t===2&&n>.78)t=3; if(t===3&&n<.12)t=2;
+    terr[i]=t;
+    for(const f of OILF){const dx=lon-f[0],dy=lat-f[1];if(dx*dx+dy*dy<=f[2]*f[2]){oil[i]=1;oilCells.push(i);break;}}
+  }
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const i=y*W+x,t=terr[i];
+    const nb=[x>0?i-1:-1,x<W-1?i+1:-1,y>0?i-W:-1,y<H-1?i+W:-1];
+    if(t>=2){LANDN++;for(const j of nb){if(j<0)continue;if(terr[j]===0)coast[i]=1;if(terr[j]>=2&&ctry[j]!==ctry[i])cborder[i]=1;}}
+    const n=vnoise(x,y,3)*.6+hash(x,y)*.4, k=(n-.5);
+    let r,g,b;
+    if(t===0){let near=0;for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<W&&yy<H&&terr[yy*W+xx]>=1)near=1;}
+      if(near){r=22;g=80;b=92;}else{r=13;g=50;b=61;} r+=k*8;g+=k*10;b+=k*10;}
+    else if(t===1){r=50+k*10;g=47+k*10;b=43+k*10;}
+    else if(t===2){r=196+k*22;g=162+k*20;b=106+k*16;}
+    else if(t===3){r=226+k*18;g=197+k*16;b=142+k*14;}
+    else {r=139+k*26;g=106+k*22;b=78+k*18;}
+    if(oil[i]){r=r*.72+30*.28;g=g*.72+26*.28;b=b*.72+22*.28;}
+    baseR[i]=r;baseG[i]=g;baseB[i]=b;
+  }
+})();
+function cellAt(lon,lat){let x=Math.floor((lon-LON0)/STEP),y=Math.floor((LAT1-lat)/STEP),i=y*W+x;if(terr[i]>=2)return i;
+  for(let r=1;r<5;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const j=(y+dy)*W+x+dx;if(terr[j]>=2)return j;}return i;}
+
+const coastCells=[];for(let i=0;i<N;i++)if(coast[i])coastCells.push(i);
+
+/* ================= Data ================= */
+const NAT=[null,
+ {name:'Kuwait',short:'KW',color:[31,192,200],cap:[47.95,29.3],perk:'Burgan oil: oil income +60%',unlock:0},
+ {name:'Saudi Arabia',short:'SA',color:[58,166,85],cap:[46.7,24.7],perk:'Royal Guard: troop cap +20%',unlock:0},
+ {name:'Bahrain',short:'BH',color:[240,86,60],cap:[50.55,26.2],perk:'Pearl coast: regen +35%, coastal gold. Island start: cross the causeway.',unlock:150},
+ {name:'Qatar',short:'QA',color:[166,42,110],cap:[51.45,25.3],perk:'LNG wealth: +40% gold',unlock:40},
+ {name:'UAE',short:'AE',color:[245,159,0],cap:[54.45,24.3],perk:'Megaprojects: cities 35% cheaper',unlock:60},
+ {name:'Oman',short:'OM',color:[76,124,240],cap:[58.4,23.55],perk:'Hajar highlanders: mountains half cost, +15% defense',unlock:90},
+ {name:'Iraq',short:'IQ',color:[168,96,220],cap:[44.4,33.3],perk:'Mesopotamia: regen +25%, cities +100 troop cap',unlock:120},
+ {name:'Iran',short:'IR',color:[236,236,226],cap:[51.4,35.7],perk:'Missile arsenal: missiles 30% cheaper, starts with a silo',unlock:200},
+ {name:'Yemen',short:'YE',color:[196,224,52],cap:[44.2,15.35],perk:'Highland warriors: land attacks 25% cheaper, mountains half cost, troop cap +20%, bigger start',unlock:150}
+];
+const NNAT=NAT.length-1;
+// Blocs: the six GCC states, and Iraq/Iran/Yemen. AI rarely attacks inside its own bloc.
+const BLOC=[0,1,1,1,1,1,1,2,2,2];
+const sameBloc=(a,b)=>a>0&&b>0&&BLOC[a]===BLOC[b];
+function baseMods(){return {neutral:1,desert:1,mount:1,cap:1,regen:1,atk:1,def:1,oil:1,gold:1,coast:0,speed:1,cityCost:1,cityCap:400,fortR:4,fortPow:0,plunder:0,lion:false,pearl:1,falaj:false,boatSpeed:1,boatPow:1,boats:3,navy:1,patrol:9,reload:1,magD:0,magS:0,droneCost:1,missileCost:1,droneN:1,evade:1,samR:7,samPow:1,bunker:0,blast:2,startSilo:false};}
+function applyPerk(id,m){
+  if(id===1)m.oil*=1.6; if(id===2)m.cap*=1.2; if(id===3){m.regen*=1.35;m.coast+=.1;}
+  if(id===4)m.gold*=1.4; if(id===5)m.cityCost*=.65; if(id===6){m.mount*=.5;m.def*=1.15;}
+  if(id===7){m.regen*=1.25;m.cityCap+=100;} if(id===8){m.missileCost*=.7;m.startSilo=true;}
+  if(id===9){m.atk*=.75;m.neutral*=.85;m.mount*=.5;m.cap*=1.2;}
+}
+const UPG=[
+ {k:'troops',name:'Majlis levies',desc:'+20% starting troops',base:15,grow:1.55,max:10},
+ {k:'regen',name:'Recruitment halls',desc:'+8% troop regen',base:20,grow:1.6,max:10},
+ {k:'home',name:'Ancestral lands',desc:'+1 starting radius',base:30,grow:2.0,max:4},
+ {k:'gold',name:'Treasury',desc:'+60 starting gold',base:12,grow:1.5,max:10},
+ {k:'cost',name:'Bedouin pathfinders',desc:'Neutral land 6% cheaper',base:25,grow:1.65,max:8},
+ {k:'choice',name:'Wise council',desc:'+1 decree to choose from',base:80,grow:2.5,max:2},
+ {k:'reroll',name:'Second opinion',desc:'+1 decree reroll per campaign',base:40,grow:2.0,max:3},
+ {k:'fortune',name:'Pearl merchants',desc:'+15% pearls from campaigns',base:25,grow:1.7,max:10},
+ {k:'sam',name:'Air defense network',desc:'Start each campaign with an air defense battery',base:60,grow:2.2,max:2},
+ {k:'dhow',name:'Dhow fleet',desc:'+1 pearl every 5 min, even while away',base:20,grow:1.6,max:15}
+];
+const RAR=['Common','Rare','Epic'];
+const CARDS=[
+ {id:'falcon',name:'Falcon scouts',r:0,desc:'Neutral land costs 25% less',apply:m=>{m.neutral*=.75}},
+ {id:'bedouin',name:'Bedouin riders',r:0,desc:'Desert costs 45% less to cross',apply:m=>{m.desert*=.55}},
+ {id:'mount',name:'Mountain guides',r:0,desc:'Mountains cost 45% less',apply:m=>{m.mount*=.55}},
+ {id:'consc',name:'Conscription',r:0,desc:'Troop cap +25%',apply:m=>{m.cap*=1.25}},
+ {id:'muster',name:'Majlis muster',r:0,desc:'Troop regen +25%',apply:m=>{m.regen*=1.25}},
+ {id:'walls',name:'Mud-brick walls',r:0,desc:'Enemies pay 20% more to take your land',apply:m=>{m.def*=1.2}},
+ {id:'pearl',name:'Pearl banks',r:0,desc:'Every coastal tile yields gold',apply:m=>{m.coast+=.15}},
+ {id:'souq',name:'Grand souq',r:0,desc:'+30% gold income',apply:m=>{m.gold*=1.3}},
+ {id:'chest',name:'Merchant caravan',r:0,desc:'+250 gold right now',now:n=>{n.gold+=250}},
+ {id:'reinf',name:'Reinforcements',r:0,desc:'Add 60% of your troop cap now',now:n=>{n.troops+=n.cap*.6}},
+ {id:'diver',name:'Master diver',r:0,desc:'+25% pearls from this campaign',apply:m=>{m.pearl*=1.25}},
+ {id:'drums',name:'War drums',r:1,desc:'Attacks on nations cost 18% less',apply:m=>{m.atk*=.82}},
+ {id:'oil',name:'Oil boom',r:1,desc:'Oil income doubled',apply:m=>{m.oil*=2}},
+ {id:'blitz',name:'Blitz',r:1,desc:'Attacks advance 40% faster',apply:m=>{m.speed*=1.4}},
+ {id:'urban',name:'Urban planning',r:1,desc:'Cities 30% cheaper and +200 troop cap each',apply:m=>{m.cityCost*=.7;m.cityCap+=200}},
+ {id:'fortd',name:'Fortress doctrine',r:1,desc:'Forts cover 2 more tiles and are 50% stronger',apply:m=>{m.fortR+=2;m.fortPow+=.5}},
+ {id:'plunder',name:'Plunder',r:1,desc:'+2 gold for every enemy tile you take',apply:m=>{m.plunder+=2}},
+ {id:'armada',name:'Dhow armada',r:1,desc:'Dhows sail 60% faster, land 25% stronger, +2 fleets',apply:m=>{m.boatSpeed*=1.6;m.boatPow*=1.25;m.boats+=2}},
+ {id:'navy',name:'Royal navy',r:1,desc:'Warships 50% stronger and faster, patrol 3 tiles farther',apply:m=>{m.navy*=1.5;m.patrol+=3}},
+ {id:'swarm',name:'Drone swarms',r:1,once:1,desc:'Each launch sends 3 drones for 1.5× the price',apply:m=>{m.droneN=3}},
+ {id:'hyper',name:'Hypersonic warheads',r:1,desc:'Your missiles are 40% harder to intercept',apply:m=>{m.evade*=1.4}},
+ {id:'layer',name:'Layered air defense',r:0,desc:'Air defense +3 range and +20% hit chance',apply:m=>{m.samR+=3;m.samPow*=1.2}},
+ {id:'bunker',name:'Hardened bunkers',r:0,once:1,desc:'Your buildings survive strikes half the time',apply:m=>{m.bunker=.5}},
+ {id:'payload',name:'Heavy payload',r:2,desc:'Missile blast radius +1',apply:m=>{m.blast+=1}},
+ {id:'workshop',name:'Drone workshops',r:0,desc:'Drones 40% cheaper',apply:m=>{m.droneCost*=.6}},
+ {id:'arsenal',name:'Strategic arsenal',r:1,desc:'Missiles 25% cheaper',apply:m=>{m.missileCost*=.75}},
+ {id:'rearm',name:'Rapid rearm',r:1,desc:'Silos, hangars and air defense reload 30% faster',apply:m=>{m.reload*=.7}},
+ {id:'mag',name:'Deep magazines',r:1,desc:'+2 drones per hangar, +2 interceptors per air defense',apply:m=>{m.magD+=2;m.magS+=2}},
+ {id:'falaj',name:'Falaj irrigation',r:1,once:1,desc:'Regen barely slows as you near your cap',apply:m=>{m.falaj=true}},
+ {id:'lion',name:"Lion's share",r:2,once:1,desc:'Taking a capital refills your troops to cap',apply:m=>{m.lion=true}},
+ {id:'sand',name:'Sandstorm season',r:2,desc:'Every rival regenerates 15% slower',global:()=>{G.sand*=.85}},
+ {id:'shura',name:'Shura council',r:2,desc:'Regen +20%, cap +15%, gold +15%',apply:m=>{m.regen*=1.2;m.cap*=1.15;m.gold*=1.15}}
+];
+const MILESTONES=[2,4,7,11,16,22,30,40,50];
+const WIN_PCT=60;
+const RANGE={drone:45,missile:95};
+// Magazine per launcher and full-reload time (s) once it runs dry: silo 1 missile / 30s, hangar 4 drones / 35s, air defense 3 interceptors / 18s
+const MAG={5:1,6:4,7:3},RELOAD={5:30,6:35,7:18};
+const magOf=(n,b)=>MAG[b]+(b===6?n.m.magD:b===7?n.m.magS:0);
+
+/* ================= Save ================= */
+const SAVE_KEY='gulf-dominion-v1';
+function defSave(){return {pearls:0,upg:{},unlocked:{1:1,2:1},diff:1,maxDiff:1,lastIdle:Date.now(),nation:1,runs:0,wins:0,best:0,tut:0};}
+function loadSave(){const d=defSave();try{const r=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(r)return Object.assign(d,r);}catch(e){}return d;}
+let S=loadSave();
+
+/* ================= Account, cloud save & store (needs the Cloudflare Worker; offline otherwise) ================= */
+const API=(()=>{const m=document.querySelector('meta[name="gd-api"]');let b=((m&&m.content)||'').trim();if(b==='/')b=location.origin;return /^https?:$/.test(location.protocol)&&b?b.replace(/\/$/,''):'';})();
+let TOKEN=null,ACCOUNT=null,ENT={items:new Set(),pearls:0},ENT_LIST=[],STORE=null,syncT=0,syncState='',HASH_NOTE=null,errLogged=0;
+let THEME=[1,1,1,1,1,1],GOLD=false;
+try{TOKEN=localStorage.getItem('gd_token');}catch(e){}
+const owns=item=>ENT.items.has(item);
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+(function readHash(){
+  const h=location.hash.slice(1);if(!h)return;const q=new URLSearchParams(h);let used=false;
+  if(q.get('token')){TOKEN=q.get('token');try{localStorage.setItem('gd_token',TOKEN);}catch(e){}used=true;}
+  if(q.get('auth_error')){HASH_NOTE=['bad',q.get('auth_error')==='banned'?'This account is blocked.':'Google sign-in did not finish. Try again.'];used=true;}
+  if(q.get('store')){HASH_NOTE=q.get('store')==='success'?['ok','Payment received. Your unlock is applied.']:['bad','The payment did not complete. If money left your account, the unlock is applied once MyFatoorah confirms it.'];used=true;}
+  if(used)try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
+})();
+async function api(path,opt={}){
+  const headers={'content-type':'application/json'};if(TOKEN)headers.authorization='Bearer '+TOKEN;
+  const r=await fetch(API+path,{method:opt.method||'GET',headers,body:opt.body?JSON.stringify(opt.body):undefined});
+  const j=await r.json().catch(()=>({}));
+  if(r.status===401&&TOKEN)signOut(true);
+  if(!r.ok)throw Object.assign(new Error(j.error||('HTTP '+r.status)),{status:r.status,body:j});
+  return j;
+}
+function signIn(){location.href=API+'/auth/google/start?return='+encodeURIComponent(location.origin+location.pathname);}
+function signOut(silent){TOKEN=null;ACCOUNT=null;ENT={items:new Set(),pearls:0};ENT_LIST=[];try{localStorage.removeItem('gd_token');}catch(e){}if(silent)renderAccount();else renderHome();}
+function applyEnt(list){
+  ENT_LIST=list||[];ENT={items:new Set(),pearls:0};
+  for(const e of ENT_LIST){if(e.item==='pearls')ENT.pearls+=Number(e.qty)||0;else if(Number(e.qty)>0)ENT.items.add(e.item);}
+  if(owns('all_nations'))for(let id=1;id<NAT.length;id++)S.unlocked[id]=1;
+  const add=ENT.pearls-(S.bonusClaimed||0);if(add>0)S.pearls+=add;
+  S.bonusClaimed=Math.max(S.bonusClaimed||0,ENT.pearls);
+  applyCosmetics();
+}
+function saveLocal(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
+function save(){S.updatedAt=Date.now();saveLocal();pushSave(false);}
+function pushSave(immediate){
+  if(!ACCOUNT)return;clearTimeout(syncT);
+  syncT=setTimeout(async()=>{try{await api('/api/save',{method:'PUT',body:{data:S,updatedAt:S.updatedAt||Date.now()}});syncState='synced';}catch(e){syncState='offline';}renderAccount();},immediate?0:1500);
+}
+function logEvent(event,data){if(ACCOUNT)api('/api/log',{method:'POST',body:{event,data}}).catch(()=>{});}
+window.addEventListener('error',e=>{if(errLogged++<5)logEvent('client_error',{msg:String(e.message||'').slice(0,200),line:e.lineno||0});});
+async function loadAccount(){
+  if(!API||!TOKEN){renderAccount();return;}
+  try{
+    const me=await api('/api/me');ACCOUNT=me.user;
+    if(me.save&&me.save.updated_at>(S.updatedAt||0))S=Object.assign(defSave(),me.save.data);
+    applyEnt(me.entitlements);
+    S.updatedAt=Math.max(S.updatedAt||0,me.save?me.save.updated_at:0)||Date.now();
+    saveLocal();pushSave(true);logEvent('session',{});
+  }catch(e){if(e.status!==401)syncState='offline';}
+  if(screen==='home')renderHome();
+}
+function renderAccount(){
+  const el=$('#acct');if(!el)return;if(!API){el.hidden=true;return;}el.hidden=false;
+  if(!ACCOUNT){el.innerHTML='<div class="t"><b>Save your progress</b>Sign in with Google to keep pearls, upgrades and unlocks on every device.</div><button class="btn gold" id="signIn">Sign in with Google</button>';$('#signIn').onclick=signIn;return;}
+  const initial=String(ACCOUNT.name||ACCOUNT.email||'?').trim().charAt(0).toUpperCase();
+  el.innerHTML=`<span class="avatar">${esc(initial)}</span><div class="t"><b>${esc(ACCOUNT.name||ACCOUNT.email)}${owns('founder')?'<span class="badge">Founder</span>':''}</b>${esc(ACCOUNT.email)} · ${syncState==='offline'?'Offline. Will sync when back online.':'Progress saved to your account'}</div>${ACCOUNT.is_admin?'<a class="btn" href="admin.html">Admin</a>':''}<button class="btn" id="signOut">Sign out</button>`;
+  $('#signOut').onclick=()=>signOut(false);
+}
+async function loadStore(){if(!API)return;try{STORE=await api('/api/store');}catch(e){STORE=null;}if(screen==='home')renderStore();}
+const fmtPrice=(v,c)=>`${Number(v).toFixed(['KWD','BHD','OMR','JOD'].includes(c)?3:2)} ${esc(c)}`;
+function renderStore(){
+  const sec=$('#storeSec');if(!sec)return;if(!API||!STORE||!STORE.products||!STORE.products.length){sec.hidden=true;return;}sec.hidden=false;
+  $('#storeHint').textContent=!STORE.enabled?'The store opens soon.':STORE.mode==='test'?'Test mode: use MyFatoorah test cards. Nothing real is charged.':'Purchases are permanent and tied to your Google account.';
+  $('#store').innerHTML=STORE.products.map(pr=>{const item=pr.payload&&pr.payload.item,owned=pr.kind!=='pearls'&&item&&owns(item);
+    return `<div class="upg"><div class="t"><b>${esc(pr.name)}</b><small>${esc(pr.description)}</small></div><button class="btn ${owned?'':'gold'}" data-p="${esc(pr.id)}" ${owned||!STORE.enabled?'disabled':''}>${owned?'Owned':fmtPrice(pr.price,pr.currency)}</button></div>`;}).join('');
+  document.querySelectorAll('#store button[data-p]').forEach(b=>b.onclick=()=>buy(b.dataset.p,b));
+}
+async function buy(id,btn){
+  if(!ACCOUNT){showNote('bad','Sign in with Google first so your purchase is saved to your account.');return;}
+  btn.disabled=true;btn.textContent='Opening…';logEvent('store_open',{product:id});
+  try{const r=await api('/api/checkout',{method:'POST',body:{productId:id,returnUrl:location.origin+location.pathname}});location.href=r.url;}
+  catch(e){renderStore();showNote('bad',e.message==='owned'?'You already own this.':e.message==='payments_not_configured'?'Payments are not set up yet.':'Could not start the payment. Try again in a moment.');}
+}
+function showNote(kind,msg){const n=$('#notice');n.hidden=false;n.className='notice '+kind;n.textContent=msg;}
+function renderCosmetics(){
+  const sec=$('#cosSec');if(!sec)return;
+  const opts=[['theme_night','Night map theme'],['border_gold','Gold borders']].filter(o=>owns(o[0]));
+  if(!opts.length){sec.hidden=true;return;}sec.hidden=false;
+  $('#cos').innerHTML=opts.map(([id,name])=>{const on=!!(S.cos&&S.cos[id]);return `<div class="upg"><div class="t"><b>${name}</b><small>${on?'On':'Off'}</small></div><button class="btn ${on?'gold':''}" data-c="${id}">${on?'Turn off':'Turn on'}</button></div>`;}).join('');
+  document.querySelectorAll('#cos button').forEach(b=>b.onclick=()=>{S.cos=S.cos||{};S.cos[b.dataset.c]=!S.cos[b.dataset.c];save();applyCosmetics();renderHome();});
+}
+function applyCosmetics(){
+  const night=owns('theme_night')&&S.cos&&S.cos.theme_night;
+  THEME=night?[.55,.58,.78,.5,.56,.82]:[1,1,1,1,1,1];
+  GOLD=!!(owns('border_gold')&&S.cos&&S.cos.border_gold);
+  fullPaint=true;
+}
+const lvl=k=>S.upg[k]||0;
+const upgCost=u=>Math.round(u.base*Math.pow(u.grow,lvl(u.k)));
+const fmt=n=>{n=Math.max(0,n);return n<1000?String(Math.floor(n)):n<1e6?(n/1000).toFixed(n<1e4?1:0)+'k':(n/1e6).toFixed(1)+'M';};
+const rgb=(c,a=1)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+/* ================= Run state ================= */
+const owner=new Uint8Array(N), bld=new Uint8Array(N), ammo=new Float32Array(N), bcool=new Float32Array(N), bgap=new Float32Array(N); // bld: 1 city, 2 fort, 3 rig, 4 port, 5 silo, 6 drone hangar, 7 air defense
+let blist=[], attacks=[], boats=[], ships=[], shots=[], missiles=[], booms=[], NATS=[null], G=null;
+const dirty=new Uint8Array(N); let dirtyList=[], fullPaint=true;
+
+function markDirty(i){if(!dirty[i]){dirty[i]=1;dirtyList.push(i);}}
+function markAround(i){const x=i%W,y=(i/W)|0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<W&&yy<H)markDirty(yy*W+xx);}}
+
+function claimBlob(id,center,r){
+  const q=[center],seen=new Set([center]);const cx=center%W,cy=(center/W)|0;
+  while(q.length){const i=q.shift();if(owner[i]&&owner[i]!==id)continue;owner[i]=id;
+    const x=i%W,y=(i/W)|0;
+    for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W]){if(j<0||j>=N||seen.has(j))continue;seen.add(j);
+      const dx=j%W-cx,dy=((j/W)|0)-cy;if(terr[j]>=2&&dx*dx+dy*dy<=r*r+.5)q.push(j);}}
+}
+
+function newNation(id,isPlayer,diff){
+  const d=NAT[id],m=baseMods();applyPerk(id,m);
+  if(isPlayer){m.regen*=1+.08*lvl('regen');m.neutral*=Math.pow(.94,lvl('cost'));}
+  return {id,name:d.name,color:d.color,isPlayer,alive:true,m,capIdx:cellAt(d.cap[0],d.cap[1]),
+    troops:isPlayer?300*(1+.2*lvl('troops')):300*(.9+.1*diff),gold:isPlayer?100+60*lvl('gold'):100,
+    tiles:0,cap:300,cities:0,rigs:0,oilT:0,coastT:0,cx:0,cy:0,citiesBuilt:0,fortsBuilt:0,rigsBuilt:0,portsBuilt:0,shipsBuilt:0,silosBuilt:0,hangarsBuilt:0,samsBuilt:0,ports:0,rigsDry:0,nextAI:2+Math.random()*3,regenNow:0,goldNow:0};
+}
+
+function startRun(){
+  const pid=S.nation,diff=S.diff;
+  owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);
+  G={pid,diff,t:0,speed:1,paused:false,over:false,acc:0,econAcc:0,
+     aiRegen:.8+.12*diff,aiCap:.9+.1*diff,aiThresh:Math.max(.3,.62-.06*diff),aiFrac:Math.min(.65,.3+.07*diff),
+     sand:1,kills:0,peak:0,ms:0,drafts:0,rerolls:lvl('reroll'),cards:[],nextEvt:140,ssel:'drone',evt:null,evtEnd:0,oilBoost:1,sandstorm:1,
+     mode:'attack',bsel:'city',ratio:+$('#ratio').value/100,pings:[]};
+  NATS=[null];
+  for(let id=1;id<=NNAT;id++)NATS.push(newNation(id,id===pid,diff));
+  claimBlob(pid,NATS[pid].capIdx,2+lvl('home')+(pid===9?1:0));
+  for(let id=1;id<=NNAT;id++)if(id!==pid)claimBlob(id,NATS[id].capIdx,2+(diff>=3?1:0)+(id===9?1:0));
+  for(let id=1;id<=NNAT;id++){const n=NATS[id];
+    if(n.m.startSilo)placeNear(n,n.capIdx,'silo',3,true);
+    if(n.isPlayer)for(let k=0;k<lvl('sam')+(owns('founder')?1:0);k++)placeNear(n,n.capIdx,'sam',3,true);}
+  econ(true);
+  fullPaint=true;
+  showScreen('game');
+  resize();
+  centerOn(NATS[pid].capIdx,Math.max(4,Math.min(7,innerWidth/80)));
+  setMode('attack');
+  toast(S.tut?`Heat ${diff}. Expand from ${NATS[pid].name} and hold ${WIN_PCT}% of the region.`:'Tap sand next to your land to expand. Drag to pan, pinch to zoom.',5000);
+  S.tut=1;save();
+  logEvent('run_start',{nation:NAT[pid].name,heat:diff});
+}
+
+/* ================= Simulation ================= */
+function terrMul(m,i){const t=terr[i];return t===3?1+.8*m.desert*G.sandstorm:t===4?1+1.6*m.mount:1;}
+function fortMul(d,i){
+  let mul=1;const x=i%W,y=(i/W)|0;const R2=d.m.fortR*d.m.fortR;
+  for(const f of blist){if(bld[f]!==2||owner[f]!==d.id)continue;const dx=f%W-x,dy=((f/W)|0)-y;if(dx*dx+dy*dy<=R2){mul=Math.max(mul,1.8+d.m.fortPow);}}
+  const c=d.capIdx,cdx=c%W-x,cdy=((c/W)|0)-y,cd=cdx*cdx+cdy*cdy;
+  if(cd===0)mul*=4;else if(cd<=5)mul*=1.5;
+  return mul;
+}
+function tileCost(att,defId,i){
+  const tm=terrMul(att.m,i);
+  if(!defId)return 4*tm*att.m.neutral;
+  const d=NATS[defId],dens=d.troops/Math.max(1,d.tiles);
+  return (4+dens*1.1)*tm*att.m.atk*d.m.def*fortMul(d,i);
+}
+function adjTo(i,id){const x=i%W;return (x>0&&owner[i-1]===id)||(x<W-1&&owner[i+1]===id)||(i>=W&&owner[i-W]===id)||(i<N-W&&owner[i+W]===id);}
+
+function launchAttack(attId,defId,troops,tx,ty,pool=true){
+  const n=NATS[attId];if(pool){troops=Math.min(troops,n.troops);if(troops<3)return 'few';}
+  const inc=defId?attacks.find(a=>a.att===defId&&a.def===attId&&!a.done):null;
+  if(inc){
+    // Clash with the incoming army first, then push back over the tiles it just took
+    if(pool){n.troops-=troops;pool=false;}
+    const clash=Math.min(troops,inc.troops);inc.troops-=clash;troops-=clash;
+    if(inc.troops<1){inc.troops=0;inc.done=true;}
+    if(troops<1)return 'countered';
+    const taken=inc.taken.filter(c=>owner[c]===defId),last=taken.length?taken[taken.length-1]:-1;
+    if(taken.length){
+      const cur=attacks.find(a=>a.att===attId&&a.def===defId&&!a.done);
+      const tgt=cur||{att:attId,def:defId,troops:0,tx:0,ty:0,front:[],inF:new Set(),acc:0,done:false,taken:[]};
+      tgt.troops+=troops;tgt.tx=last%W;tgt.ty=(last/W)|0;tgt.counter=new Set(taken);
+      for(const c of taken)if(!tgt.inF.has(c)&&adjTo(c,attId)){tgt.inF.add(c);tgt.front.push(c);}
+      if(!tgt.front.length){n.troops+=troops;return 'countered';}
+      if(!cur)attacks.push(tgt);
+      return 'countered';
+    }
+  }
+  const ex=attacks.find(a=>a.att===attId&&a.def===defId&&!a.done);
+  if(ex){ex.troops+=troops;if(pool)n.troops-=troops;ex.tx=tx;ex.ty=ty;return 'ok';}
+  const front=[],inF=new Set();
+  for(let i=0;i<N;i++){if(owner[i]!==attId)continue;const x=i%W;
+    const nb=[x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W];
+    for(const j of nb){if(j<0||j>=N||inF.has(j))continue;if(owner[j]===defId&&terr[j]>=2){inF.add(j);front.push(j);}}}
+  if(!front.length)return 'noborder';
+  if(pool)n.troops-=troops;
+  attacks.push({att:attId,def:defId,troops,tx,ty,front,inF,acc:0,done:false,taken:[]});
+  return 'ok';
+}
+function stepAttack(a){
+  const att=NATS[a.att];
+  if(!att.alive||(a.def&&!NATS[a.def].alive)){a.done=true;return;}
+  a.acc+=(.5+Math.sqrt(a.troops)/18)*att.m.speed;
+  let n=Math.floor(a.acc);a.acc-=n;
+  while(n-->0){
+    let best=-1,bs=1e12;
+    for(let s=0;s<3&&a.front.length;s++){
+      const k=(Math.random()*a.front.length)|0,i=a.front[k];
+      if(owner[i]!==a.def||!adjTo(i,a.att)){a.front[k]=a.front[a.front.length-1];a.front.pop();a.inF.delete(i);best=-1;bs=1e12;continue;}
+      const dx=i%W-a.tx,dy=((i/W)|0)-a.ty,sc=(dx*dx+dy*dy)*.5+Math.random()*60+terr[i]*8-(a.counter&&a.counter.has(i)?1e6:0);
+      if(sc<bs){bs=sc;best=k;}
+    }
+    if(!a.front.length){a.done=true;break;}
+    if(best<0)continue;
+    const i=a.front[best],cost=tileCost(att,a.def,i);
+    if(a.troops<cost){a.done=true;break;}
+    a.troops-=cost;
+    a.front[best]=a.front[a.front.length-1];a.front.pop();a.inF.delete(i);
+    const def=a.def;
+    if(def){const d=NATS[def];d.troops=Math.max(0,d.troops-cost*.5);}
+    capture(i,a.att,def);
+    if(a.taken.length<3000)a.taken.push(i);
+    if(G.over)return;
+    const x=i%W;
+    for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W]){if(j<0||j>=N||a.inF.has(j))continue;if(owner[j]===def&&terr[j]>=2){a.inF.add(j);a.front.push(j);}}
+    if(def&&!NATS[def].alive){a.done=true;break;}
+  }
+}
+function capture(i,attId,defId){
+  owner[i]=attId;const att=NATS[attId];att.tiles++;markAround(i);
+  if(!defId)return;
+  const d=NATS[defId];d.tiles--;
+  att.gold+=att.m.plunder;
+  if(i===d.capIdx)collapse(d,att);
+  else if(d.tiles<=0)eliminate(d,att);
+}
+function collapse(d,att){
+  const old=d.capIdx,ox=old%W,oy=(old/W)|0;
+  const lost=d.troops*.4;d.troops-=lost;att.troops+=lost*.5;att.gold+=d.gold*.3;d.gold*=.7;
+  let best=-1,bd=-1;
+  for(let i=0;i<N;i++){if(owner[i]!==d.id)continue;const dx=i%W-ox,dy=((i/W)|0)-oy,dd=dx*dx+dy*dy;if(dd>bd){bd=dd;best=i;}}
+  if(best<0){eliminate(d,att);return;}
+  d.capIdx=best;
+  if(att.isPlayer){if(att.m.lion)att.troops=Math.max(att.troops,att.cap);if(!d.capLost){G.drafts++;}toast(`You took ${d.name}'s capital. They regroup at a new one.`,3500);}
+  else if(d.isPlayer)toast(`${att.name} took your capital. Your government moved. Hold your land.`,4000);
+  else toast(`${att.name} took ${d.name}'s capital.`,3000);
+  d.capLost=true;
+}
+function eliminate(d,att,annexed){
+  if(!d.alive)return;d.alive=false;d.troops=0;
+  attacks.forEach(a=>{if(a.att===d.id)a.done=true;});boats.forEach(b=>{if(b.att===d.id)b.done=true;});ships.forEach(w=>{if(w.own===d.id)w.dead=true;});missiles.forEach(m=>{if(m.own===d.id)m.done=true;});
+  if(d.isPlayer){toast(`${att.name} has overrun your last territory.`);endRun(false);return;}
+  if(att.isPlayer){G.kills++;G.drafts++;toast(`${d.name} is no more.`,3500);}
+  else toast(`${d.name} has fallen to ${att.name}.`,3000);
+  const rivals=NATS.filter(n=>n&&!n.isPlayer&&n.alive).length;
+  if(rivals===0)endRun(true);
+}
+
+/* ---- Boats: sail over water from your nearest shore, land, then push inland ---- */
+const wpar=new Int32Array(N),wseen=new Uint32Array(N);let wstamp=0;
+function nb4(i){const x=i%W;return [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W];}
+function landingFor(i){
+  if(coast[i])return i;
+  const o=owner[i],x0=i%W,y0=(i/W)|0;let best=-1,bd=1e9;
+  for(let dy=-8;dy<=8;dy++)for(let dx=-8;dx<=8;dx++){const x=x0+dx,y=y0+dy;if(x<0||y<0||x>=W||y>=H)continue;
+    const j=y*W+x;if(coast[j]&&owner[j]===o){const d=dx*dx+dy*dy;if(d<bd){bd=d;best=j;}}}
+  return best;
+}
+function findSeaPath(attId,land){
+  wstamp++;const q=[];
+  for(const j of nb4(land)){if(j>=0&&j<N&&terr[j]===0){wseen[j]=wstamp;wpar[j]=-1;q.push(j);}}
+  for(let h=0;h<q.length&&h<14000;h++){const c=q[h],ns=nb4(c);
+    for(const j of ns){if(j>=0&&j<N&&owner[j]===attId&&terr[j]>=2){const path=[];for(let k=c;k!==-1;k=wpar[k])path.push(k);return path;}}
+    for(const j of ns){if(j>=0&&j<N&&terr[j]===0&&wseen[j]!==wstamp){wseen[j]=wstamp;wpar[j]=c;q.push(j);}}}
+  return null;
+}
+function launchBoat(attId,i,troops){
+  const n=NATS[attId];
+  if(boats.filter(b=>b.att===attId).length>=n.m.boats)return 'maxboats';
+  troops=Math.min(troops,n.troops);if(troops<10)return 'few';
+  const land=landingFor(i);if(land<0)return 'nocoast';
+  if(owner[land]===attId)return 'own';
+  const path=findSeaPath(attId,land);if(!path)return 'nosea';
+  n.troops-=troops;
+  boats.push({att:attId,troops,path,land,p:0,tx:i%W,ty:(i/W)|0,done:false});
+  return 'ok';
+}
+function stepBoats(dt){
+  for(const b of boats.slice()){
+    if(b.done)continue;
+    if(!NATS[b.att].alive){b.done=true;continue;}
+    const bc=boatCell(b),bx=bc%W,by=(bc/W)|0;
+    const underFire=ships.some(w=>w.own!==b.att&&!w.dead&&(w.c%W-bx)**2+(((w.c/W)|0)-by)**2<=12);
+    b.p+=dt*5*NATS[b.att].m.boatSpeed*(underFire?.35:1);
+    if(b.p>=b.path.length){b.done=true;landBoat(b);if(G.over)return;}
+  }
+  boats=boats.filter(b=>!b.done);
+}
+function landBoat(b){
+  const att=NATS[b.att],L=b.land,def=owner[L];let t=b.troops*att.m.boatPow;
+  if(def===b.att){att.troops+=t;return;}
+  const cost=tileCost(att,def,L)*1.5;
+  if(t<cost){if(def)NATS[def].troops=Math.max(0,NATS[def].troops-t*.5);if(att.isPlayer)toast('Your landing was thrown back into the sea.');return;}
+  t-=cost;if(def)NATS[def].troops=Math.max(0,NATS[def].troops-cost*.5);
+  capture(L,b.att,def);if(G.over)return;
+  if(att.isPlayer)toast(def?`Dhows land on ${NATS[def].name} soil.`:'Dhows land on open coast.',1800);
+  if(def&&!NATS[def].alive){att.troops+=t;return;}
+  const ex=attacks.find(a=>a.att===b.att&&a.def===def&&!a.done);
+  if(ex){ex.troops+=t;for(const j of nb4(L)){if(j>=0&&j<N&&owner[j]===def&&terr[j]>=2&&!ex.inF.has(j)){ex.inF.add(j);ex.front.push(j);}}return;}
+  if(launchAttack(b.att,def,t,b.tx,b.ty,false)!=='ok')att.troops+=t;
+}
+/* ---- Warships: patrol waters around their port, chase and sink enemy dhows and ships ---- */
+function boatCell(b){return b.path[Math.min(b.path.length-1,Math.floor(b.p))];}
+function waterPath(from,to,limit){
+  if(from===to)return [from];
+  wstamp++;const q=[from];wseen[from]=wstamp;wpar[from]=-1;
+  for(let h=0;h<q.length&&h<limit;h++){const c=q[h];
+    for(const j of nb4(c)){if(j<0||j>=N||terr[j]!==0||wseen[j]===wstamp)continue;wseen[j]=wstamp;wpar[j]=c;
+      if(j===to){const path=[];for(let k=j;k!==-1;k=wpar[k])path.push(k);return path.reverse();}q.push(j);}}
+  return null;
+}
+function spawnShip(n,port){
+  const c=costOf(n,'ship');if(n.gold<c)return false;
+  const sea=nearWater(port,3);if(sea<0)return false;
+  n.gold-=c;n.shipsBuilt++;
+  ships.push({own:n.id,port,c:sea,path:[sea],p:0,hp:300,target:null,cool:0,retarget:0,dead:false});
+  return true;
+}
+function patrolCell(w,R){
+  const px=w.port%W,py=(w.port/W)|0;
+  for(let k=0;k<25;k++){const dx=Math.round((Math.random()*2-1)*R),dy=Math.round((Math.random()*2-1)*R);
+    const x=px+dx,y=py+dy;if(x<0||y<0||x>=W||y>=H||dx*dx+dy*dy>R*R)continue;const j=y*W+x;if(terr[j]===0)return j;}
+  return -1;
+}
+function stepShips(dt){
+  for(const w of ships){
+    const n=NATS[w.own];
+    if(w.dead||!n.alive||owner[w.port]!==w.own||bld[w.port]!==4||w.hp<=0){w.dead=true;continue;}
+    const R=n.m.patrol,wx=w.c%W,wy=(w.c/W)|0,px=w.port%W,py=(w.port/W)|0;
+    w.retarget-=dt;
+    if(w.retarget<=0){
+      w.retarget=.5;let best=null,bd=1e9;
+      const consider=(k,o,c)=>{const dx=c%W-wx,dy=((c/W)|0)-wy,d=dx*dx+dy*dy,qx=c%W-px,qy=((c/W)|0)-py;
+        if(d<bd&&d<=400&&qx*qx+qy*qy<=R*R*4){bd=d;best={k,o,c};}};
+      for(const b of boats)if(b.att!==w.own&&!b.done)consider('b',b,boatCell(b));
+      for(const s of ships)if(s.own!==w.own&&!s.dead)consider('s',s,s.c);
+      w.target=best;
+      if(best){const path=waterPath(w.c,best.c,900);if(path){w.path=path;w.p=0;}}
+      else if(w.p>=w.path.length-1){const t=patrolCell(w,R);const path=t>=0?waterPath(w.c,t,900):null;if(path){w.path=path;w.p=0;}}
+    }
+    if(w.path.length>1){w.p=Math.min(w.path.length-1,w.p+dt*5*n.m.navy);w.c=w.path[Math.floor(w.p)];}
+    w.cool-=dt;
+    const t=w.target;
+    if(t&&w.cool<=0){
+      const tc=t.k==='b'?boatCell(t.o):t.o.c,dx=tc%W-w.c%W,dy=((tc/W)|0)-((w.c/W)|0);
+      if((t.k==='b'?!t.o.done:!t.o.dead)&&dx*dx+dy*dy<=12){
+        w.cool=.5;shots.push({ax:w.c%W,ay:(w.c/W)|0,bx:tc%W,by:(tc/W)|0,t:performance.now()});
+        if(t.k==='b'){t.o.troops-=150*n.m.navy;
+          if(t.o.troops<=0){t.o.troops=0;t.o.done=true;w.target=null;
+            if(t.o.att===G.pid)toast(`A ${n.name} warship sank your dhow.`);else if(w.own===G.pid)toast(`Your warship sank a ${NATS[t.o.att].name} dhow.`);}}
+        else{t.o.hp-=50*n.m.navy;
+          if(t.o.hp<=0){t.o.dead=true;w.target=null;
+            if(t.o.own===G.pid)toast(`A ${n.name} warship sank one of your warships.`);else if(w.own===G.pid)toast(`Your navy sank a ${NATS[t.o.own].name} warship.`);}}
+      }
+    }
+  }
+  ships=ships.filter(w=>!w.dead);
+}
+function aiBoat(n,cnt){
+  if(G.t<180||!n.coastT||boats.filter(b=>b.att===n.id).length>=2)return false;
+  for(let k=0;k<40;k++){
+    const j=coastCells[(Math.random()*coastCells.length)|0],o=owner[j];if(o===n.id||cnt.has(o)||(sameBloc(n.id,o)&&Math.random()<.9))continue;
+    const dx=j%W-n.cx,dy=((j/W)|0)-n.cy;if(dx*dx+dy*dy>70*70)continue;
+    if(o&&NATS[o].troops>n.troops*.6)continue;
+    return launchBoat(n.id,j,n.troops*(o?G.aiFrac:.35))==='ok';
+  }
+  return false;
+}
+
+function econ(init){
+  const cnt=NATS.map(()=>({t:0,oil:0,coast:0,cities:0,rigs:0,dry:0,ports:0,sx:0,sy:0}));
+  for(let i=0;i<N;i++){const o=owner[i];if(!o)continue;const c=cnt[o];c.t++;if(oil[i])c.oil++;if(coast[i])c.coast++;
+    const b=bld[i];if(b===1)c.cities++;else if(b===3){if(oil[i])c.rigs++;else c.dry++;}else if(b===4)c.ports++;c.sx+=i%W;c.sy+=(i/W)|0;}
+  for(let id=1;id<NATS.length;id++){const n=NATS[id],c=cnt[id];
+    n.ports=c.ports;n.rigsDry=c.dry;n.tiles=c.t;n.oilT=c.oil;n.coastT=c.coast;n.cities=c.cities;n.rigs=c.rigs;
+    if(c.t){n.cx=c.sx/c.t;n.cy=c.sy/c.t;}
+    n.cap=(300+n.tiles*10+n.cities*n.m.cityCap)*n.m.cap*(n.isPlayer?1:G.aiCap);
+    const om=n.m.oil*G.oilBoost;
+    n.goldNow=n.alive?(n.tiles*.04+n.oilT*.5*om+n.rigs*4*om+n.rigsDry*1.2*om+n.cities*1.5+n.ports*2+n.coastT*n.m.coast)*n.m.gold:0;
+    if(!init)n.gold+=n.goldNow;
+    if(n.alive&&n.tiles===0&&!init){eliminate(n,{name:'its rivals',isPlayer:false});if(G.over)return;}
+  }
+}
+function regen(n,dt){
+  if(!n.alive)return;
+  const ratio=n.troops/n.cap;
+  const f=n.m.falaj?Math.max(0,1-ratio*.55):Math.max(0,1-ratio);
+  const base=(18+n.tiles*.45+n.cities*6)*n.m.regen*(n.isPlayer?1:G.aiRegen*G.sand)*.65;
+  n.regenNow=base*f;
+  n.troops+=n.regenNow*dt;
+  if(n.troops>n.cap)n.troops-=(n.troops-n.cap)*.02;
+}
+
+function aiThink(n){
+  if(G.t<n.nextAI)return;
+  n.nextAI=G.t+1.6+Math.random()*1.6;
+  if(Math.random()<.35)aiStrike(n);
+  if(Math.random()<.4)aiBuild(n);
+  const inc=attacks.find(a=>a.def===n.id&&!a.done);
+  if(inc&&n.troops>inc.troops*.5){const t=inc.taken.length?inc.taken[inc.taken.length-1]:-1;
+    launchAttack(n.id,inc.att,Math.min(n.troops*.7,inc.troops*1.4+60),t>=0?t%W:inc.tx,t>=0?(t/W)|0:inc.ty);return;}
+  if(n.troops<n.cap*G.aiThresh)return;
+  const cnt=new Map(),samp=new Map();
+  for(let i=0;i<N;i++){if(owner[i]!==n.id)continue;const x=i%W;
+    const nb=[x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W];
+    for(const j of nb){if(j<0||j>=N)continue;const o=owner[j];if(o===n.id||terr[j]<2)continue;
+      const c=(cnt.get(o)||0)+1;cnt.set(o,c);if(Math.random()*c<1)samp.set(o,j);}}
+  if(n.troops>n.cap*.5&&Math.random()<(cnt.has(0)?.05:.2)&&aiBoat(n,cnt))return;
+  if(!cnt.size)return;
+  let target=-1;
+  const nations=[...cnt.keys()].filter(o=>o!==0);
+  if(cnt.has(0)&&(!nations.length||Math.random()<.78))target=0;
+  else if(nations.length){
+    let best=-1,bs=1e12;
+    for(const o of nations){const d=NATS[o];let sc=d.troops/Math.max(1,cnt.get(o))*(.7+Math.random()*.6);
+      if(d.isPlayer)sc*=Math.max(.55,1-.08*G.diff);if(sameBloc(n.id,o))sc*=6;if(sc<bs){bs=sc;best=o;}}
+    const d=NATS[best];
+    if((n.troops*G.aiFrac>d.troops*.35||n.troops>n.cap*.92)&&(!sameBloc(n.id,best)||Math.random()<.05))target=best;
+    else if(cnt.has(0))target=0;
+  }
+  if(target<0)return;
+  const j=samp.get(target);
+  launchAttack(n.id,target,n.troops*(target===0?.45:G.aiFrac),j%W,(j/W)|0);
+}
+function aiBuild(n){
+  const rc=costOf(n,'rig');
+  if(n.gold>=rc){for(const i of oilCells){if(owner[i]===n.id&&!bld[i]){place(n,i,'rig');return;}}}
+  let sams=0,hang=0,silo=0;for(const j of blist){if(owner[j]!==n.id)continue;if(bld[j]===7)sams++;else if(bld[j]===6)hang++;else if(bld[j]===5)silo++;}
+  if(sams<1+Math.floor(n.tiles/350)&&n.gold>=costOf(n,'sam')&&(G.t>40||sams===0&&G.t>20)){
+    const anchors=[n.capIdx,...blist.filter(j=>owner[j]===n.id&&(bld[j]===1||bld[j]===5||bld[j]===6))];
+    if(placeNear(n,anchors[(Math.random()*anchors.length)|0],'sam',4))return;}
+  if(!hang&&G.t>60&&n.gold>=costOf(n,'hangar')*1.1&&placeNear(n,n.capIdx,'hangar',5))return;
+  if(!silo&&G.t>120&&n.gold>=costOf(n,'silo')*1.2&&placeNear(n,n.capIdx,'silo',5))return;
+  if(n.coastT&&Math.random()<.35){
+    const myPorts=blist.filter(i=>bld[i]===4&&owner[i]===n.id);
+    const free=myPorts.find(i=>ships.filter(w=>w.port===i).length<2);
+    if(free!==undefined&&ships.filter(w=>w.own===n.id).length<myPorts.length&&n.gold>=costOf(n,'ship')){spawnShip(n,free);return;}
+    if(myPorts.length<2&&n.gold>=costOf(n,'port')*1.1){for(let k=0;k<60;k++){const i=coastCells[(Math.random()*coastCells.length)|0];if(owner[i]===n.id&&!bld[i]){place(n,i,'port');return;}}}
+  }
+  const cc=costOf(n,'city');
+  if(n.gold>=cc*1.15){for(let k=0;k<300;k++){const i=(Math.random()*N)|0;if(owner[i]===n.id&&!bld[i]&&!oil[i]){place(n,i,'city');return;}}}
+}
+function costOf(n,t){
+  if(t==='city')return Math.round(120*Math.pow(1.35,n.citiesBuilt)*n.m.cityCost);
+  if(t==='fort')return Math.round(80*Math.pow(1.2,n.fortsBuilt));
+  if(t==='port')return Math.round(120*Math.pow(1.3,n.portsBuilt));
+  if(t==='ship')return Math.round(150*Math.pow(1.25,n.shipsBuilt));
+  if(t==='silo')return Math.round(220*Math.pow(1.4,n.silosBuilt));
+  if(t==='hangar')return Math.round(150*Math.pow(1.35,n.hangarsBuilt));
+  if(t==='sam')return Math.round(110*Math.pow(1.3,n.samsBuilt));
+  if(t==='drone')return Math.round(45*n.m.droneCost*(n.m.droneN>1?1.5:1));
+  if(t==='missile')return Math.round(200*n.m.missileCost);
+  return Math.round(150*Math.pow(1.15,n.rigsBuilt));
+}
+const BCODE={city:1,fort:2,rig:3,port:4,silo:5,hangar:6,sam:7};
+const BKEY={city:'citiesBuilt',fort:'fortsBuilt',rig:'rigsBuilt',port:'portsBuilt',silo:'silosBuilt',hangar:'hangarsBuilt',sam:'samsBuilt'};
+function place(n,i,t,free){
+  const c=costOf(n,t);if(!free&&n.gold<c)return false;
+  if(!free)n.gold-=c;bld[i]=BCODE[t];blist.push(i);n[BKEY[t]]++;
+  if(MAG[bld[i]]){ammo[i]=magOf(n,bld[i]);bcool[i]=0;bgap[i]=0;}
+  return true;
+}
+function nearWater(i,r){
+  const x0=i%W,y0=(i/W)|0;let best=-1,bd=1e9;
+  for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const x=x0+dx,y=y0+dy;if(x<0||y<0||x>=W||y>=H)continue;const j=y*W+x;if(terr[j]===0){const d=dx*dx+dy*dy;if(d<bd){bd=d;best=j;}}}
+  return best;
+}
+function placeNear(n,anchor,t,r,free){
+  const x0=anchor%W,y0=(anchor/W)|0;
+  for(let k=0;k<80;k++){const x=x0+Math.round((Math.random()*2-1)*r),y=y0+Math.round((Math.random()*2-1)*r);if(x<0||y<0||x>=W||y>=H)continue;
+    const j=y*W+x;if(owner[j]===n.id&&!bld[j]&&j!==n.capIdx)return place(n,j,t,free);}
+  return false;
+}
+
+/* ---- Strikes: drones (slow, cheap) and missiles (fast, blast) fly straight to target; air defense intercepts ---- */
+function nearestLauncher(n,code,i,range){
+  let best=-1,bd=1e9;const x=i%W,y=(i/W)|0;
+  for(const j of blist){if(bld[j]!==code||owner[j]!==n.id)continue;const dx=j%W-x,dy=((j/W)|0)-y,d=dx*dx+dy*dy;if(d<bd){bd=d;best=j;}}
+  return best<0?-1:bd<=range*range?best:-2;
+}
+function launchStrike(attId,kind,i){
+  const n=NATS[attId],o=owner[i];
+  if(i<0||terr[i]<2||!o||o===attId)return 'target';
+  const code=kind==='drone'?6:5,R2=RANGE[kind]*RANGE[kind],x0=i%W,y0=(i/W)|0;
+  let L=-1,bd=1e9,any=false,inRange=false,wait=1e9;
+  for(const j of blist){if(bld[j]!==code||owner[j]!==attId)continue;any=true;
+    const dx=j%W-x0,dy=((j/W)|0)-y0,d=dx*dx+dy*dy;if(d>R2)continue;inRange=true;
+    if(ammo[j]>=1){if(d<bd){bd=d;L=j;}}else wait=Math.min(wait,bcool[j]);}
+  if(!any)return 'nolauncher';if(!inRange)return 'range';
+  if(L<0){G.lastWait=wait;return 'cooldown';}
+  const c=costOf(n,kind);if(n.gold<c)return 'gold';
+  n.gold-=c;ammo[L]--;if(ammo[L]<1)bcool[L]=RELOAD[code]*n.m.reload;
+  const k=kind==='drone'?n.m.droneN:1;
+  for(let q=0;q<k;q++){const j=q?2.5:0;
+    missiles.push({kind,own:attId,x:L%W,y:(L/W)|0,tx:i%W+(Math.random()-.5)*j,ty:((i/W)|0)+(Math.random()-.5)*j,sp:kind==='drone'?3:11,done:false});}
+  return 'ok';
+}
+function destroyBld(j){const o=owner[j];if(o&&NATS[o].m.bunker&&Math.random()<NATS[o].m.bunker)return;bld[j]=0;}
+function impact(m){
+  const cx=Math.round(m.tx),cy=Math.round(m.ty);if(cx<0||cy<0||cx>=W||cy>=H)return;
+  const i=cy*W+cx,att=NATS[m.own],hit=new Set();
+  booms.push({x:m.tx,y:m.ty,r:m.kind==='drone'?1.3:att.m.blast+.6,t:performance.now()});
+  if(m.kind==='drone'){
+    for(const j of [i,...nb4(i)])if(j>=0&&j<N&&bld[j]&&owner[j]&&owner[j]!==m.own){destroyBld(j);break;}
+    const o=owner[i];if(o&&o!==m.own){const d=NATS[o];d.troops-=Math.min(d.troops,40+d.troops*.03);hit.add(o);}
+  }else{
+    const Rb=att.m.blast,victims=new Map();
+    for(let dy=-Rb;dy<=Rb;dy++)for(let dx=-Rb;dx<=Rb;dx++){if(dx*dx+dy*dy>Rb*Rb+.5)continue;const x=cx+dx,y=cy+dy;if(x<0||y<0||x>=W||y>=H)continue;
+      const j=y*W+x,o=owner[j];if(terr[j]<2||!o||o===m.own)continue;
+      if(bld[j])destroyBld(j);
+      victims.set(o,(victims.get(o)||0)+1);}
+    for(const [o,k] of victims){const d=NATS[o];d.troops-=Math.min(d.troops,d.troops*.08+k*15);hit.add(o);}
+  }
+  const what=m.kind==='drone'?'drone':'missile';
+  if(hit.has(G.pid))toast(`A ${att.name} ${what} hit your territory.`);
+  else if(m.own===G.pid&&hit.size)toast(`Your ${what} struck ${[...hit].map(o=>NATS[o].name).join(', ')}.`);
+}
+function stepMissiles(dt){
+  for(const m of missiles){
+    if(m.done)continue;
+    const dx=m.tx-m.x,dy=m.ty-m.y,d=Math.hypot(dx,dy),st=m.sp*dt;
+    if(d<=st){m.done=true;impact(m);if(G.over)return;}else{m.x+=dx/d*st;m.y+=dy/d*st;}
+  }
+  const now=performance.now();
+  const fire=(ox,oy,o,R,pkD,pkM)=>{
+    let tgt=null,bd=R*R;
+    for(const m of missiles){if(m.done||m.own===o)continue;const ddx=m.x-ox,ddy=m.y-oy,dd=ddx*ddx+ddy*ddy;if(dd<=bd){bd=dd;tgt=m;}}
+    if(!tgt)return false;
+    const pk=Math.min(.95,(tgt.kind==='drone'?pkD:pkM)/NATS[tgt.own].m.evade);
+    shots.push({ax:ox,ay:oy,bx:tgt.x,by:tgt.y,t:now,aa:1});
+    if(Math.random()<pk){tgt.done=true;booms.push({x:tgt.x,y:tgt.y,r:.8,t:now});
+      if(tgt.own===G.pid)toast(`${NATS[o].name} air defense shot down your ${tgt.kind}.`);
+      else if(o===G.pid&&now-(G.lastAA||0)>3000){G.lastAA=now;toast(`Your air defense intercepted a ${NATS[tgt.own].name} ${tgt.kind}.`);}}
+    return true;
+  };
+  if(missiles.length){
+    for(const j of blist){if(bld[j]!==7||!owner[j]||ammo[j]<1)continue;if(bgap[j]>0){bgap[j]-=dt;continue;}
+      const d=NATS[owner[j]];if(fire(j%W,(j/W)|0,d.id,d.m.samR,.7*d.m.samPow,.38*d.m.samPow)){bgap[j]=.8;ammo[j]--;if(ammo[j]<1)bcool[j]=RELOAD[7]*d.m.reload;}}
+    for(const w of ships){w.aa=(w.aa||0)-dt;if(w.aa>0)continue;if(fire(w.c%W,(w.c/W)|0,w.own,4,.45,.15))w.aa=1;}
+  }
+  missiles=missiles.filter(m=>!m.done);
+  // reload empty magazines
+  for(const j of blist){const b=bld[j];if(!MAG[b]||!owner[j]||ammo[j]>=1)continue;
+    if(bcool[j]<=0)bcool[j]=RELOAD[b]*NATS[owner[j]].m.reload;
+    bcool[j]-=dt;if(bcool[j]<=0){bcool[j]=0;ammo[j]=magOf(NATS[owner[j]],b);}}
+}
+function aiStrike(n){
+  if(G.t<150)return;
+  let hasSilo=false,hasHangar=false;for(const j of blist){if(owner[j]!==n.id)continue;if(bld[j]===5)hasSilo=true;else if(bld[j]===6)hasHangar=true;}
+  let kind=null;
+  if(hasSilo&&n.gold>=costOf(n,'missile')*1.2&&Math.random()<.5)kind='missile';
+  else if(hasHangar&&n.gold>=costOf(n,'drone')*1.3)kind='drone';
+  if(!kind)return;
+  const code=kind==='drone'?6:5,cands=[];let tot=0;
+  for(const j of blist){const o=owner[j];if(!bld[j]||!o||o===n.id)continue;if(nearestLauncher(n,code,j,RANGE[kind])<0)continue;
+    let w=bld[j]===7?3:bld[j]===5||bld[j]===6?2.5:1;if(NATS[o].isPlayer)w*=1+.15*G.diff;if(sameBloc(n.id,o))w*=.06;cands.push([j,w]);tot+=w;}
+  let tgt=-1;
+  if(cands.length){let r=Math.random()*tot;for(const [j,w] of cands){r-=w;if(r<=0){tgt=j;break;}}if(tgt<0)tgt=cands[0][0];}
+  else for(let k=0;k<40;k++){const j=(Math.random()*N)|0,o=owner[j];if(!o||o===n.id||terr[j]<2||(sameBloc(n.id,o)&&Math.random()<.92))continue;if(nearestLauncher(n,code,j,RANGE[kind])>=0){tgt=j;break;}}
+  if(tgt>=0&&launchStrike(n.id,kind,tgt)==='cooldown'&&kind==='missile'&&n.gold>=costOf(n,'drone'))launchStrike(n.id,'drone',tgt);
+}
+
+const EVENTS=[
+ {id:'oil',txt:'Oil price spike: oil income ×3 for 30s',dur:30,on:()=>{G.oilBoost=3},off:()=>{G.oilBoost=1}},
+ {id:'sand',txt:"Sandstorm over the Rub' al Khali: desert costs double for 30s",dur:30,on:()=>{G.sandstorm=2.2},off:()=>{G.sandstorm=1}},
+ {id:'tribe',txt:'Tribes pledge loyalty: +25% of cap in troops',dur:6,on:()=>{const p=NATS[G.pid];p.troops+=p.cap*.25},off:()=>{}},
+ {id:'trade',txt:'Dhow traders arrive in port: +gold',dur:6,on:()=>{const p=NATS[G.pid];p.gold+=80+p.coastT*2},off:()=>{}}
+];
+
+function tick(){
+  const dt=.1;G.t+=dt;
+  for(let id=1;id<NATS.length;id++)regen(NATS[id],dt);
+  for(const a of attacks){if(!a.done)stepAttack(a);if(G.over)return;}
+  stepBoats(dt);if(G.over)return;
+  stepShips(dt);
+  stepMissiles(dt);if(G.over)return;
+  for(const a of attacks)if(a.done&&a.troops>0){NATS[a.att].troops+=a.troops;a.troops=0;}
+  attacks=attacks.filter(a=>!a.done);
+  G.econAcc+=dt;if(G.econAcc>=1){G.econAcc-=1;econ(false);if(G.over)return;}
+  for(let id=1;id<NATS.length;id++){const n=NATS[id];if(n.alive&&!n.isPlayer)aiThink(n);}
+  // events
+  if(G.evt&&G.t>=G.evtEnd){G.evt.off();G.evt=null;}
+  if(!G.evt&&G.t>=G.nextEvt){G.evt=EVENTS[(Math.random()*EVENTS.length)|0];G.evt.on();G.evtEnd=G.t+G.evt.dur;G.nextEvt=G.t+130+Math.random()*60;toast(G.evt.txt,3500);}
+  // milestones
+  const p=NATS[G.pid],pct=p.tiles/LANDN*100;G.peak=Math.max(G.peak,pct);
+  while(G.ms<MILESTONES.length&&pct>=MILESTONES[G.ms]){G.ms++;G.drafts++;}
+  if(pct>=WIN_PCT)endRun(true);
+}
+
+/* ================= Rendering ================= */
+const cv=$('#cv'),ctx=cv.getContext('2d');
+const K=6,TW=W*K,TH=H*K; // texture pixels per cell
+const mapCv=document.createElement('canvas');mapCv.width=TW;mapCv.height=TH;
+const mctx=mapCv.getContext('2d'),img=mctx.createImageData(TW,TH),px=img.data;
+let dpr=1,view={s:4,ox:0,oy:0};
+const keyOf=c=>{const t=terr[c];return t===0?255:t===1?254:owner[c];};
+// Gaussian kernel over the 3x3 nearest cells, precomputed per sub-pixel offset: rounds cell stair-steps into curves
+const SIG=.55,KDX=new Int8Array(K*K*9),KDY=new Int8Array(K*K*9),KWT=new Float32Array(K*K*9);
+for(let v=0;v<K;v++)for(let u=0;u<K;u++){const fx=(u+.5)/K,fy=(v+.5)/K,o=(v*K+u)*9;let tot=0,k=0;
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const ex=fx-(dx+.5),ey=fy-(dy+.5),w=Math.exp(-(ex*ex+ey*ey)/(2*SIG*SIG));KDX[o+k]=dx;KDY[o+k]=dy;KWT[o+k]=w;tot+=w;k++;}
+  for(k=0;k<9;k++)KWT[o+k]/=tot;}
+const _c=new Int32Array(9),_w=new Float32Array(9),_kk=new Int16Array(9),_kw=new Float32Array(9);
+function paintSub(sx,sy){
+  const cx=(sx/K)|0,cy=(sy/K)|0,o=((sy%K)*K+(sx%K))*9;
+  let nk=0;
+  for(let k=0;k<9;k++){let x=cx+KDX[o+k],y=cy+KDY[o+k];if(x<0)x=0;else if(x>=W)x=W-1;if(y<0)y=0;else if(y>=H)y=H-1;
+    const c=y*W+x,w=KWT[o+k];_c[k]=c;_w[k]=w;const key=keyOf(c);
+    let j=0;while(j<nk&&_kk[j]!==key)j++;if(j===nk){_kk[nk]=key;_kw[nk]=0;nk++;}_kw[j]+=w;}
+  let bk=-1,bw=-1,sk=-1,sw=0;
+  for(let j=0;j<nk;j++){const w=_kw[j];if(w>bw){sk=bk;sw=bw<0?0:bw;bk=_kk[j];bw=w;}else if(w>sw){sk=_kk[j];sw=w;}}
+  const land=bk<254;
+  let r=0,g=0,b=0,tw=0,lw=0,mc=-1,mw=-1;
+  for(let k=0;k<9;k++){const c=_c[k],t=terr[c];if(land?t<2:(t===0?255:254)!==bk)continue;
+    const w=_w[k];r+=baseR[c]*w;g+=baseG[c]*w;b+=baseB[c]*w;tw+=w;if(land){lw+=w;if(w>mw){mw=w;mc=ctry[c];}}}
+  if(tw>0){r/=tw;g/=tw;b/=tw;}
+  const edge=bw-sw;
+  if(land&&bk>0){
+    const col=NATS[bk].color;
+    if(edge<.28&&sk!==255&&sk>=0){if(bk===G.pid){if(GOLD){r=255;g=206;b=84;}else{r=col[0]+(255-col[0])*.45;g=col[1]+(255-col[1])*.45;b=col[2]+(255-col[2])*.45;}}else{r=col[0]*.66;g=col[1]*.66;b=col[2]*.66;}}
+    else{r=r*.4+col[0]*.6;g=g*.4+col[1]*.6;b=b*.4+col[2]*.6;}
+  }else if(land&&lw>0){
+    let cw=0;for(let k=0;k<9;k++){const c=_c[k];if(terr[c]>=2&&ctry[c]===mc)cw+=_w[k];}
+    if((2*cw-lw)/lw<.3){r*=.84;g*=.84;b*=.84;}
+  }
+  if(land&&sk===255&&edge<.2){r=r*.75+238*.25;g=g*.75+222*.25;b=b*.75+176*.25;}
+  else if(bk===255&&sk>=0&&sk<254&&edge<.22){r=r*.65+54*.35;g=g*.65+128*.35;b=b*.65+138*.35;}
+  if(land){r*=THEME[0];g*=THEME[1];b*=THEME[2];}else{r*=THEME[3];g*=THEME[4];b*=THEME[5];}
+  const q=(sy*TW+sx)*4;px[q]=r;px[q+1]=g;px[q+2]=b;px[q+3]=255;
+}
+let dbx0=TW,dby0=TH,dbx1=-1,dby1=-1;
+function paintBlock(i){
+  const x=i%W,y=(i/W)|0,X=x*K,Y=y*K;
+  for(let sy=Y;sy<Y+K;sy++)for(let sx=X;sx<X+K;sx++)paintSub(sx,sy);
+  if(X<dbx0)dbx0=X;if(Y<dby0)dby0=Y;if(X+K>dbx1)dbx1=X+K;if(Y+K>dby1)dby1=Y+K;
+}
+function paintAll(){for(let sy=0;sy<TH;sy++)for(let sx=0;sx<TW;sx++)paintSub(sx,sy);mctx.putImageData(img,0,0);}
+function flushPaint(){
+  if(fullPaint){paintAll();fullPaint=false;for(const i of dirtyList)dirty[i]=0;dirtyList=[];return;}
+  if(!dirtyList.length)return;
+  for(const i of dirtyList){paintBlock(i);dirty[i]=0;}dirtyList=[];
+  mctx.putImageData(img,0,0,dbx0,dby0,dbx1-dbx0,dby1-dby0);
+  dbx0=TW;dby0=TH;dbx1=-1;dby1=-1;
+}
+function resize(){
+  dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.round(cv.clientWidth*dpr);cv.height=Math.round(cv.clientHeight*dpr);
+}
+function centerOn(i,s){view.s=s;view.ox=cv.clientWidth/2-(i%W+.5)*s;view.oy=cv.clientHeight*.48-(((i/W)|0)+.5)*s;clampView();}
+function clampView(){
+  const w=cv.clientWidth,h=cv.clientHeight,s=view.s;
+  view.ox=Math.min(w*.6,Math.max(w*.4-W*s,view.ox));
+  view.oy=Math.min(h*.6,Math.max(h*.4-H*s,view.oy));
+}
+const geo=(lon,lat)=>[view.ox+((lon-LON0)/STEP)*view.s,view.oy+((LAT1-lat)/STEP)*view.s];
+const SEAS=[['ARABIAN GULF',51.6,27.0],['RED SEA',38.0,21.0],['ARABIAN SEA',58.5,16.0],['GULF OF OMAN',58.4,24.7],['CASPIAN SEA',51.6,37.9]];
+const OUTS=[['TURKEY',41.5,38.1],['SYRIA',38.8,35.2],['JORDAN',37.0,30.9],['TURKMENISTAN',58.6,38.2],['AFGHANISTAN',62.2,33.2]];
+function drawStar(x,y,r,fill){ctx.beginPath();for(let k=0;k<10;k++){const a=-Math.PI/2+k*Math.PI/5,rr=k%2?r*.45:r;ctx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.lineWidth=1.2;ctx.strokeStyle='#1a1408';ctx.stroke();}
+function drawDhow(x,y,r,c){
+  ctx.lineWidth=1.2;ctx.strokeStyle='#0b1416';
+  ctx.beginPath();ctx.moveTo(x-r,y);ctx.lineTo(x+r*1.05,y-r*.1);ctx.lineTo(x+r*.6,y+r*.5);ctx.lineTo(x-r*.7,y+r*.5);ctx.closePath();ctx.fillStyle='#5a3d22';ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(x-r*.15,y-r*1.4);ctx.lineTo(x+r*.85,y-r*.15);ctx.lineTo(x-r*.15,y-r*.15);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();ctx.strokeStyle='#f6efe0';ctx.stroke();
+}
+function render(now){
+  flushPaint();
+  const w=cv.clientWidth,h=cv.clientHeight,s=view.s;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle='rgb(13,50,61)';ctx.fillRect(0,0,w,h);
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.drawImage(mapCv,view.ox,view.oy,W*s,H*s);
+  // sea & outside labels
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font=`italic 500 ${Math.max(10,s*2.2)}px 'IBM Plex Sans Arabic',sans-serif`;
+  ctx.fillStyle='rgba(180,220,220,.32)';
+  for(const [t,lo,la] of SEAS){const [x,y]=geo(lo,la);ctx.fillText(t,x,y);}
+  ctx.fillStyle='rgba(200,190,170,.28)';
+  for(const [t,lo,la] of OUTS){const [x,y]=geo(lo,la);ctx.fillText(t,x,y);}
+  // oil dots
+  if(s>=5){ctx.fillStyle='rgba(20,16,12,.55)';for(const i of oilCells){if(bld[i])continue;ctx.beginPath();ctx.arc(view.ox+(i%W+.5)*s,view.oy+(((i/W)|0)+.5)*s,s*.16,0,7);ctx.fill();}}
+  // buildings
+  if(s>=3){
+    for(const i of blist){const b=bld[i];if(!b||!owner[i])continue;
+      const x=view.ox+(i%W+.5)*s,y=view.oy+(((i/W)|0)+.5)*s,r=Math.max(3,s*.55),c=NATS[owner[i]].color;
+      ctx.lineWidth=1.2;ctx.strokeStyle='#0b1416';
+      if(b===1){ctx.fillStyle='#f6efe0';ctx.fillRect(x-r*.7,y-r*.3,r*1.4,r);ctx.strokeRect(x-r*.7,y-r*.3,r*1.4,r);
+        ctx.beginPath();ctx.moveTo(x-r*.85,y-r*.3);ctx.lineTo(x,y-r);ctx.lineTo(x+r*.85,y-r*.3);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();ctx.stroke();}
+      else if(b===2){ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r*.8,y-r*.5);ctx.lineTo(x+r*.6,y+r*.5);ctx.lineTo(x,y+r);ctx.lineTo(x-r*.6,y+r*.5);ctx.lineTo(x-r*.8,y-r*.5);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();ctx.strokeStyle='#f6efe0';ctx.stroke();}
+      else if(b===4){ctx.beginPath();ctx.arc(x,y,r*.8,0,7);ctx.fillStyle=rgb(c);ctx.fill();ctx.strokeStyle='#f6efe0';ctx.stroke();
+        ctx.beginPath();ctx.moveTo(x,y-r*.5);ctx.lineTo(x,y+r*.45);ctx.moveTo(x-r*.4,y-r*.2);ctx.lineTo(x+r*.4,y-r*.2);ctx.moveTo(x-r*.45,y+r*.1);ctx.quadraticCurveTo(x,y+r*.7,x+r*.45,y+r*.1);ctx.stroke();}
+      else if(b===5){ctx.fillStyle='#3a3f42';ctx.fillRect(x-r*.75,y-r*.75,r*1.5,r*1.5);ctx.strokeRect(x-r*.75,y-r*.75,r*1.5,r*1.5);
+        ctx.beginPath();ctx.moveTo(x,y-r*.6);ctx.lineTo(x+r*.25,y+r*.45);ctx.lineTo(x-r*.25,y+r*.45);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();}
+      else if(b===6){ctx.beginPath();ctx.moveTo(x-r*.85,y+r*.5);ctx.lineTo(x-r*.85,y);ctx.arc(x,y,r*.85,Math.PI,0);ctx.lineTo(x+r*.85,y+r*.5);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();ctx.stroke();
+        ctx.beginPath();ctx.moveTo(x-r*.5,y-r*.1);ctx.lineTo(x+r*.5,y-r*.1);ctx.moveTo(x,y-r*.45);ctx.lineTo(x,y+r*.25);ctx.strokeStyle='#f6efe0';ctx.stroke();}
+      else if(b===7){if(owner[i]===G.pid&&G.mode==='build'){ctx.beginPath();ctx.arc(x,y,NATS[owner[i]].m.samR*s,0,7);ctx.setLineDash([3,5]);ctx.strokeStyle='rgba(120,220,255,.3)';ctx.stroke();ctx.setLineDash([]);ctx.strokeStyle='#0b1416';}
+        ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r,y);ctx.lineTo(x,y+r);ctx.lineTo(x-r,y);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();ctx.stroke();
+        ctx.beginPath();ctx.arc(x,y+r*.2,r*.5,Math.PI*1.15,Math.PI*1.85);ctx.strokeStyle='#f6efe0';ctx.lineWidth=1.6;ctx.stroke();}
+      else{ctx.beginPath();ctx.moveTo(x,y-r);ctx.quadraticCurveTo(x+r*.8,y+r*.1,x,y+r*.8);ctx.quadraticCurveTo(x-r*.8,y+r*.1,x,y-r);ctx.fillStyle='#14100c';ctx.fill();ctx.strokeStyle='#e8c77e';ctx.stroke();}
+      if(MAG[b]&&s>=4){
+        if(ammo[i]<1){const f=1-bcool[i]/(RELOAD[b]*NATS[owner[i]].m.reload);ctx.beginPath();ctx.arc(x,y,r*1.25,-Math.PI/2,-Math.PI/2+Math.max(0,f)*Math.PI*2);ctx.strokeStyle='rgba(255,111,94,.9)';ctx.lineWidth=2;ctx.stroke();}
+        else{const k=Math.floor(ammo[i]),m=magOf(NATS[owner[i]],b),pw=Math.min(4,r*.5);for(let q=0;q<m;q++){ctx.fillStyle=q<k?'#8ce6ff':'rgba(140,230,255,.25)';ctx.fillRect(x-(m*pw*1.4)/2+q*pw*1.4,y+r*1.1,pw,pw);}}
+      }
+    }
+  }
+  // capitals
+  for(let id=1;id<NATS.length;id++){const n=NATS[id];if(!n.alive)continue;const i=n.capIdx;
+    const x=view.ox+(i%W+.5)*s,y=view.oy+(((i/W)|0)+.5)*s;
+    if(n.isPlayer){const pr=Math.max(8,s*1.6)+Math.sin(now/300)*2;ctx.beginPath();ctx.arc(x,y,pr,0,7);ctx.strokeStyle='rgba(255,240,200,.6)';ctx.lineWidth=1.5;ctx.stroke();}
+    drawStar(x,y,Math.max(5,s*1.05),n.isPlayer?'#ffe7a8':rgb(n.color));}
+  // nation labels
+  for(let id=1;id<NATS.length;id++){const n=NATS[id];if(!n.alive||!n.tiles)continue;
+    const fs=Math.max(9,Math.min(26,Math.sqrt(n.tiles)*s*.32));
+    const x=view.ox+(n.cx+.5)*s,y=view.oy+(n.cy+.5)*s;
+    ctx.font=`700 ${fs}px 'Reem Kufi',sans-serif`;ctx.lineWidth=3;ctx.strokeStyle='rgba(8,14,16,.75)';ctx.fillStyle='#fff8ea';
+    ctx.strokeText(n.name,x,y-fs*.35);ctx.fillText(n.name,x,y-fs*.35);
+    ctx.font=`600 ${fs*.78}px 'IBM Plex Sans Arabic',sans-serif`;ctx.strokeText(fmt(n.troops),x,y+fs*.55);ctx.fillText(fmt(n.troops),x,y+fs*.55);}
+  // boats
+  for(const b of boats){
+    const k=Math.min(b.path.length-1,Math.floor(b.p)),f=Math.min(1,b.p-k),a=b.path[k],c=b.path[Math.min(b.path.length-1,k+1)];
+    const bx=view.ox+(a%W+(c%W-a%W)*f+.5)*s,by=view.oy+(((a/W)|0)+(((c/W)|0)-((a/W)|0))*f+.5)*s;
+    if(b.att===G.pid){ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,240,200,.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(bx,by);
+      for(let q=k+1;q<b.path.length;q++){const p=b.path[q];ctx.lineTo(view.ox+(p%W+.5)*s,view.oy+(((p/W)|0)+.5)*s);}
+      ctx.lineTo(view.ox+(b.land%W+.5)*s,view.oy+(((b.land/W)|0)+.5)*s);ctx.stroke();ctx.setLineDash([]);}
+    const r=Math.max(6,s*1.1);drawDhow(bx,by,r,NATS[b.att].color);
+    ctx.font=`600 ${Math.max(9,s*1.3)}px 'IBM Plex Sans Arabic',sans-serif`;ctx.lineWidth=3;ctx.strokeStyle='rgba(8,14,16,.8)';ctx.fillStyle='#fff8ea';
+    const t=fmt(b.troops);ctx.strokeText(t,bx,by-r*1.9);ctx.fillText(t,bx,by-r*1.9);
+  }
+  // warships
+  for(const w of ships){
+    let cx=w.c%W,cy=(w.c/W)|0;
+    if(w.path.length>1){const k=Math.min(w.path.length-1,Math.floor(w.p)),a=w.path[k],c=w.path[Math.min(w.path.length-1,k+1)],f=w.p-k;
+      cx=a%W+(c%W-a%W)*f;cy=((a/W)|0)+(((c/W)|0)-((a/W)|0))*f;}
+    const x=view.ox+(cx+.5)*s,y=view.oy+(cy+.5)*s,r=Math.max(5,s*1.05),col=NATS[w.own].color;
+    if(w.own===G.pid&&G.mode==='build'){ctx.beginPath();ctx.arc(view.ox+(w.port%W+.5)*s,view.oy+(((w.port/W)|0)+.5)*s,NATS[w.own].m.patrol*s,0,7);ctx.strokeStyle='rgba(255,240,200,.18)';ctx.setLineDash([3,5]);ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);}
+    ctx.beginPath();ctx.moveTo(x-r*1.2,y-r*.35);ctx.lineTo(x+r*.9,y-r*.35);ctx.lineTo(x+r*1.35,y);ctx.lineTo(x+r*.9,y+r*.35);ctx.lineTo(x-r*1.2,y+r*.35);ctx.closePath();
+    ctx.fillStyle='#a7b2b5';ctx.fill();ctx.lineWidth=1.2;ctx.strokeStyle='#0b1416';ctx.stroke();
+    ctx.fillStyle=rgb(col);ctx.fillRect(x-r*.55,y-r*.7,r*.8,r*.55);ctx.strokeRect(x-r*.55,y-r*.7,r*.8,r*.55);
+    if(w.hp<300){ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(x-r,y+r*.6,r*2,3);ctx.fillStyle='#63d2a0';ctx.fillRect(x-r,y+r*.6,r*2*w.hp/300,3);}
+  }
+  // drones & missiles
+  for(const m of missiles){
+    const x=view.ox+(m.x+.5)*s,y=view.oy+(m.y+.5)*s,tx=view.ox+(m.tx+.5)*s,ty=view.oy+(m.ty+.5)*s,a=Math.atan2(ty-y,tx-x),col=NATS[m.own].color;
+    ctx.beginPath();ctx.arc(tx,ty,Math.max(4,s*.9),0,7);ctx.strokeStyle=rgb(col,.45);ctx.lineWidth=1;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(tx-4,ty);ctx.lineTo(tx+4,ty);ctx.moveTo(tx,ty-4);ctx.lineTo(tx,ty+4);ctx.stroke();
+    ctx.save();ctx.translate(x,y);ctx.rotate(a);
+    if(m.kind==='drone'){const r=Math.max(4,s*.8);ctx.beginPath();ctx.moveTo(r,0);ctx.lineTo(-r*.7,-r*.8);ctx.lineTo(-r*.35,0);ctx.lineTo(-r*.7,r*.8);ctx.closePath();ctx.fillStyle=rgb(col);ctx.fill();ctx.strokeStyle='#0b1416';ctx.lineWidth=1;ctx.stroke();}
+    else{const r=Math.max(5,s*1.1);const g=ctx.createLinearGradient(-r*4,0,0,0);g.addColorStop(0,'rgba(255,190,90,0)');g.addColorStop(1,'rgba(255,220,150,.9)');
+      ctx.fillStyle=g;ctx.fillRect(-r*4,-1.5,r*4,3);ctx.beginPath();ctx.moveTo(r,0);ctx.lineTo(-r*.4,-r*.3);ctx.lineTo(-r*.4,r*.3);ctx.closePath();ctx.fillStyle='#f6efe0';ctx.fill();ctx.strokeStyle=rgb(col);ctx.lineWidth=1.5;ctx.stroke();}
+    ctx.restore();
+  }
+  booms=booms.filter(b=>now-b.t<700);
+  for(const b of booms){const k=(now-b.t)/700,x=view.ox+(b.x+.5)*s,y=view.oy+(b.y+.5)*s,r=Math.max(6,b.r*s)*(.4+k*.8);
+    ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=`rgba(255,150,60,${.45*(1-k)})`;ctx.fill();ctx.strokeStyle=`rgba(255,230,160,${1-k})`;ctx.lineWidth=2;ctx.stroke();}
+  shots=shots.filter(h=>now-h.t<220);
+  for(const h of shots){const k=1-(now-h.t)/220,bx=view.ox+(h.bx+.5)*s,by=view.oy+(h.by+.5)*s;ctx.beginPath();ctx.moveTo(view.ox+(h.ax+.5)*s,view.oy+(h.ay+.5)*s);ctx.lineTo(bx,by);
+    ctx.strokeStyle=h.aa?`rgba(140,230,255,${k})`:`rgba(255,210,122,${k})`;ctx.lineWidth=2;ctx.stroke();
+    ctx.beginPath();ctx.arc(bx,by,3+(1-k)*8,0,7);ctx.strokeStyle=`rgba(255,160,90,${k})`;ctx.stroke();}
+  // tap pings
+  G.pings=G.pings.filter(p=>now-p.t<600);
+  for(const p of G.pings){const k=(now-p.t)/600,x=view.ox+(p.x+.5)*s,y=view.oy+(p.y+.5)*s;
+    ctx.beginPath();ctx.arc(x,y,6+k*22,0,7);ctx.strokeStyle=p.bad?`rgba(255,111,94,${1-k})`:`rgba(255,240,200,${1-k})`;ctx.lineWidth=2;ctx.stroke();}
+}
+
+/* ================= HUD ================= */
+let hudT=0,toastTimer=0;
+function toast(msg,ms=2200){const t=$('#toast');t.textContent=msg;t.style.opacity=1;clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.opacity=0,ms);}
+function hud(){
+  const p=NATS[G.pid];
+  $('#hTroops').textContent=fmt(p.troops);$('#hCap').textContent=fmt(p.cap);
+  $('#hTbar').style.width=Math.min(100,p.troops/p.cap*100)+'%';
+  $('#hRegen').textContent='+'+fmt(p.regenNow)+'/s';
+  $('#hGold').textContent=fmt(p.gold);$('#hGoldR').textContent='+'+p.goldNow.toFixed(1)+'/s';
+  $('#hPct').textContent=(p.tiles/LANDN*100).toFixed(1)+'%';
+  $('#ratioLbl').textContent=Math.round(G.ratio*100)+'% · '+fmt(p.troops*G.ratio);
+  let ch='';
+  const threats=[...new Set(attacks.filter(a=>a.def===G.pid).map(a=>a.att))];
+  for(const t of threats){const n=NATS[t];ch+=`<span class="chip warn"><i class="d" style="background:${rgb(n.color)}"></i>${n.name} attacking</span>`;}
+  for(const a of attacks.filter(a=>a.att===G.pid)){const nm=a.def?NATS[a.def].name:'Expanding';const col=a.def?rgb(NATS[a.def].color):'#c9a66b';
+    ch+=`<span class="chip"><i class="d" style="background:${col}"></i>${nm} · ${fmt(a.troops)}</span>`;}
+  for(const b of boats){
+    if(b.att===G.pid){const o=owner[b.land];ch+=`<span class="chip"><i class="d" style="background:#f2ead9"></i>Dhow to ${o&&o!==G.pid?NATS[o].name:'coast'} · ${fmt(b.troops)}</span>`;}
+    else if(owner[b.land]===G.pid)ch+=`<span class="chip warn"><i class="d" style="background:${rgb(NATS[b.att].color)}"></i>${NATS[b.att].name} fleet inbound</span>`;}
+  const inc={drone:0,missile:0},mine={drone:0,missile:0};
+  for(const m of missiles){const cx=Math.round(m.tx),cy=Math.round(m.ty);if(m.own===G.pid)mine[m.kind]++;else if(cx>=0&&cy>=0&&cx<W&&cy<H&&owner[cy*W+cx]===G.pid)inc[m.kind]++;}
+  if(inc.missile||inc.drone)ch+=`<span class="chip warn">Incoming: ${[inc.missile?inc.missile+' missile'+(inc.missile>1?'s':''):'',inc.drone?inc.drone+' drone'+(inc.drone>1?'s':''):''].filter(Boolean).join(', ')}</span>`;
+  if(mine.missile||mine.drone)ch+=`<span class="chip"><i class="d" style="background:#8ce6ff"></i>In flight: ${mine.missile+mine.drone}</span>`;
+  if(G.evt)ch+=`<span class="chip evt">${G.evt.id==='oil'?'Oil spike':G.evt.id==='sand'?'Sandstorm':'Event'} ${Math.ceil(G.evtEnd-G.t)}s</span>`;
+  if(G.ms<MILESTONES.length)ch+=`<span class="chip">Next decree at ${MILESTONES[G.ms]}%</span>`;
+  $('#chips').innerHTML=ch;
+  const rows=NATS.slice(1).sort((a,b)=>b.tiles-a.tiles);
+  $('#lb').innerHTML=rows.map(n=>`<div class="r ${n.isPlayer?'me':''} ${n.alive?'':'dead'}"><span class="chip d" style="padding:0;border:0;width:8px;height:8px;border-radius:2px;background:${rgb(n.color)}"></span><span>${n.short||NAT[n.id].short}</span><span class="num">${(n.tiles/LANDN*100).toFixed(1)}%</span></div>`).join('');
+  const hudEl=document.querySelector('.hud');$('#lb').style.top=(hudEl.offsetTop+hudEl.offsetHeight+4)+'px';
+  for(const t of ['city','fort','rig','port','ship','silo','hangar','sam','drone','missile']){const c=costOf(p,t),el=$('#c'+t[0].toUpperCase()+t.slice(1));el.textContent=fmt(c)+' g';el.parentElement.classList.toggle('poor',p.gold<c);}
+  for(const [code,id] of [[6,'#cDrone'],[5,'#cMissile']]){let ready=0,wait=1e9,has=false;
+    for(const j of blist)if(bld[j]===code&&owner[j]===G.pid){has=true;ready+=Math.floor(ammo[j]);if(ammo[j]<1)wait=Math.min(wait,bcool[j]);}
+    $(id).textContent=fmt(costOf(p,code===6?'drone':'missile'))+' g · '+(!has?'no '+(code===6?'hangar':'silo'):ready?ready+' ready':'reload '+Math.ceil(wait)+'s');}
+}
+function setMode(m){G.mode=m;$('#mAtk').classList.toggle('on',m==='attack');$('#mBoat').classList.toggle('on',m==='boat');$('#mStk').classList.toggle('on',m==='strike');$('#mBld').classList.toggle('on',m==='build');$('#sendRow').hidden=m==='build'||m==='strike';$('#buildRow').hidden=m!=='build';$('#strikeRow').hidden=m!=='strike';}
+$('#mAtk').onclick=()=>setMode('attack');
+$('#mBoat').onclick=()=>{setMode('boat');toast('Tap any coast across the water. Dhows sail from your nearest shore.');};
+$('#mBld').onclick=()=>{setMode('build');toast('Tap anywhere on your land to build. Rigs pay most on dark oil fields; ports need water within 3 tiles.');};
+$('#mStk').onclick=()=>{setMode('strike');toast('Tap enemy territory. Drones fly from your hangars, missiles from your silos.');};
+document.querySelectorAll('#strikeRow button').forEach(b=>b.onclick=()=>{G.ssel=b.dataset.s;document.querySelectorAll('#strikeRow button').forEach(x=>x.classList.toggle('on',x===b));});
+$('#spd').onclick=()=>{G.speed=G.speed===1?2:G.speed===2?3:1;$('#spd').textContent=G.speed+'×';};
+$('#ratio').oninput=e=>{G.ratio=e.target.value/100;};
+document.querySelectorAll('#buildRow button').forEach(b=>b.onclick=()=>{G.bsel=b.dataset.b;document.querySelectorAll('#buildRow button').forEach(x=>x.classList.toggle('on',x===b));});
+$('#pauseBtn').onclick=()=>openPause();
+
+/* ================= Input ================= */
+const ptrs=new Map();let tapCand=null,pinch=null;
+function cellFromScreen(x,y){const cx=Math.floor((x-view.ox)/view.s),cy=Math.floor((y-view.oy)/view.s);if(cx<0||cy<0||cx>=W||cy>=H)return -1;return cy*W+cx;}
+function zoomAt(x,y,f){const s2=Math.max(1.5,Math.min(22,view.s*f));const k=s2/view.s;view.ox=x-(x-view.ox)*k;view.oy=y-(y-view.oy)*k;view.s=s2;clampView();}
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);const r=cv.getBoundingClientRect();const p={x:e.clientX-r.left,y:e.clientY-r.top};ptrs.set(e.pointerId,p);
+  if(ptrs.size===1)tapCand={x:p.x,y:p.y};else{tapCand=null;const [a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)};}});
+cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;const r=cv.getBoundingClientRect();const p={x:e.clientX-r.left,y:e.clientY-r.top};const old=ptrs.get(e.pointerId);
+  if(ptrs.size===1){if(tapCand&&Math.hypot(p.x-tapCand.x,p.y-tapCand.y)>8)tapCand=null;if(!tapCand){view.ox+=p.x-old.x;view.oy+=p.y-old.y;clampView();}}
+  ptrs.set(e.pointerId,p);
+  if(ptrs.size===2&&pinch){const [a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    if(pinch.mx!==undefined){view.ox+=mx-pinch.mx;view.oy+=my-pinch.my;}zoomAt(mx,my,d/pinch.d);pinch={d,mx,my};}});
+function endPtr(e){if(!ptrs.has(e.pointerId))return;if(ptrs.size===1&&tapCand)handleTap(tapCand.x,tapCand.y);ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(ptrs.size===0)tapCand=null;}
+cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);tapCand=null;pinch=null;});
+cv.addEventListener('wheel',e=>{e.preventDefault();const r=cv.getBoundingClientRect();zoomAt(e.clientX-r.left,e.clientY-r.top,e.deltaY<0?1.15:1/1.15);},{passive:false});
+
+function handleTap(sx,sy){
+  if(!G||G.over||G.paused||modalOpen)return;
+  const i=cellFromScreen(sx,sy);const ping=(bad)=>{if(i>=0)G.pings.push({x:i%W,y:(i/W)|0,t:performance.now(),bad});};
+  if(G.mode==='build'&&G.bsel==='ship'&&i>=0){
+    let port=-1;const x0=i%W,y0=(i/W)|0;
+    for(let dy=-2;dy<=2&&port<0;dy++)for(let dx=-2;dx<=2;dx++){const x=x0+dx,y=y0+dy;if(x<0||y<0||x>=W||y>=H)continue;const j=y*W+x;if(bld[j]===4&&owner[j]===G.pid){port=j;break;}}
+    if(port<0){ping(true);toast('Tap one of your ports to launch a warship. Build a port on your coast first.');return;}
+    if(ships.filter(w=>w.port===port).length>=2){ping(true);toast('This port already has 2 warships.');return;}
+    const p=NATS[G.pid],c=costOf(p,'ship');if(p.gold<c){ping(true);toast(`Need ${fmt(c)} gold.`);return;}
+    spawnShip(p,port);ping(false);toast('Warship launched. It patrols nearby waters and sinks enemy dhows.');return;
+  }
+  if(i<0||terr[i]<2){ping(true);toast(i>=0&&terr[i]===1?'Outside the theatre of war.':'Open water. Expand over land.');return;}
+  const p=NATS[G.pid],o=owner[i];
+  if(G.mode==='strike'){
+    const k=G.ssel,r=launchStrike(G.pid,k,i);ping(r!=='ok');
+    toast({ok:k==='drone'?(p.m.droneN>1?'Drone swarm away.':'Drone away.'):'Missile launched.',target:'Pick enemy territory to strike.',
+      nolauncher:k==='drone'?'Build a drone hangar first.':'Build a missile silo first.',
+      range:k==='drone'?`Out of range. Drones reach ${RANGE.drone} tiles from a hangar.`:`Out of range. Missiles reach ${RANGE.missile} tiles from a silo.`,
+      cooldown:k==='drone'?`All hangars in range are rearming. Next drones in ${Math.ceil(G.lastWait)}s.`:`All silos in range are reloading. Next missile in ${Math.ceil(G.lastWait)}s.`,
+      gold:`Need ${fmt(costOf(p,k))} gold.`}[r]);return;
+  }
+  if(G.mode==='build'){
+    if(o!==G.pid){ping(true);toast('You can only build on your own land.');return;}
+    if(bld[i]){ping(true);toast('Something is already built here.');return;}
+    if(G.bsel==='port'&&nearWater(i,3)<0){ping(true);toast('Ports need open water within 3 tiles.');return;}
+    const c=costOf(p,G.bsel);if(p.gold<c){ping(true);toast(`Need ${fmt(c)} gold.`);return;}
+    place(p,i,G.bsel);ping(false);toast({city:'City founded: more troops and gold.',fort:'Fort raised: nearby land is far harder to take.',rig:oil[i]?'Oil rig on an oil field: +4 gold/s.':'Oil rig pumping: +1.2 gold/s. Oil fields pay +4.',port:'Port opened: +2 gold/s. Launch warships from here.',silo:`Missile silo ready. Missiles reach ${RANGE.missile} tiles.`,hangar:`Drone hangar ready. Drones reach ${RANGE.drone} tiles.`,sam:'Air defense battery online. It shoots down drones and missiles nearby.'}[G.bsel]);econ(true);return;
+  }
+  if(o===G.pid){ping(true);toast(G.mode==='boat'?'Your own shore. Tap a coast you want to invade.':'Your land. Tap neutral sand or a rival next to your border.');return;}
+  const troops=p.troops*G.ratio;
+  if(G.mode==='attack'){const r=launchAttack(G.pid,o,troops,i%W,(i/W)|0);
+    if(r==='ok'){ping(false);return;}
+    if(r==='countered'){ping(false);toast(`Your troops meet the ${NATS[o].name} attack head-on and push back over the same ground.`);return;}
+    if(r==='few'){ping(true);toast('Not enough troops. Wait for them to muster.');return;}}
+  const r=launchBoat(G.pid,i,troops);
+  ping(r!=='ok');
+  toast({ok:G.mode==='attack'?'No land route, so the dhows set sail.':'Dhows set sail.',few:'Not enough troops. A landing needs at least 10.',
+    nocoast:o?`You don't border ${NATS[o].name}, and that spot is too far from the coast to land.`:'Not next to your border, and too far from the coast to land.',
+    nosea:'No sea route from your coast to there.',maxboats:`All ${p.m.boats} of your fleets are already at sea.`,own:'You already hold that shore.'}[r]);
+}
+
+/* ================= Modals ================= */
+let modalOpen=false;
+function openModal(html){$('#mbox').innerHTML=html;$('#modal').hidden=false;modalOpen=true;}
+function closeModal(){$('#modal').hidden=true;modalOpen=false;}
+function draftOptions(){
+  const pool=CARDS.filter(c=>!(c.once&&G.cards.includes(c.id)));const k=3+lvl('choice')+(owns('founder')?1:0),out=[];
+  while(out.length<k&&pool.length){const w=pool.map(c=>[6,3,1][c.r]),tot=w.reduce((a,b)=>a+b,0);let r=Math.random()*tot,j=0;while(r>w[j]){r-=w[j];j++;}out.push(pool.splice(j,1)[0]);}
+  return out;
+}
+function openDraft(){
+  G.drafts--;const opts=draftOptions();
+  openModal(`<h3>Issue a decree</h3><p class="sub">${G.ms?`You hold ${(NATS[G.pid].tiles/LANDN*100).toFixed(1)}% of the land.`:''} Choose one. It lasts for this campaign.</p>
+   <div class="cards">${opts.map((c,k)=>`<button class="card r${c.r}" data-k="${k}"><span class="rar">${RAR[c.r]}</span><b>${c.name}</b><span>${c.desc}</span></button>`).join('')}</div>
+   ${G.rerolls?`<button class="btn" id="reroll">Reroll (${G.rerolls} left)</button>`:''}`);
+  document.querySelectorAll('.card').forEach(b=>b.onclick=()=>{const c=opts[+b.dataset.k],p=NATS[G.pid];
+    if(c.apply)c.apply(p.m);if(c.now)c.now(p);if(c.global)c.global();G.cards.push(c.id);closeModal();econ(true);toast(`Decree: ${c.name}`);});
+  const rr=$('#reroll');if(rr)rr.onclick=()=>{G.rerolls--;G.drafts++;openDraft();};
+}
+function openPause(){
+  if(!G||G.over)return;
+  const p=NATS[G.pid];
+  openModal(`<h3>Campaign paused</h3><p class="sub">${NATS[G.pid].name} · Heat ${G.diff} · ${Math.floor(G.t/60)}m ${Math.floor(G.t%60)}s</p>
+   <div class="kv"><span>Land held</span><span class="num">${(p.tiles/LANDN*100).toFixed(1)}%</span><span>Rivals defeated</span><span class="num">${G.kills}</span><span>Decrees</span><span>${G.cards.length?G.cards.map(id=>CARDS.find(c=>c.id===id).name).join(', '):'None yet'}</span></div>
+   <div class="mrow"><button class="btn" id="abandon">Retreat</button><button class="btn gold" id="resume">Resume</button></div>
+   <p class="sub" style="margin:0">Retreating ends the campaign. You still keep the pearls earned so far.</p>`);
+  $('#resume').onclick=closeModal;$('#abandon').onclick=()=>{closeModal();endRun(false,true);};
+}
+function pearlsFor(win){
+  const p=NATS[G.pid];
+  const base=G.peak*1.2+G.kills*10+Math.min(20,G.t/60*2)+(win?50:0);
+  return Math.max(1,Math.round(base*(1+.3*(G.diff-1))*p.m.pearl*(1+.15*lvl('fortune'))));
+}
+function endRun(win,retreat){
+  if(G.over)return;G.over=true;
+  const earned=pearlsFor(win);
+  S.pearls+=earned;S.runs++;if(win){S.wins++;if(S.diff===S.maxDiff)S.maxDiff++;}S.best=Math.max(S.best,Math.round(G.peak*10)/10);save();
+  logEvent('run_end',{nation:NAT[G.pid].name,heat:G.diff,win:!!win,retreat:!!retreat,peak:Math.round(G.peak*10)/10,minutes:Math.round(G.t/6)/10,kills:G.kills,pearls:earned});
+  setTimeout(()=>{
+    openModal(`<h3>${win?'The Gulf is yours':retreat?'You withdraw':'Your nation has fallen'}</h3>
+     <p class="sub">${NATS[G.pid].name} · Heat ${G.diff} · ${Math.floor(G.t/60)}m ${Math.floor(G.t%60)}s</p>
+     <div class="kv"><span>Peak land</span><span class="num">${G.peak.toFixed(1)}%</span><span>Rivals defeated</span><span class="num">${G.kills}</span><span>Decrees issued</span><span class="num">${G.cards.length}</span></div>
+     <div class="big"><i class="pearl" style="width:22px;height:22px"></i>+${earned} pearls</div>
+     ${win&&S.diff+1===S.maxDiff?`<p class="sub" style="margin:0">Heat ${S.maxDiff} unlocked.</p>`:''}
+     <button class="go" id="toMajlis">Return to the Majlis</button>`);
+    $('#toMajlis').onclick=()=>{closeModal();if(win&&S.diff<S.maxDiff){S.diff=S.maxDiff;save();}showScreen('home');};
+  },win?600:900);
+}
+
+/* ================= Home (Majlis) ================= */
+const IDLE_CAP_MIN=12*60;
+function idleStored(){const l=lvl('dhow');if(!l)return 0;const mins=Math.min(IDLE_CAP_MIN,(Date.now()-S.lastIdle)/60000);return mins*l*.2;}
+function renderHome(){
+  renderAccount();renderStore();renderCosmetics();
+  if(HASH_NOTE){showNote(HASH_NOTE[0],HASH_NOTE[1]);HASH_NOTE=null;}
+  $('#pearls').textContent=fmt(S.pearls);
+  const st=idleStored(),dl=lvl('dhow');
+  $('#dhow').innerHTML=dl?`<i class="pearl" style="width:22px;height:22px"></i><div class="t"><b class="num">${Math.floor(st)} pearls in the hold</b>Your dhow fleet dives ${(dl*.2*60).toFixed(0)} pearls an hour, up to 12 hours.</div><button class="btn gold" id="collect" ${st<1?'disabled':''}>Collect</button>`
+    :`<i class="pearl" style="width:22px;height:22px;opacity:.5"></i><div class="t"><b>No dhow fleet yet</b>Buy the Dhow fleet upgrade to earn pearls while you are away.</div>`;
+  const cb=$('#collect');if(cb)cb.onclick=()=>{S.pearls+=Math.floor(idleStored());S.lastIdle=Date.now();save();renderHome();};
+  $('#nations').innerHTML=NAT.slice(1).map((n,k)=>{const id=k+1,un=S.unlocked[id];
+    return `<button class="nat ${S.nation===id?'sel':''} ${un?'':'locked'}" data-id="${id}"><span class="row"><i class="sw" style="background:${rgb(n.color)}"></i><b>${n.name}</b></span><small>${n.perk}</small>${un?'':`<span class="lock"><i class="pearl" style="width:11px;height:11px"></i>Unlock for ${n.unlock}</span>`}</button>`;}).join('');
+  document.querySelectorAll('.nat').forEach(b=>b.onclick=()=>{const id=+b.dataset.id;
+    if(!S.unlocked[id]){const c=NAT[id].unlock;if(S.pearls>=c){S.pearls-=c;S.unlocked[id]=1;S.nation=id;save();}else{b.querySelector('.lock').textContent=`Need ${c} pearls (you have ${Math.floor(S.pearls)})`;return;}}
+    else S.nation=id;save();renderHome();});
+  $('#heatLbl').textContent=`Heat ${S.diff}`+(S.maxDiff>1?` of ${S.maxDiff}`:'');
+  $('#heatSub').textContent=S.maxDiff>1?`Rivals regen ${Math.round((.8+.12*S.diff)*100)}% speed. Pearls +${(S.diff-1)*30}%.`:'Win a campaign to unlock Heat 2: tougher rivals, more pearls.';
+  $('#heatDn').disabled=S.diff<=1;$('#heatUp').disabled=S.diff>=S.maxDiff;
+  $('#go').textContent=`Begin campaign as ${NAT[S.nation].name}`;
+  $('#upgs').innerHTML=UPG.map(u=>{const l=lvl(u.k),max=l>=u.max,c=upgCost(u);
+    return `<div class="upg"><div class="t"><b>${u.name}</b><small>${u.desc}</small><div class="pips">${Array.from({length:u.max},(_,k)=>`<i class="${k<l?'on':''}"></i>`).join('')}</div></div>
+    <button class="btn ${!max&&S.pearls>=c?'gold':''}" data-k="${u.k}" ${max||S.pearls<c?'disabled':''}>${max?'Max':`<span class="num">${c}</span>`}</button></div>`;}).join('');
+  document.querySelectorAll('#upgs .upg button').forEach(b=>b.onclick=()=>{const u=UPG.find(x=>x.k===b.dataset.k),c=upgCost(u);if(S.pearls<c)return;
+    if(u.k==='dhow'&&!lvl('dhow'))S.lastIdle=Date.now();
+    if(u.k==='dhow'&&lvl('dhow')){S.pearls+=Math.floor(idleStored());S.lastIdle=Date.now();}
+    S.pearls-=c;S.upg[u.k]=lvl(u.k)+1;save();renderHome();});
+  $('#stats').textContent=S.runs?`${S.runs} campaigns · ${S.wins} won · best ${S.best}% of the region`:'No campaigns yet. Kuwait and Saudi Arabia are ready to march.';
+  drawHero();
+}
+$('#heatDn').onclick=()=>{S.diff=Math.max(1,S.diff-1);save();renderHome();};
+$('#heatUp').onclick=()=>{S.diff=Math.min(S.maxDiff,S.diff+1);save();renderHome();};
+$('#go').onclick=()=>startRun();
+let resetArmed=false;
+$('#resetBtn').onclick=e=>{if(!resetArmed){resetArmed=true;e.target.textContent='Tap again to erase all pearls and upgrades';setTimeout(()=>{resetArmed=false;e.target.textContent='Reset progress';},4000);return;}S=defSave();if(ACCOUNT)applyEnt(ENT_LIST);save();resetArmed=false;e.target.textContent='Reset progress';renderHome();};
+$('#howBtn').onclick=()=>{openModal(`<h3>How to play</h3>
+  <div class="kv" style="grid-template-columns:1fr"><span style="color:var(--pearl)"><b>Expand.</b> Tap sand next to your border to send troops. The slider sets how many go. Deserts and mountains cost more.</span>
+  <span style="color:var(--pearl)"><b>Conquer.</b> Tap a rival you border to attack. Taking their capital star costs them troops and gold and forces them to move it; take every tile to finish them.</span>
+  <span style="color:var(--pearl)"><b>Sail.</b> Tap a coast you don't border, or use Boat mode, and dhows carry troops across the water, land, and push inland. Up to 3 fleets at once.</span>
+  <span style="color:var(--pearl)"><b>Build.</b> Place anything anywhere on your land: cities, forts, oil rigs (best on dark oil fields), ports near water, missile silos, drone hangars and air defense.</span>
+  <span style="color:var(--pearl)"><b>Strike.</b> Drones are cheap and slow; they wreck a building and thin troops. Missiles are fast and costly; they destroy every building in the blast and kill troops. Only ground troops and landings take land.</span>
+  <span style="color:var(--pearl)"><b>Defend.</b> Air defense batteries shoot down incoming drones (most of the time) and missiles (sometimes). Layer them around your capital and silos.</span>
+  <span style="color:var(--pearl)"><b>Reload.</b> Silos hold 1 missile (30s reload), hangars 4 drones (35s rearm), air defense 3 interceptors (18s reload). Blue pips show what is ready; a red ring shows reloading.</span>
+  <span style="color:var(--pearl)"><b>Counter.</b> Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.</span>
+  <span style="color:var(--pearl)"><b>Navy.</b> Launch warships from a port. They patrol nearby waters and sink enemy dhows and warships.</span>
+  <span style="color:var(--pearl)"><b>Decrees.</b> Each land milestone and each fallen rival lets you pick a power for this campaign.</span>
+  <span style="color:var(--pearl)"><b>Grow.</b> Every campaign pays pearls for permanent upgrades, new nations and higher heat. Hold ${WIN_PCT}% of the land to win.</span></div>
+  <button class="go" id="okHow">Got it</button>`);$('#okHow').onclick=closeModal;};
+
+function drawHero(){
+  const hc=$('#heroCv'),hx=hc.getContext('2d');
+  const save={own:owner.slice(),G,NATS};
+  owner.fill(0);G={pid:S.nation,pings:[]};NATS=[null];
+  for(let id=1;id<=NNAT;id++){NATS.push(newNation(id,id===S.nation,1));claimBlob(id,NATS[id].capIdx,id===S.nation?3:2);}
+  paintAll();
+  // crop lon 37.5-63, lat 15.8-38.5
+  const x0=(37.5-LON0)/STEP,y0=(LAT1-38.5)/STEP,cw=(63-37.5)/STEP,ch=(38.5-12.3)/STEP;
+  const s=3;hc.width=Math.round(cw*s);hc.height=Math.round(ch*s);
+  hx.imageSmoothingEnabled=true;hx.imageSmoothingQuality='high';hx.drawImage(mapCv,x0*K,y0*K,cw*K,ch*K,0,0,hc.width,hc.height);
+  hx.textAlign='center';hx.textBaseline='middle';
+  for(let id=1;id<=NNAT;id++){const n=NATS[id],i=n.capIdx,x=(i%W+.5-x0)*s,y=(((i/W)|0)+.5-y0)*s,sel=id===S.nation;
+    if(sel){hx.beginPath();hx.arc(x,y,16,0,7);hx.strokeStyle='rgba(255,240,200,.7)';hx.lineWidth=2;hx.stroke();}
+    hx.beginPath();for(let k=0;k<10;k++){const a=-Math.PI/2+k*Math.PI/5,rr=k%2?3:7;hx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}hx.closePath();hx.fillStyle=sel?'#ffe7a8':rgb(n.color);hx.fill();hx.strokeStyle='#1a1408';hx.lineWidth=1;hx.stroke();
+    const lx=id===3?x-26:id===4?x+22:x, ly=id===3?y-16:id===4?y+18:y+20;
+    hx.font=`700 ${sel?15:13}px 'Reem Kufi',sans-serif`;hx.lineWidth=3;hx.strokeStyle='rgba(8,14,16,.8)';hx.fillStyle=sel?'#ffe7a8':'#fff8ea';
+    hx.strokeText(n.name,lx,ly);hx.fillText(n.name,lx,ly);}
+  hx.font=`italic 500 12px 'IBM Plex Sans Arabic',sans-serif`;hx.fillStyle='rgba(180,220,220,.45)';
+  for(const [t,lo,la] of SEAS){const x=((lo-LON0)/STEP-x0)*s,y=((LAT1-la)/STEP-y0)*s;if(x>0&&x<hc.width&&y>0&&y<hc.height)hx.fillText(t,x,y);}
+  owner.set(save.own);G=save.G;NATS=save.NATS;fullPaint=true;
+}
+
+/* ================= Screens & loop ================= */
+let screen='home';
+function showScreen(s){screen=s;$('#home').hidden=s!=='home';$('#game').hidden=s!=='game';if(s==='home')renderHome();}
+window.addEventListener('resize',()=>{if(screen==='game'){resize();clampView();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&screen==='game'&&G&&!G.over&&!modalOpen)openPause();});
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(.25,(now-last)/1000);last=now;
+  if(screen==='game'&&G&&NATS.length>1){
+    if(!G.over&&!modalOpen){G.acc+=dt*G.speed;let k=0;while(G.acc>=.1&&k<10){G.acc-=.1;tick();k++;if(G.over)break;}
+      if(G.drafts>0&&!G.over&&!modalOpen)openDraft();}
+    render(now);
+    if(now-hudT>200){hudT=now;hud();}
+  }
+  requestAnimationFrame(frame);
+}
+applyCosmetics();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(screen==='home')drawHero();});
+showScreen('home');
+loadAccount();loadStore();
+requestAnimationFrame(frame);
+})();
+</script>

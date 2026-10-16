@@ -1,0 +1,2 @@
+SESSION_SECRET=any-long-random-string-for-local-testing
+GOOGLE_CLIENT_SECRET=from-google-cloud-console
