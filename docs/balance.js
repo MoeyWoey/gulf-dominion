@@ -14,9 +14,9 @@ window.GD_BALANCE_DEFAULTS = {
   },
   // reload = multiplier on the silo's reload time after firing this tier
   missiles: {
-    t1: { name: 'Missile I', cost: 200, radius: 2, speed: 11, troops: 8, intercept: 1, reload: 1 },
-    t2: { name: 'Missile II', cost: 420, radius: 3, speed: 12, troops: 11, intercept: 0.9, reload: 1.5 },
-    t3: { name: 'Missile III', cost: 750, radius: 4, speed: 13, troops: 15, intercept: 0.8, reload: 2.2 },
+    t1: { name: 'Missile I', cost: 200, radius: 2, speed: 6, troops: 8, intercept: 1, reload: 1 },
+    t2: { name: 'Missile II', cost: 420, radius: 3, speed: 7, troops: 11, intercept: 0.9, reload: 1.5 },
+    t3: { name: 'Missile III', cost: 750, radius: 4, speed: 8, troops: 15, intercept: 0.8, reload: 2.2 },
   },
   // Which drone types each nation can fly, and the highest missile tier it can fire (0 = none)
   arsenal: {
@@ -36,6 +36,8 @@ window.GD_BALANCE_DEFAULTS = {
   droneHandicap: { nations: ['KW', 'SA', 'BH', 'QA', 'AE', 'OM'], cost: 1.4, intercept: 1.3, radius: 0.8, speed: 0.9 },
   // Extra oil fields scattered across GCC land (0 = only the real fields, 0.1 = a lot more)
   oil: { gccExtra: 0.05 },
+  // Radar: tracking range in tiles, and the hit-chance multiplier for air defense inside its own radar coverage
+  radar: { range: 26, samBoost: 1.25 },
 };
 
 // Merge saved overrides over the defaults, keeping only known keys and sane values.

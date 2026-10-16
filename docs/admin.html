@@ -321,6 +321,8 @@ function renderBal(B){
       <span>Handicap: intercept ×</span><span>${numIn('droneHandicap.intercept',h.intercept,'0.05')} <span class="hint">higher = easier to shoot down</span></span>
       <span>Handicap: blast radius ×</span><span>${numIn('droneHandicap.radius',h.radius,'0.05')}</span>
       <span>Handicap: speed ×</span><span>${numIn('droneHandicap.speed',h.speed,'0.05')}</span>
+      <span>Radar tracking range</span><span>${numIn('radar.range',B.radar.range,'1')} tiles</span>
+      <span>Radar air defense boost ×</span><span>${numIn('radar.samBoost',B.radar.samBoost,'0.05')} <span class="hint">hit chance for batteries inside radar coverage</span></span>
       <span>Extra GCC oil fields</span><span>${numIn('oil.gccExtra',B.oil.gccExtra,'0.01')} <span class="hint">0 = real fields only, 0.05 = default, 0.15 = lots</span></span>
      </div></div>`;
 }

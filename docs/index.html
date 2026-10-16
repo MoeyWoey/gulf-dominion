@@ -112,6 +112,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-o
 .sendrow b{min-width:88px;text-align:right}
 input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
 .builds{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+#buildRow{grid-template-columns:repeat(3,1fr)}
+.edgewarn{position:absolute;pointer-events:none}
 .builds button{padding:7px 2px;min-width:0;border-radius:9px;border:1px solid var(--line-2);background:#14292f;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:.8rem;font-weight:600}
 .builds button small{font-size:.68rem;color:var(--muted);font-weight:500}
 .builds button.on{border-color:var(--sand);box-shadow:inset 0 0 0 1px var(--sand)}
@@ -231,6 +233,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
         <button data-b="silo">Silo<small id="cSilo">220</small></button>
         <button data-b="hangar">Drone hangar<small id="cHangar">150</small></button>
         <button data-b="sam">Air defense<small id="cSam">110</small></button>
+        <button data-b="radar">Radar<small id="cRadar">130</small></button>
       </div>
     </div>
   </div>
@@ -557,7 +560,7 @@ function newNation(id,isPlayer,diff){
   if(isPlayer){m.regen*=1+.08*lvl('regen');m.neutral*=Math.pow(.94,lvl('cost'));}
   return {id,name:d.name,color:d.color,isPlayer,alive:true,m,capIdx:cellAt(d.cap[0],d.cap[1]),
     troops:isPlayer?300*(1+.2*lvl('troops')):300*(.9+.1*diff),gold:isPlayer?100+60*lvl('gold'):100,
-    tiles:0,cap:300,cities:0,rigs:0,oilT:0,coastT:0,cx:0,cy:0,citiesBuilt:0,fortsBuilt:0,rigsBuilt:0,portsBuilt:0,shipsBuilt:0,silosBuilt:0,hangarsBuilt:0,samsBuilt:0,ports:0,rigsDry:0,nextAI:2+Math.random()*3,regenNow:0,goldNow:0};
+    tiles:0,cap:300,cities:0,rigs:0,oilT:0,coastT:0,cx:0,cy:0,citiesBuilt:0,fortsBuilt:0,rigsBuilt:0,portsBuilt:0,shipsBuilt:0,silosBuilt:0,hangarsBuilt:0,samsBuilt:0,radarsBuilt:0,ports:0,rigsDry:0,nextAI:2+Math.random()*3,regenNow:0,goldNow:0};
 }
 
 function startRun(){
@@ -877,6 +880,7 @@ function aiBuild(n){
     if(placeNear(n,anchors[(Math.random()*anchors.length)|0],'sam',4))return;}
   if(!hang&&G.t>60&&n.gold>=costOf(n,'hangar')*1.1&&placeNear(n,n.capIdx,'hangar',5))return;
   if(!silo&&G.t>120&&n.gold>=costOf(n,'silo')*1.2&&placeNear(n,n.capIdx,'silo',5))return;
+  if(sams>0&&G.t>90&&!blist.some(j=>bld[j]===8&&owner[j]===n.id)&&n.gold>=costOf(n,'radar')*1.2&&placeNear(n,n.capIdx,'radar',4))return;
   if(n.coastT&&Math.random()<.35){
     const myPorts=blist.filter(i=>bld[i]===4&&owner[i]===n.id);
     const free=myPorts.find(i=>ships.filter(w=>w.port===i).length<2);
@@ -894,12 +898,13 @@ function costOf(n,t){
   if(t==='silo')return Math.round(220*Math.pow(1.4,n.silosBuilt));
   if(t==='hangar')return Math.round(150*Math.pow(1.35,n.hangarsBuilt));
   if(t==='sam')return Math.round(110*Math.pow(1.3,n.samsBuilt));
+  if(t==='radar')return Math.round(130*Math.pow(1.3,n.radarsBuilt));
   if(t==='drone')return Math.round(45*n.m.droneCost*(n.m.droneN>1?1.5:1));
   if(t==='missile')return Math.round(200*n.m.missileCost);
   return Math.round(150*Math.pow(1.15,n.rigsBuilt));
 }
-const BCODE={city:1,fort:2,rig:3,port:4,silo:5,hangar:6,sam:7};
-const BKEY={city:'citiesBuilt',fort:'fortsBuilt',rig:'rigsBuilt',port:'portsBuilt',silo:'silosBuilt',hangar:'hangarsBuilt',sam:'samsBuilt'};
+const BCODE={city:1,fort:2,rig:3,port:4,silo:5,hangar:6,sam:7,radar:8};
+const BKEY={city:'citiesBuilt',fort:'fortsBuilt',rig:'rigsBuilt',port:'portsBuilt',silo:'silosBuilt',hangar:'hangarsBuilt',sam:'samsBuilt',radar:'radarsBuilt'};
 function place(n,i,t,free){
   const c=costOf(n,t);if(!free&&n.gold<c)return false;
   if(!free)n.gold-=c;bld[i]=BCODE[t];blist.push(i);n[BKEY[t]]++;
@@ -978,7 +983,7 @@ function stepMissiles(dt){
   };
   if(missiles.length){
     for(const j of blist){if(bld[j]!==7||!owner[j]||ammo[j]<1)continue;if(bgap[j]>0){bgap[j]-=dt;continue;}
-      const d=NATS[owner[j]];if(fire(j%W,(j/W)|0,d.id,d.m.samR,.7*d.m.samPow,.38*d.m.samPow)){bgap[j]=.8;ammo[j]--;if(ammo[j]<1)bcool[j]=RELOAD[7]*d.m.reload;}}
+      const d=NATS[owner[j]],boost=radarCovers(d.id,j%W,(j/W)|0)?BAL.radar.samBoost:1;if(fire(j%W,(j/W)|0,d.id,d.m.samR,.7*d.m.samPow*boost,.38*d.m.samPow*boost)){bgap[j]=.8;ammo[j]--;if(ammo[j]<1)bcool[j]=RELOAD[7]*d.m.reload;}}
     for(const w of ships){w.aa=(w.aa||0)-dt;if(w.aa>0)continue;if(fire(w.c%W,(w.c/W)|0,w.own,4,.45,.15))w.aa=1;}
   }
   missiles=missiles.filter(m=>!m.done);
@@ -1104,9 +1109,28 @@ function drawDhow(x,y,r,c){
   ctx.beginPath();ctx.moveTo(x-r,y);ctx.lineTo(x+r*1.05,y-r*.1);ctx.lineTo(x+r*.6,y+r*.5);ctx.lineTo(x-r*.7,y+r*.5);ctx.closePath();ctx.fillStyle='#5a3d22';ctx.fill();ctx.stroke();
   ctx.beginPath();ctx.moveTo(x-r*.15,y-r*1.4);ctx.lineTo(x+r*.85,y-r*.15);ctx.lineTo(x-r*.15,y-r*.15);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();ctx.strokeStyle='#f6efe0';ctx.stroke();
 }
-// Stealthy drones show only once they come within reveal range of the player's land (then stay visible)
+// Radar coverage: is (x,y) within range of one of this nation's radars?
+function radarCovers(id,x,y){
+  const R2=BAL.radar.range*BAL.radar.range;
+  for(const j of blist){if(bld[j]!==8||owner[j]!==id)continue;const dx=j%W-x,dy=((j/W)|0)-y;if(dx*dx+dy*dy<=R2)return true;}
+  return false;
+}
+const targetsPlayer=m=>{const cx=Math.round(m.tx),cy=Math.round(m.ty);return m.own!==G.pid&&cx>=0&&cy>=0&&cx<W&&cy<H&&owner[cy*W+cx]===G.pid;};
+// Incoming strikes inside the player's radar coverage are tracked: impact zone, time to impact, edge arrows
+function tracked(m){
+  if(m.tracked)return true;
+  if(!targetsPlayer(m)||!radarCovers(G.pid,m.x,m.y))return false;
+  m.tracked=true;m.seen=true;
+  if(m.kind==='missile'){const now=performance.now();
+    if(now-(G.lastWarn||0)>4000){G.lastWarn=now;toast(`Radar: ${m.name} inbound from ${NATS[m.own].name}. Impact in ${Math.max(1,Math.ceil(etaOf(m)))}s.`,3000);
+      try{navigator.vibrate&&navigator.vibrate([90,60,90]);}catch(e){}}}
+  return true;
+}
+const etaOf=m=>Math.hypot(m.tx-m.x,m.ty-m.y)/m.sp/Math.max(1,G.speed);
+// Stealthy drones show once they come within reveal range of the player's land or radar (then stay visible)
 function missileVisible(m){
   if(!m.stealth||m.seen||m.own===G.pid)return true;
+  if(radarCovers(G.pid,m.x,m.y)){m.seen=true;return true;}
   const R=BAL.stealth.reveal|0,cx=Math.round(m.x),cy=Math.round(m.y);
   for(let dy=-R;dy<=R;dy++){const y=cy+dy;if(y<0||y>=H)continue;for(let dx=-R;dx<=R;dx++){const x=cx+dx;if(x<0||x>=W||dx*dx+dy*dy>R*R)continue;if(owner[y*W+x]===G.pid){m.seen=true;return true;}}}
   return false;
@@ -1141,6 +1165,13 @@ function render(now){
         ctx.beginPath();ctx.moveTo(x,y-r*.6);ctx.lineTo(x+r*.25,y+r*.45);ctx.lineTo(x-r*.25,y+r*.45);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();}
       else if(b===6){ctx.beginPath();ctx.moveTo(x-r*.85,y+r*.5);ctx.lineTo(x-r*.85,y);ctx.arc(x,y,r*.85,Math.PI,0);ctx.lineTo(x+r*.85,y+r*.5);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();ctx.stroke();
         ctx.beginPath();ctx.moveTo(x-r*.5,y-r*.1);ctx.lineTo(x+r*.5,y-r*.1);ctx.moveTo(x,y-r*.45);ctx.lineTo(x,y+r*.25);ctx.strokeStyle='#f6efe0';ctx.stroke();}
+      else if(b===8){if(owner[i]===G.pid){const a=now/700%(Math.PI*2),RR=BAL.radar.range*s;
+          if(G.mode==='build'){ctx.beginPath();ctx.arc(x,y,RR,0,7);ctx.setLineDash([2,6]);ctx.strokeStyle='rgba(140,230,180,.35)';ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);}
+          const g=ctx.createRadialGradient(x,y,0,x,y,RR);g.addColorStop(0,'rgba(140,230,180,.18)');g.addColorStop(1,'rgba(140,230,180,0)');
+          ctx.beginPath();ctx.moveTo(x,y);ctx.arc(x,y,RR,a-.35,a);ctx.closePath();ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='#0b1416';ctx.lineWidth=1.2;}
+        ctx.beginPath();ctx.arc(x,y,r*.85,0,7);ctx.fillStyle='#1c2b2e';ctx.fill();ctx.strokeStyle=rgb(c);ctx.lineWidth=2;ctx.stroke();
+        ctx.beginPath();ctx.arc(x-r*.15,y+r*.2,r*.55,Math.PI*1.1,Math.PI*1.9);ctx.strokeStyle='#f6efe0';ctx.lineWidth=1.6;ctx.stroke();
+        ctx.beginPath();ctx.moveTo(x-r*.15,y+r*.2);ctx.lineTo(x+r*.35,y-r*.35);ctx.stroke();ctx.lineWidth=1.2;ctx.strokeStyle='#0b1416';}
       else if(b===7){if(owner[i]===G.pid&&G.mode==='build'){ctx.beginPath();ctx.arc(x,y,NATS[owner[i]].m.samR*s,0,7);ctx.setLineDash([3,5]);ctx.strokeStyle='rgba(120,220,255,.3)';ctx.stroke();ctx.setLineDash([]);ctx.strokeStyle='#0b1416';}
         ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r,y);ctx.lineTo(x,y+r);ctx.lineTo(x-r,y);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();ctx.stroke();
         ctx.beginPath();ctx.arc(x,y+r*.2,r*.5,Math.PI*1.15,Math.PI*1.85);ctx.strokeStyle='#f6efe0';ctx.lineWidth=1.6;ctx.stroke();}
@@ -1190,6 +1221,11 @@ function render(now){
   for(const m of missiles){
     if(!missileVisible(m))continue;
     const x=view.ox+(m.x+.5)*s,y=view.oy+(m.y+.5)*s,tx=view.ox+(m.tx+.5)*s,ty=view.oy+(m.ty+.5)*s,a=Math.atan2(ty-y,tx-x),col=NATS[m.own].color;
+    if(tracked(m)){const pulse=.5+.5*Math.sin(now/140);
+      ctx.beginPath();ctx.arc(tx,ty,Math.max(8,m.r*s),0,7);ctx.fillStyle=`rgba(255,80,60,${.12+.1*pulse})`;ctx.fill();ctx.strokeStyle=`rgba(255,111,94,${.6+.4*pulse})`;ctx.lineWidth=2;ctx.stroke();
+      ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(tx,ty);ctx.strokeStyle='rgba(255,111,94,.55)';ctx.lineWidth=1.5;ctx.stroke();ctx.setLineDash([]);
+      ctx.font=`700 ${Math.max(10,s*1.4)}px 'IBM Plex Sans Arabic',sans-serif`;ctx.lineWidth=3;ctx.strokeStyle='rgba(8,14,16,.85)';ctx.fillStyle='#ffd2cb';
+      const lbl=Math.ceil(etaOf(m))+'s';ctx.strokeText(lbl,tx,ty-Math.max(8,m.r*s)-8);ctx.fillText(lbl,tx,ty-Math.max(8,m.r*s)-8);}
     ctx.beginPath();ctx.arc(tx,ty,Math.max(4,s*.9),0,7);ctx.strokeStyle=rgb(col,.45);ctx.lineWidth=1;ctx.stroke();
     ctx.beginPath();ctx.moveTo(tx-4,ty);ctx.lineTo(tx+4,ty);ctx.moveTo(tx,ty-4);ctx.lineTo(tx,ty+4);ctx.stroke();
     ctx.save();ctx.translate(x,y);ctx.rotate(a);
@@ -1205,6 +1241,17 @@ function render(now){
   for(const h of shots){const k=1-(now-h.t)/220,bx=view.ox+(h.bx+.5)*s,by=view.oy+(h.by+.5)*s;ctx.beginPath();ctx.moveTo(view.ox+(h.ax+.5)*s,view.oy+(h.ay+.5)*s);ctx.lineTo(bx,by);
     ctx.strokeStyle=h.aa?`rgba(140,230,255,${k})`:`rgba(255,210,122,${k})`;ctx.lineWidth=2;ctx.stroke();
     ctx.beginPath();ctx.arc(bx,by,3+(1-k)*8,0,7);ctx.strokeStyle=`rgba(255,160,90,${k})`;ctx.stroke();}
+  // edge arrows for tracked strikes that are off screen
+  for(const m of missiles){
+    if(!m.tracked||m.done)continue;
+    const x=view.ox+(m.x+.5)*s,y=view.oy+(m.y+.5)*s;if(x>=0&&y>=0&&x<=w&&y<=h)continue;
+    const cx=w/2,cy=h/2,dx=x-cx,dy=y-cy,mg=24,top=110,bot=h-150,k=Math.min((w/2-mg)/Math.abs(dx||1e-6),((dy<0?cy-top:bot-cy))/Math.abs(dy||1e-6));
+    const ex=cx+dx*k,ey=cy+dy*k,a=Math.atan2(dy,dx);
+    ctx.save();ctx.translate(ex,ey);ctx.rotate(a);ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(-8,-8);ctx.lineTo(-4,0);ctx.lineTo(-8,8);ctx.closePath();
+    ctx.fillStyle=m.kind==='missile'?'#ff6f5e':'#f0b44c';ctx.fill();ctx.strokeStyle='#0b1416';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();
+    ctx.font=`700 11px 'IBM Plex Sans Arabic',sans-serif`;ctx.lineWidth=3;ctx.strokeStyle='rgba(8,14,16,.85)';ctx.fillStyle='#ffd2cb';
+    const t=Math.ceil(etaOf(m))+'s';ctx.strokeText(t,ex-Math.cos(a)*18,ey-Math.sin(a)*18);ctx.fillText(t,ex-Math.cos(a)*18,ey-Math.sin(a)*18);
+  }
   // tap pings
   G.pings=G.pings.filter(p=>now-p.t<600);
   for(const p of G.pings){const k=(now-p.t)/600,x=view.ox+(p.x+.5)*s,y=view.oy+(p.y+.5)*s;
@@ -1232,7 +1279,11 @@ function hud(){
     else if(owner[b.land]===G.pid)ch+=`<span class="chip warn"><i class="d" style="background:${rgb(NATS[b.att].color)}"></i>${NATS[b.att].name} fleet inbound</span>`;}
   const inc={drone:0,missile:0},mine={drone:0,missile:0};
   for(const m of missiles){const cx=Math.round(m.tx),cy=Math.round(m.ty);if(m.own===G.pid)mine[m.kind]++;else if(cx>=0&&cy>=0&&cx<W&&cy<H&&owner[cy*W+cx]===G.pid&&missileVisible(m))inc[m.kind]++;}
-  if(inc.missile||inc.drone)ch+=`<span class="chip warn">Incoming: ${[inc.missile?inc.missile+' missile'+(inc.missile>1?'s':''):'',inc.drone?inc.drone+' drone'+(inc.drone>1?'s':''):''].filter(Boolean).join(', ')}</span>`;
+  const trk=missiles.filter(m=>m.tracked&&!m.done).sort((a,b)=>etaOf(a)-etaOf(b));
+  for(const m of trk.slice(0,3))ch+=`<span class="chip warn"><i class="d" style="background:${rgb(NATS[m.own].color)}"></i>${esc(m.name)} · impact ${Math.max(1,Math.ceil(etaOf(m)))}s</span>`;
+  if(trk.length>3)ch+=`<span class="chip warn">+${trk.length-3} more tracked</span>`;
+  const untracked={drone:inc.drone-trk.filter(m=>m.kind==='drone').length,missile:inc.missile-trk.filter(m=>m.kind==='missile').length};
+  if(untracked.missile>0||untracked.drone>0)ch+=`<span class="chip warn">Incoming: ${[untracked.missile>0?untracked.missile+' missile'+(untracked.missile>1?'s':''):'',untracked.drone>0?untracked.drone+' drone'+(untracked.drone>1?'s':''):''].filter(Boolean).join(', ')}${blist.some(j=>bld[j]===8&&owner[j]===G.pid)?'':' · build a radar to track'}</span>`;
   if(mine.missile||mine.drone)ch+=`<span class="chip"><i class="d" style="background:#8ce6ff"></i>In flight: ${mine.missile+mine.drone}</span>`;
   if(G.evt)ch+=`<span class="chip evt">${G.evt.id==='oil'?'Oil spike':G.evt.id==='sand'?'Sandstorm':'Event'} ${Math.ceil(G.evtEnd-G.t)}s</span>`;
   if(G.ms<MILESTONES.length)ch+=`<span class="chip">Next decree at ${MILESTONES[G.ms]}%</span>`;
@@ -1240,7 +1291,7 @@ function hud(){
   const rows=NATS.slice(1).sort((a,b)=>b.tiles-a.tiles);
   $('#lb').innerHTML=rows.map(n=>`<div class="r ${n.isPlayer?'me':''} ${n.alive?'':'dead'}"><span class="chip d" style="padding:0;border:0;width:8px;height:8px;border-radius:2px;background:${rgb(n.color)}"></span><span>${n.short||NAT[n.id].short}</span><span class="num">${(n.tiles/LANDN*100).toFixed(1)}%</span></div>`).join('');
   const hudEl=document.querySelector('.hud');$('#lb').style.top=(hudEl.offsetTop+hudEl.offsetHeight+4)+'px';
-  for(const t of ['city','fort','rig','port','ship','silo','hangar','sam']){const c=costOf(p,t),el=$('#c'+t[0].toUpperCase()+t.slice(1));el.textContent=fmt(c)+' g';el.parentElement.classList.toggle('poor',p.gold<c);}
+  for(const t of ['city','fort','rig','port','ship','silo','hangar','sam','radar']){const c=costOf(p,t),el=$('#c'+t[0].toUpperCase()+t.slice(1));el.textContent=fmt(c)+' g';el.parentElement.classList.toggle('poor',p.gold<c);}
   const rd={5:[0,1e9,false],6:[0,1e9,false]};
   for(const j of blist)if((bld[j]===5||bld[j]===6)&&owner[j]===G.pid){const r=rd[bld[j]];r[2]=true;r[0]+=Math.floor(ammo[j]);if(ammo[j]<1)r[1]=Math.min(r[1],bcool[j]);}
   document.querySelectorAll('#strikeRow small[data-c]').forEach(el=>{const w=weapon(G.pid,el.dataset.c);if(!w)return;const r=rd[w.kind==='drone'?6:5];
@@ -1303,7 +1354,7 @@ function handleTap(sx,sy){
     if(bld[i]){ping(true);toast('Something is already built here.');return;}
     if(G.bsel==='port'&&nearWater(i,3)<0){ping(true);toast('Ports need open water within 3 tiles.');return;}
     const c=costOf(p,G.bsel);if(p.gold<c){ping(true);toast(`Need ${fmt(c)} gold.`);return;}
-    place(p,i,G.bsel);ping(false);toast({city:'City founded: more troops and gold.',fort:'Fort raised: nearby land is far harder to take.',rig:oil[i]?'Oil rig on an oil field: +4 gold/s.':'Oil rig pumping: +1.2 gold/s. Oil fields pay +4.',port:'Port opened: +2 gold/s. Launch warships from here.',silo:`Missile silo ready. Missiles reach ${RANGE.missile} tiles.`,hangar:`Drone hangar ready. Drones reach ${RANGE.drone} tiles.`,sam:'Air defense battery online. It shoots down drones and missiles nearby.'}[G.bsel]);econ(true);return;
+    place(p,i,G.bsel);ping(false);toast({city:'City founded: more troops and gold.',fort:'Fort raised: nearby land is far harder to take.',rig:oil[i]?'Oil rig on an oil field: +4 gold/s.':'Oil rig pumping: +1.2 gold/s. Oil fields pay +4.',port:'Port opened: +2 gold/s. Launch warships from here.',silo:`Missile silo ready. Missiles reach ${RANGE.missile} tiles.`,hangar:`Drone hangar ready. Drones reach ${RANGE.drone} tiles.`,sam:'Air defense battery online. It shoots down drones and missiles nearby.',radar:`Radar online: tracks incoming strikes within ${BAL.radar.range} tiles, reveals hidden drones and sharpens nearby air defense.`}[G.bsel]);econ(true);return;
   }
   if(o===G.pid){ping(true);toast(G.mode==='boat'?'Your own shore. Tap a coast you want to invade.':'Your land. Tap neutral sand or a rival next to your border.');return;}
   const troops=p.troops*G.ratio;
@@ -1408,6 +1459,7 @@ $('#howBtn').onclick=()=>{openModal(`<h3>How to play</h3>
   <span style="color:var(--pearl)"><b>Build.</b> Place anything anywhere on your land: cities, forts, oil rigs (best on dark oil fields), ports near water, missile silos, drone hangars and air defense.</span>
   <span style="color:var(--pearl)"><b>Strike.</b> Drones are cheap and slow; missiles are fast and costly. Bigger drone types and higher missile tiers blast a wider area but cost more, and tier II and III silos reload slower. Each nation has its own arsenal (see the nation cards). Iraqi, Iranian and Yemeni drones stay hidden until they near your border. Strikes destroy buildings and kill troops; only ground troops and landings take land.</span>
   <span style="color:var(--pearl)"><b>Defend.</b> Air defense batteries shoot down incoming drones (most of the time) and missiles (sometimes). Layer them around your capital and silos.</span>
+  <span style="color:var(--pearl)"><b>Radar.</b> A radar tracks incoming strikes in its range: red impact zones, a countdown and arrows at the screen edge. It also reveals hidden drones early, and air defense inside its coverage hits more often.</span>
   <span style="color:var(--pearl)"><b>Reload.</b> Silos hold 1 missile (30s reload), hangars 4 drones (35s rearm), air defense 3 interceptors (18s reload). Blue pips show what is ready; a red ring shows reloading.</span>
   <span style="color:var(--pearl)"><b>Counter.</b> Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.</span>
   <span style="color:var(--pearl)"><b>Navy.</b> Launch warships from a port. They patrol nearby waters and sink enemy dhows and warships.</span>
