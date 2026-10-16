@@ -76,6 +76,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-o
 .notice{border-radius:10px;padding:10px 12px;font-size:.85rem;border:1px solid var(--line-2);background:var(--panel)}
 .notice.ok{border-color:var(--ok);color:#c9f2de}
 .notice.bad{border-color:var(--danger);color:#ffd2cb}
+.builds button img.bico{width:24px;height:24px;display:block}
 .upg.snd input[type=range]{width:110px;flex:none}
 .upg.snd .btn{min-width:52px}
 .ibtn.muted{opacity:.4;text-decoration:line-through}
@@ -186,6 +187,14 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
 
     <div class="dhow" id="dhow"></div>
 
+    <div class="heat">
+      <button class="step" id="heatDn" aria-label="Lower heat">−</button>
+      <div class="lbl"><b id="heatLbl">Heat 1</b><small id="heatSub">Rivals grow faster at higher heat. Pearls +30% per level.</small></div>
+      <button class="step" id="heatUp" aria-label="Raise heat">+</button>
+    </div>
+
+    <button class="go" id="go">Begin campaign</button>
+
     <div class="sec">
       <h2>Choose your nation</h2>
       <p class="hint">GCC states rarely attack each other, and Iraq, Iran and Yemen rarely attack each other. Your bloc's AIs mostly leave you alone too.</p>
@@ -199,14 +208,6 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
         <div class="upg snd"><div class="t"><b>Effects and warnings</b><small>Explosions, sirens, radar pings, alarms</small></div><input type="range" id="sVol" min="0" max="100" aria-label="Effects volume"><button class="btn" id="sTog">On</button></div>
       </div>
     </div>
-
-    <div class="heat">
-      <button class="step" id="heatDn" aria-label="Lower heat">−</button>
-      <div class="lbl"><b id="heatLbl">Heat 1</b><small id="heatSub">Rivals grow faster at higher heat. Pearls +30% per level.</small></div>
-      <button class="step" id="heatUp" aria-label="Raise heat">+</button>
-    </div>
-
-    <button class="go" id="go">Begin campaign</button>
 
     <div class="stats" id="stats"></div>
     <div class="stats"><button class="reset" id="howBtn">How to play</button> · <button class="reset" id="resetBtn">Reset progress</button></div>
@@ -429,7 +430,7 @@ applyOil();
 // Blocs: the six GCC states, and Iraq/Iran/Yemen. AI rarely attacks inside its own bloc.
 const BLOC=[0,1,1,1,1,1,1,2,2,2];
 const sameBloc=(a,b)=>a>0&&b>0&&BLOC[a]===BLOC[b];
-function baseMods(){return {neutral:1,desert:1,mount:1,cap:1,regen:1,atk:1,def:1,oil:1,gold:1,coast:0,speed:1,cityCost:1,cityCap:400,fortR:4,fortPow:0,plunder:0,lion:false,pearl:1,falaj:false,boatSpeed:1,boatPow:1,boats:3,navy:1,patrol:9,reload:1,magD:0,magS:0,droneCost:1,missileCost:1,droneN:1,evade:1,samR:7,samPow:1,bunker:0,blast:2,startSilo:false};}
+function baseMods(){return {neutral:1,desert:1,mount:1,cap:1,regen:1,atk:1,def:1,oil:1,gold:1,coast:0,speed:1,cityCost:1,cityCap:400,fortR:4,fortPow:0,plunder:0,lion:false,pearl:1,falaj:false,boatSpeed:1,boatPow:1,boats:3,navy:1,patrol:9,reload:1,magD:0,magS:0,magM:0,droneCost:1,missileCost:1,droneN:1,evade:1,samR:7,samPow:1,bunker:0,blast:2,startSilo:false};}
 function applyPerk(id,m){
   if(id===1)m.oil*=1.6; if(id===2)m.cap*=1.2; if(id===3){m.regen*=1.35;m.coast+=.1;}
   if(id===4)m.gold*=1.4; if(id===5)m.cityCost*=.65; if(id===6){m.mount*=.5;m.def*=1.15;}
@@ -445,6 +446,7 @@ const UPG=[
  {k:'choice',name:'Wise council',desc:'+1 decree to choose from',base:80,grow:2.5,max:2},
  {k:'reroll',name:'Second opinion',desc:'+1 decree reroll per campaign',base:40,grow:2.0,max:3},
  {k:'fortune',name:'Pearl merchants',desc:'+15% pearls from campaigns',base:25,grow:1.7,max:10},
+ {k:'siloMag',name:'Deep silos',desc:'+1 missile slot in every silo (1 → 4)',base:400,grow:3.5,max:3},
  {k:'sam',name:'Air defense network',desc:'Start each campaign with an air defense battery',base:60,grow:2.2,max:2},
  {k:'dhow',name:'Dhow fleet',desc:'+1 pearl every 5 min, even while away',base:20,grow:1.6,max:15}
 ];
@@ -488,7 +490,7 @@ const WIN_PCT=60;
 const RANGE={drone:45,missile:95};
 // Magazine per launcher and full-reload time (s) once it runs dry: silo 1 missile / 30s, hangar 4 drones / 35s, air defense 3 interceptors / 18s
 const MAG={5:1,6:4,7:3},RELOAD={5:30,6:35,7:18};
-const magOf=(n,b)=>MAG[b]+(b===6?n.m.magD:b===7?n.m.magS:0);
+const magOf=(n,b)=>MAG[b]+(b===6?n.m.magD:b===7?n.m.magS:b===5?n.m.magM:0);
 
 /* ================= Save ================= */
 const SAVE_KEY='gulf-dominion-v1';
@@ -612,7 +614,7 @@ function claimBlob(id,center,r){
 
 function newNation(id,isPlayer,diff){
   const d=NAT[id],m=baseMods();applyPerk(id,m);
-  if(isPlayer){m.regen*=1+.08*lvl('regen');m.neutral*=Math.pow(.94,lvl('cost'));}
+  if(isPlayer){m.magM=lvl('siloMag');m.regen*=1+.08*lvl('regen');m.neutral*=Math.pow(.94,lvl('cost'));}
   return {id,name:d.name,color:d.color,isPlayer,alive:true,m,capIdx:cellAt(d.cap[0],d.cap[1]),
     troops:isPlayer?300*(1+.2*lvl('troops')):300*(.9+.1*diff),gold:isPlayer?100+60*lvl('gold'):100,
     tiles:0,cap:300,cities:0,rigs:0,oilT:0,coastT:0,cx:0,cy:0,citiesBuilt:0,fortsBuilt:0,rigsBuilt:0,portsBuilt:0,shipsBuilt:0,silosBuilt:0,hangarsBuilt:0,samsBuilt:0,radarsBuilt:0,ports:0,rigsDry:0,nextAI:2+Math.random()*3,regenNow:0,goldNow:0};
@@ -1162,6 +1164,23 @@ function clampView(){
 const geo=(lon,lat)=>[view.ox+((lon-LON0)/STEP)*view.s,view.oy+((LAT1-lat)/STEP)*view.s];
 const SEAS=[['ARABIAN GULF',51.6,27.0],['RED SEA',38.0,21.0],['ARABIAN SEA',58.5,16.0],['GULF OF OMAN',58.4,24.7],['CASPIAN SEA',51.6,37.9]];
 const OUTS=[['TURKEY',41.5,38.1],['SYRIA',38.8,35.2],['JORDAN',37.0,30.9],['TURKMENISTAN',58.6,38.2],['AFGHANISTAN',62.2,33.2]];
+// Round building marker: dark disc, ring in the owner's colour, white symbol for the building type
+function drawGlyph(c2,type,x,y,r,col){
+  c2.save();c2.translate(x,y);
+  c2.beginPath();c2.arc(0,0,r,0,7);c2.fillStyle='#132024';c2.fill();c2.lineWidth=Math.max(1.6,r*.2);c2.strokeStyle=col;c2.stroke();
+  c2.fillStyle='#f6efe0';c2.strokeStyle='#f6efe0';c2.lineWidth=Math.max(1.1,r*.13);c2.lineCap='round';c2.lineJoin='round';
+  const k=r*.56;c2.beginPath();
+  if(type===1){c2.moveTo(-k,-.05*k);c2.lineTo(0,-k);c2.lineTo(k,-.05*k);c2.closePath();c2.fill();c2.fillRect(-k*.68,-.08*k,k*1.36,k*.98);c2.fillStyle='#132024';c2.fillRect(-k*.18,k*.38,k*.36,k*.52);}
+  else if(type===2){c2.moveTo(0,-k);c2.lineTo(k*.85,-k*.6);c2.lineTo(k*.72,k*.28);c2.lineTo(0,k);c2.lineTo(-k*.72,k*.28);c2.lineTo(-k*.85,-k*.6);c2.closePath();c2.fill();}
+  else if(type===3){c2.moveTo(0,-k);c2.quadraticCurveTo(k*.95,k*.2,0,k*.92);c2.quadraticCurveTo(-k*.95,k*.2,0,-k);c2.fill();}
+  else if(type===4){c2.moveTo(0,-k*.62);c2.lineTo(0,k*.85);c2.moveTo(-k*.5,-k*.3);c2.lineTo(k*.5,-k*.3);c2.moveTo(-k*.82,k*.2);c2.quadraticCurveTo(0,k*1.3,k*.82,k*.2);c2.stroke();c2.beginPath();c2.arc(0,-k*.8,k*.18,0,7);c2.stroke();}
+  else if(type===5){c2.moveTo(0,-k);c2.lineTo(k*.3,-k*.48);c2.lineTo(k*.3,k*.5);c2.lineTo(k*.62,k*.95);c2.lineTo(-k*.62,k*.95);c2.lineTo(-k*.3,k*.5);c2.lineTo(-k*.3,-k*.48);c2.closePath();c2.fill();}
+  else if(type===6){c2.moveTo(0,-k);c2.lineTo(k*.98,k*.58);c2.lineTo(0,k*.18);c2.lineTo(-k*.98,k*.58);c2.closePath();c2.fill();}
+  else if(type===7){c2.arc(0,0,k*.6,0,7);c2.stroke();c2.beginPath();c2.moveTo(0,-k);c2.lineTo(0,-k*.28);c2.moveTo(0,k);c2.lineTo(0,k*.28);c2.moveTo(-k,0);c2.lineTo(-k*.28,0);c2.moveTo(k,0);c2.lineTo(k*.28,0);c2.stroke();c2.beginPath();c2.arc(0,0,k*.14,0,7);c2.fill();}
+  else if(type===8){c2.arc(-k*.5,k*.5,k*.24,0,7);c2.fill();for(const rr of [.72,1.25]){c2.beginPath();c2.arc(-k*.5,k*.5,k*rr,-Math.PI/2,0);c2.stroke();}}
+  else if(type===9){c2.moveTo(-k,k*.1);c2.lineTo(k,k*.1);c2.lineTo(k*.7,k*.6);c2.lineTo(-k*.75,k*.6);c2.closePath();c2.fill();c2.fillRect(-k*.35,-k*.35,k*.6,k*.45);c2.fillRect(-k*.05,-k*.8,k*.12,k*.5);}
+  c2.restore();
+}
 function drawStar(x,y,r,fill){ctx.beginPath();for(let k=0;k<10;k++){const a=-Math.PI/2+k*Math.PI/5,rr=k%2?r*.45:r;ctx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.lineWidth=1.2;ctx.strokeStyle='#1a1408';ctx.stroke();}
 function drawDhow(x,y,r,c){
   ctx.lineWidth=1.2;ctx.strokeStyle='#0b1416';
@@ -1213,28 +1232,15 @@ function render(now){
   // buildings
   if(s>=3){
     for(const i of blist){const b=bld[i];if(!b||!owner[i])continue;
-      const x=view.ox+(i%W+.5)*s,y=view.oy+(((i/W)|0)+.5)*s,r=Math.max(3,s*.55),c=NATS[owner[i]].color;
-      ctx.lineWidth=1.2;ctx.strokeStyle='#0b1416';
-      if(b===1){ctx.fillStyle='#f6efe0';ctx.fillRect(x-r*.7,y-r*.3,r*1.4,r);ctx.strokeRect(x-r*.7,y-r*.3,r*1.4,r);
-        ctx.beginPath();ctx.moveTo(x-r*.85,y-r*.3);ctx.lineTo(x,y-r);ctx.lineTo(x+r*.85,y-r*.3);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();ctx.stroke();}
-      else if(b===2){ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r*.8,y-r*.5);ctx.lineTo(x+r*.6,y+r*.5);ctx.lineTo(x,y+r);ctx.lineTo(x-r*.6,y+r*.5);ctx.lineTo(x-r*.8,y-r*.5);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();ctx.strokeStyle='#f6efe0';ctx.stroke();}
-      else if(b===4){ctx.beginPath();ctx.arc(x,y,r*.8,0,7);ctx.fillStyle=rgb(c);ctx.fill();ctx.strokeStyle='#f6efe0';ctx.stroke();
-        ctx.beginPath();ctx.moveTo(x,y-r*.5);ctx.lineTo(x,y+r*.45);ctx.moveTo(x-r*.4,y-r*.2);ctx.lineTo(x+r*.4,y-r*.2);ctx.moveTo(x-r*.45,y+r*.1);ctx.quadraticCurveTo(x,y+r*.7,x+r*.45,y+r*.1);ctx.stroke();}
-      else if(b===5){ctx.fillStyle='#3a3f42';ctx.fillRect(x-r*.75,y-r*.75,r*1.5,r*1.5);ctx.strokeRect(x-r*.75,y-r*.75,r*1.5,r*1.5);
-        ctx.beginPath();ctx.moveTo(x,y-r*.6);ctx.lineTo(x+r*.25,y+r*.45);ctx.lineTo(x-r*.25,y+r*.45);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();}
-      else if(b===6){ctx.beginPath();ctx.moveTo(x-r*.85,y+r*.5);ctx.lineTo(x-r*.85,y);ctx.arc(x,y,r*.85,Math.PI,0);ctx.lineTo(x+r*.85,y+r*.5);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();ctx.stroke();
-        ctx.beginPath();ctx.moveTo(x-r*.5,y-r*.1);ctx.lineTo(x+r*.5,y-r*.1);ctx.moveTo(x,y-r*.45);ctx.lineTo(x,y+r*.25);ctx.strokeStyle='#f6efe0';ctx.stroke();}
-      else if(b===8){if(owner[i]===G.pid){const a=now/700%(Math.PI*2),RR=BAL.radar.range*s;
-          if(G.mode==='build'){ctx.beginPath();ctx.arc(x,y,RR,0,7);ctx.setLineDash([2,6]);ctx.strokeStyle='rgba(140,230,180,.35)';ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);}
-          const g=ctx.createRadialGradient(x,y,0,x,y,RR);g.addColorStop(0,'rgba(140,230,180,.18)');g.addColorStop(1,'rgba(140,230,180,0)');
-          ctx.beginPath();ctx.moveTo(x,y);ctx.arc(x,y,RR,a-.35,a);ctx.closePath();ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='#0b1416';ctx.lineWidth=1.2;}
-        ctx.beginPath();ctx.arc(x,y,r*.85,0,7);ctx.fillStyle='#1c2b2e';ctx.fill();ctx.strokeStyle=rgb(c);ctx.lineWidth=2;ctx.stroke();
-        ctx.beginPath();ctx.arc(x-r*.15,y+r*.2,r*.55,Math.PI*1.1,Math.PI*1.9);ctx.strokeStyle='#f6efe0';ctx.lineWidth=1.6;ctx.stroke();
-        ctx.beginPath();ctx.moveTo(x-r*.15,y+r*.2);ctx.lineTo(x+r*.35,y-r*.35);ctx.stroke();ctx.lineWidth=1.2;ctx.strokeStyle='#0b1416';}
-      else if(b===7){if(owner[i]===G.pid&&G.mode==='build'){ctx.beginPath();ctx.arc(x,y,NATS[owner[i]].m.samR*s,0,7);ctx.setLineDash([3,5]);ctx.strokeStyle='rgba(120,220,255,.3)';ctx.stroke();ctx.setLineDash([]);ctx.strokeStyle='#0b1416';}
-        ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r,y);ctx.lineTo(x,y+r);ctx.lineTo(x-r,y);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();ctx.stroke();
-        ctx.beginPath();ctx.arc(x,y+r*.2,r*.5,Math.PI*1.15,Math.PI*1.85);ctx.strokeStyle='#f6efe0';ctx.lineWidth=1.6;ctx.stroke();}
-      else{ctx.beginPath();ctx.moveTo(x,y-r);ctx.quadraticCurveTo(x+r*.8,y+r*.1,x,y+r*.8);ctx.quadraticCurveTo(x-r*.8,y+r*.1,x,y-r);ctx.fillStyle='#14100c';ctx.fill();ctx.strokeStyle='#e8c77e';ctx.stroke();}
+      const x=view.ox+(i%W+.5)*s,y=view.oy+(((i/W)|0)+.5)*s,r=Math.max(5,s*.72),c=NATS[owner[i]].color,mine=owner[i]===G.pid,strong=G.mode==='build'||G.mode==='strike';
+      // your radar and air defense ranges: always faintly visible, stronger while building or striking
+      if(mine&&(b===7||b===8)){
+        const RR=(b===8?BAL.radar.range:NATS[owner[i]].m.samR)*s,rc=b===8?'140,230,180':'120,210,255';
+        ctx.beginPath();ctx.arc(x,y,RR,0,7);ctx.fillStyle=`rgba(${rc},${strong?.11:.055})`;ctx.fill();
+        ctx.setLineDash(b===8?[7,6]:[]);ctx.strokeStyle=`rgba(${rc},${strong?.75:.45})`;ctx.lineWidth=strong?2.2:1.5;ctx.stroke();ctx.setLineDash([]);
+        if(b===8){const a=now/700%(Math.PI*2),g=ctx.createRadialGradient(x,y,0,x,y,RR);g.addColorStop(0,'rgba(140,230,180,.3)');g.addColorStop(1,'rgba(140,230,180,0)');ctx.beginPath();ctx.moveTo(x,y);ctx.arc(x,y,RR,a-.4,a);ctx.closePath();ctx.fillStyle=g;ctx.fill();}
+      }
+      drawGlyph(ctx,b,x,y,r,rgb(c));
       if(MAG[b]&&s>=4){
         if(ammo[i]<1){const f=1-bcool[i]/(RELOAD[b]*NATS[owner[i]].m.reload);ctx.beginPath();ctx.arc(x,y,r*1.25,-Math.PI/2,-Math.PI/2+Math.max(0,f)*Math.PI*2);ctx.strokeStyle='rgba(255,111,94,.9)';ctx.lineWidth=2;ctx.stroke();}
         else{const k=Math.floor(ammo[i]),m=magOf(NATS[owner[i]],b),pw=Math.min(4,r*.5);for(let q=0;q<m;q++){ctx.fillStyle=q<k?'#8ce6ff':'rgba(140,230,255,.25)';ctx.fillRect(x-(m*pw*1.4)/2+q*pw*1.4,y+r*1.1,pw,pw);}}
@@ -1688,6 +1694,11 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 applyCosmetics();renderSound();
+(function buildMenuIcons(){
+  const codes={city:1,fort:2,rig:3,port:4,ship:9,silo:5,hangar:6,sam:7,radar:8},oc=document.createElement('canvas');oc.width=oc.height=48;const c2=oc.getContext('2d');
+  document.querySelectorAll('#buildRow button[data-b]').forEach(b=>{const code=codes[b.dataset.b];if(!code)return;c2.clearRect(0,0,48,48);drawGlyph(c2,code,24,24,21,'#dcb46a');
+    const img=new Image();img.src=oc.toDataURL();img.className='bico';img.alt='';b.prepend(img);});
+})();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(screen==='home')drawHero();});
 showScreen('home');
 loadAccount();loadStore();loadBalance();
