@@ -79,6 +79,26 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-o
 .upg.snd input[type=range]{width:110px;flex:none}
 .upg.snd .btn{min-width:52px}
 .ibtn.muted{opacity:.4;text-decoration:line-through}
+.hometabs{position:sticky;top:0;z-index:4;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-inline:-4px;padding:8px 4px;padding-top:calc(8px + env(safe-area-inset-top,0px));background:linear-gradient(180deg,var(--night) 70%,rgba(10,20,22,0))}
+.hometabs button{position:relative;display:flex;align-items:center;gap:10px;text-align:left;padding:12px;border-radius:12px;border:1.5px solid var(--sand);background:linear-gradient(180deg,#1b3036,#12252a);box-shadow:0 4px 14px rgba(0,0,0,.35);min-width:0}
+.hometabs button:active{transform:translateY(1px)}
+.hometabs svg{width:28px;height:28px;flex:none;fill:var(--sand);color:var(--sand)}
+.hometabs .lbl{display:flex;flex-direction:column;min-width:0}
+.hometabs .lbl b{font-family:var(--f-display);font-weight:700;font-size:1.02rem;color:var(--pearl);line-height:1.15}
+.hometabs .lbl small{font-size:.7rem;color:var(--muted);line-height:1.25}
+.tbadge{position:absolute;top:-8px;right:8px;background:var(--sand);color:#1d1608;font-size:.68rem;font-weight:700;border-radius:999px;padding:2px 8px;letter-spacing:.02em;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.tbadge.test{background:#f0b44c}
+@media (max-width:380px){.hometabs .lbl small{display:none}}
+.sheet{position:fixed;inset:0;z-index:9;background:var(--night);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sheethead{position:sticky;top:0;z-index:2;background:rgba(10,20,22,.96);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.sheetrow,.sheettabs,.sheetbody{max-width:540px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sheetrow{display:flex;align-items:center;gap:10px;padding-block:12px 8px}
+.sheetrow h2{flex:1;min-width:0;margin:0;font-family:var(--f-display);font-size:1.3rem;color:var(--pearl)}
+.sheettabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding-block:0 10px}
+.sheettabs button{padding:10px;border-radius:10px;border:1px solid var(--line-2);background:#14292f;font-weight:600}
+.sheettabs button.on{background:var(--sand);color:#1d1608;border-color:var(--sand)}
+.sheetbody{padding-block:14px calc(32px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+.sheetbody .hint{margin:0}
 .reset{background:none;border:0;color:var(--muted);text-decoration:underline;font-size:.75rem}
 
 /* ---------- Game ---------- */
@@ -154,6 +174,11 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
       <div class="pearlbox"><i class="pearl"></i><span id="pearls" class="num">0</span></div>
     </div>
 
+    <nav class="hometabs" aria-label="Upgrades and store">
+      <button data-sheet="upg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 7h-4v4H9v-4H5z"/><path d="M5 17h14v3H5z"/></svg><span class="lbl"><b>Majlis upgrades</b><small>Spend pearls on permanent boosts</small></span><span class="tbadge" id="upgBadge" hidden></span></button>
+      <button data-sheet="store"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7z"/><path d="M9 8a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="2"/></svg><span class="lbl"><b>Store</b><small>Nations, pearls, perks, cosmetics</small></span><span class="tbadge" id="storeBadge" hidden></span></button>
+    </nav>
+
     <div class="notice" id="notice" hidden></div>
     <div class="acct" id="acct" hidden></div>
 
@@ -183,23 +208,39 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
 
     <button class="go" id="go">Begin campaign</button>
 
-    <div class="sec">
-      <h2>Majlis upgrades</h2>
-      <p class="hint">Pearls earned in every campaign, won or lost, buy permanent upgrades.</p>
-      <div class="upgs" id="upgs"></div>
-    </div>
-    <div class="sec" id="storeSec" hidden>
-      <h2>Store</h2>
-      <p class="hint" id="storeHint"></p>
-      <div class="upgs" id="store"></div>
-    </div>
-
-    <div class="sec" id="cosSec" hidden>
-      <h2>Cosmetics</h2>
-      <div class="upgs" id="cos"></div>
-    </div>
     <div class="stats" id="stats"></div>
     <div class="stats"><button class="reset" id="howBtn">How to play</button> · <button class="reset" id="resetBtn">Reset progress</button></div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheethead">
+    <div class="sheetrow">
+      <h2 id="sheetTitle">Majlis upgrades</h2>
+      <div class="pearlbox"><i class="pearl"></i><span id="sheetPearls" class="num">0</span></div>
+      <button class="btn" id="sheetClose">Close</button>
+    </div>
+    <div class="sheettabs">
+      <button data-sheet="upg">Majlis upgrades</button>
+      <button data-sheet="store">Store</button>
+    </div>
+  </div>
+  <div class="sheetbody">
+    <div class="notice" id="sheetNote" hidden></div>
+    <div id="sheetUpg">
+      <p class="hint">Pearls from every campaign, won or lost, buy permanent upgrades. Higher heat pays more pearls.</p>
+      <div class="upgs" id="upgs"></div>
+    </div>
+    <div id="sheetStore" hidden>
+      <div id="storeSec">
+        <p class="hint" id="storeHint"></p>
+        <div class="upgs" id="store"></div>
+      </div>
+      <div class="sec" id="cosSec" hidden>
+        <h2>Your cosmetics</h2>
+        <div class="upgs" id="cos"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -517,10 +558,12 @@ async function loadBalance(){
   if(!API)return;
   try{const j=await api('/api/config');BAL=GD_mergeBalance(GD_BALANCE_DEFAULTS,j.config||{});applyOil();fullPaint=true;if(screen==='home')renderHome();}catch(e){}
 }
-async function loadStore(){if(!API)return;try{STORE=await api('/api/store');}catch(e){STORE=null;}if(screen==='home')renderStore();}
+async function loadStore(){if(!API)return;try{STORE=await api('/api/store');}catch(e){STORE={products:[],enabled:false};}if(screen==='home'){renderStore();renderTabBadges();}}
 const fmtPrice=(v,c)=>`${Number(v).toFixed(['KWD','BHD','OMR','JOD'].includes(c)?3:2)} ${esc(c)}`;
 function renderStore(){
-  const sec=$('#storeSec');if(!sec)return;if(!API||!STORE||!STORE.products||!STORE.products.length){sec.hidden=true;return;}sec.hidden=false;
+  const sec=$('#storeSec');if(!sec)return;
+  if(!API){$('#storeHint').textContent='The store works in the online version of the game, where purchases are saved to your Google account.';$('#store').innerHTML='';return;}
+  if(!STORE||!STORE.products||!STORE.products.length){$('#storeHint').textContent=STORE?'No items are on sale right now.':'Loading the store…';$('#store').innerHTML='';return;}
   $('#storeHint').textContent=!STORE.enabled?'The store opens soon.':STORE.mode==='test'?'Test mode: use MyFatoorah test cards. Nothing real is charged.':'Purchases are permanent and tied to your Google account.';
   $('#store').innerHTML=STORE.products.map(pr=>{const item=pr.payload&&pr.payload.item,owned=pr.kind!=='pearls'&&item&&owns(item);
     return `<div class="upg"><div class="t"><b>${esc(pr.name)}</b><small>${esc(pr.description)}</small></div><button class="btn ${owned?'':'gold'}" data-p="${esc(pr.id)}" ${owned||!STORE.enabled?'disabled':''}>${owned?'Owned':fmtPrice(pr.price,pr.currency)}</button></div>`;}).join('');
@@ -532,7 +575,7 @@ async function buy(id,btn){
   try{const r=await api('/api/checkout',{method:'POST',body:{productId:id,returnUrl:location.origin+location.pathname}});location.href=r.url;}
   catch(e){renderStore();showNote('bad',e.message==='owned'?'You already own this.':e.message==='payments_not_configured'?'Payments are not set up yet.':'Could not start the payment. Try again in a moment.');}
 }
-function showNote(kind,msg){const n=$('#notice');n.hidden=false;n.className='notice '+kind;n.textContent=msg;}
+function showNote(kind,msg){for(const id of ['#notice','#sheetNote']){const n=$(id);if(!n)continue;n.hidden=false;n.className='notice '+kind;n.textContent=msg;}}
 function renderCosmetics(){
   const sec=$('#cosSec');if(!sec)return;
   const opts=[['theme_night','Night map theme'],['border_gold','Gold borders']].filter(o=>owns(o[0]));
@@ -576,6 +619,7 @@ function newNation(id,isPlayer,diff){
 }
 
 function startRun(){
+  closeSheet();
   const pid=S.nation,diff=S.diff;
   owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);
   G={pid,diff,t:0,speed:1,paused:false,over:false,acc:0,econAcc:0,
@@ -1535,6 +1579,28 @@ $('#sndBtn').onclick=()=>{const o=audOpt();o.muted=!o.muted;audApply();renderSou
 /* ================= Home (Majlis) ================= */
 const IDLE_CAP_MIN=12*60;
 function idleStored(){const l=lvl('dhow');if(!l)return 0;const mins=Math.min(IDLE_CAP_MIN,(Date.now()-S.lastIdle)/60000);return mins*l*.2;}
+let SHEET='upg';
+function openSheet(which){$('#sheet').hidden=false;setSheet(which);if(which==='store'&&API&&!STORE)loadStore();}
+function setSheet(which){
+  SHEET=which;$('#sheetUpg').hidden=which!=='upg';$('#sheetStore').hidden=which!=='store';
+  $('#sheetTitle').textContent=which==='upg'?'Majlis upgrades':'Store';
+  document.querySelectorAll('.sheettabs button').forEach(b=>b.classList.toggle('on',b.dataset.sheet===which));
+  $('#sheet').scrollTop=0;
+}
+function closeSheet(){$('#sheet').hidden=true;}
+document.querySelectorAll('[data-sheet]').forEach(b=>b.onclick=()=>{if($('#sheet').hidden)openSheet(b.dataset.sheet);else setSheet(b.dataset.sheet);});
+$('#sheetClose').onclick=closeSheet;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#sheet').hidden)closeSheet();});
+function renderTabBadges(){
+  const ready=UPG.filter(u=>lvl(u.k)<u.max&&S.pearls>=upgCost(u)).length,ub=$('#upgBadge');
+  ub.hidden=!ready;ub.textContent=ready+' ready';
+  const sb=$('#storeBadge');
+  if(API&&STORE&&STORE.enabled&&STORE.products&&STORE.products.length){
+    const left=STORE.products.filter(pr=>pr.kind==='pearls'||!(pr.payload&&pr.payload.item&&owns(pr.payload.item))).length;
+    sb.hidden=!left;sb.textContent=STORE.mode==='test'?'Test mode':left+' items';sb.classList.toggle('test',STORE.mode==='test');
+  }else sb.hidden=true;
+  $('#sheetPearls').textContent=fmt(S.pearls);
+}
 function renderHome(){
   renderSound();renderAccount();renderStore();renderCosmetics();
   if(HASH_NOTE){showNote(HASH_NOTE[0],HASH_NOTE[1]);HASH_NOTE=null;}
@@ -1559,6 +1625,7 @@ function renderHome(){
     if(u.k==='dhow'&&!lvl('dhow'))S.lastIdle=Date.now();
     if(u.k==='dhow'&&lvl('dhow')){S.pearls+=Math.floor(idleStored());S.lastIdle=Date.now();}
     S.pearls-=c;S.upg[u.k]=lvl(u.k)+1;save();renderHome();});
+  renderTabBadges();
   $('#stats').textContent=S.runs?`${S.runs} campaigns · ${S.wins} won · best ${S.best}% of the region`:'No campaigns yet. Kuwait and Saudi Arabia are ready to march.';
   drawHero();
 }
