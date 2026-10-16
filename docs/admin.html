@@ -323,6 +323,10 @@ function renderBal(B){
       <span>Handicap: speed ×</span><span>${numIn('droneHandicap.speed',h.speed,'0.05')}</span>
       <span>Radar tracking range</span><span>${numIn('radar.range',B.radar.range,'1')} tiles</span>
       <span>Radar air defense boost ×</span><span>${numIn('radar.samBoost',B.radar.samBoost,'0.05')} <span class="hint">hit chance for batteries inside radar coverage</span></span>
+      <span>Silo visible after firing</span><span>${numIn('silo.reveal',B.silo.reveal,'1')} seconds</span>
+      <span>UAV recon cost</span><span>${numIn('uav.cost',B.uav.cost,'10')} gold</span>
+      <span>UAV recon duration</span><span>${numIn('uav.duration',B.uav.duration,'1')} seconds</span>
+      <span>UAV recon cooldown</span><span>${numIn('uav.cooldown',B.uav.cooldown,'5')} seconds</span>
       <span>Extra GCC oil fields</span><span>${numIn('oil.gccExtra',B.oil.gccExtra,'0.01')} <span class="hint">0 = real fields only, 0.05 = default, 0.15 = lots</span></span>
      </div></div>`;
 }

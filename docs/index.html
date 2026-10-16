@@ -76,6 +76,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-o
 .notice{border-radius:10px;padding:10px 12px;font-size:.85rem;border:1px solid var(--line-2);background:var(--panel)}
 .notice.ok{border-color:var(--ok);color:#c9f2de}
 .notice.bad{border-color:var(--danger);color:#ffd2cb}
+.builds button.uav{border-color:var(--teal);color:#bff3ee}
+.builds button.uav.on{background:#123a37;box-shadow:inset 0 0 0 1px var(--teal)}
 .builds button img.bico{width:24px;height:24px;display:block}
 .upg.snd input[type=range]{width:110px;flex:none}
 .upg.snd .btn{min-width:52px}
@@ -597,7 +599,7 @@ const fmt=n=>{n=Math.max(0,n);return n<1000?String(Math.floor(n)):n<1e6?(n/1000)
 const rgb=(c,a=1)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
 
 /* ================= Run state ================= */
-const owner=new Uint8Array(N), bld=new Uint8Array(N), ammo=new Float32Array(N), bcool=new Float32Array(N), bgap=new Float32Array(N); // bld: 1 city, 2 fort, 3 rig, 4 port, 5 silo, 6 drone hangar, 7 air defense
+const owner=new Uint8Array(N), bld=new Uint8Array(N), ammo=new Float32Array(N), bcool=new Float32Array(N), bgap=new Float32Array(N), siloSeen=new Float32Array(N); // bld: 1 city, 2 fort, 3 rig, 4 port, 5 silo, 6 drone hangar, 7 air defense
 let blist=[], attacks=[], boats=[], ships=[], shots=[], missiles=[], booms=[], NATS=[null], G=null;
 const dirty=new Uint8Array(N); let dirtyList=[], fullPaint=true;
 
@@ -623,10 +625,10 @@ function newNation(id,isPlayer,diff){
 function startRun(){
   closeSheet();
   const pid=S.nation,diff=S.diff;
-  owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);
+  owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);siloSeen.fill(0);
   G={pid,diff,t:0,speed:1,paused:false,over:false,acc:0,econAcc:0,
      aiRegen:.8+.12*diff,aiCap:.9+.1*diff,aiThresh:Math.max(.3,.62-.06*diff),aiFrac:Math.min(.65,.3+.07*diff),
-     sand:1,kills:0,peak:0,ms:0,drafts:0,rerolls:lvl('reroll'),cards:[],nextEvt:140,ssel:'',evt:null,evtEnd:0,oilBoost:1,sandstorm:1,
+     sand:1,kills:0,peak:0,ms:0,drafts:0,rerolls:lvl('reroll'),cards:[],nextEvt:140,ssel:'',focus:-1,focusUntil:0,hover:-1,uavUntil:0,uavReady:0,aiUav:{},aiUavReady:{},evt:null,evtEnd:0,oilBoost:1,sandstorm:1,
      mode:'attack',bsel:'city',ratio:+$('#ratio').value/100,pings:[]};
   NATS=[null];
   for(let id=1;id<=NNAT;id++)NATS.push(newNation(id,id===pid,diff));
@@ -1002,7 +1004,7 @@ function launchStrike(attId,wid,i){
   if(!any)return 'nolauncher';if(!inRange)return 'range';
   if(L<0){G.lastWait=wait;return 'cooldown';}
   if(n.gold<w.cost)return 'gold';
-  n.gold-=w.cost;ammo[L]--;if(ammo[L]<1)bcool[L]=RELOAD[code]*n.m.reload*(kind==='missile'?w.reload:1);
+  n.gold-=w.cost;ammo[L]--;if(kind==='missile')siloSeen[L]=G.t+BAL.silo.reveal;if(ammo[L]<1)bcool[L]=RELOAD[code]*n.m.reload*(kind==='missile'?w.reload:1);
   const k=kind==='drone'?n.m.droneN:1;
   for(let q=0;q<k;q++){const j=q?2.5:0;
     missiles.push({kind,wid,name:w.name,own:attId,x:L%W,y:(L/W)|0,tx:i%W+(Math.random()-.5)*j,ty:((i/W)|0)+(Math.random()-.5)*j,sp:w.speed,r:w.radius,tp:w.troops,pk:w.intercept,stealth:w.stealth,seen:false,size:WSIZE[w.key]||1,done:false});}
@@ -1055,6 +1057,10 @@ function stepMissiles(dt){
 }
 function aiStrike(n){
   if(G.t<150)return;
+  if(!((G.aiUav[n.id]||0)>G.t)&&(G.aiUavReady[n.id]||0)<=G.t&&n.gold>BAL.uav.cost*3&&Math.random()<.12){
+    n.gold-=BAL.uav.cost;G.aiUav[n.id]=G.t+BAL.uav.duration;G.aiUavReady[n.id]=G.t+BAL.uav.cooldown*1.5;
+    if(!sameBloc(n.id,G.pid)&&sfxOK('aiuav',20000))toast(`A ${n.name} recon UAV is scanning the region. Your silos may be spotted.`,3000);
+  }
   let hasSilo=false,hasHangar=false;for(const j of blist){if(owner[j]!==n.id)continue;if(bld[j]===5)hasSilo=true;else if(bld[j]===6)hasHangar=true;}
   const opts=weaponsOf(n.id).filter(wid=>(wid.startsWith('drone')?hasHangar:hasSilo)&&n.gold>=weapon(n.id,wid).cost*1.2);
   if(!opts.length)return;
@@ -1062,7 +1068,7 @@ function aiStrike(n){
   const wid=mis.length&&(!dr.length||Math.random()<.5)?mis[Math.max(0,mis.length-1-((Math.random()*2)|0))]:dr[(Math.random()*dr.length)|0];
   const kind=wid.split(':')[0];
   const code=kind==='drone'?6:5,cands=[];let tot=0;
-  for(const j of blist){const o=owner[j];if(!bld[j]||!o||o===n.id)continue;if(nearestLauncher(n,code,j,RANGE[kind])<0)continue;
+  for(const j of blist){const o=owner[j];if(!bld[j]||!o||o===n.id||!bldVisibleTo(n.id,j))continue;if(nearestLauncher(n,code,j,RANGE[kind])<0)continue;
     let w=bld[j]===7?3:bld[j]===5||bld[j]===6?2.5:1;if(NATS[o].isPlayer)w*=1+.15*G.diff;if(sameBloc(n.id,o))w*=.06;cands.push([j,w]);tot+=w;}
   let tgt=-1;
   if(cands.length){let r=Math.random()*tot;for(const [j,w] of cands){r-=w;if(r<=0){tgt=j;break;}}if(tgt<0)tgt=cands[0][0];}
@@ -1187,6 +1193,20 @@ function drawDhow(x,y,r,c){
   ctx.beginPath();ctx.moveTo(x-r,y);ctx.lineTo(x+r*1.05,y-r*.1);ctx.lineTo(x+r*.6,y+r*.5);ctx.lineTo(x-r*.7,y+r*.5);ctx.closePath();ctx.fillStyle='#5a3d22';ctx.fill();ctx.stroke();
   ctx.beginPath();ctx.moveTo(x-r*.15,y-r*1.4);ctx.lineTo(x+r*.85,y-r*.15);ctx.lineTo(x-r*.15,y-r*.15);ctx.closePath();ctx.fillStyle=rgb(c);ctx.fill();ctx.strokeStyle='#f6efe0';ctx.stroke();
 }
+// Silos are hidden from other nations until they fire (then visible for BAL.silo.reveal seconds) or a UAV is overhead
+function bldVisibleTo(viewer,i){
+  if(bld[i]!==5||owner[i]===viewer)return true;
+  if(siloSeen[i]>G.t)return true;
+  return viewer===G.pid?G.uavUntil>G.t:(G.aiUav[viewer]||0)>G.t;
+}
+function launchUAV(){
+  const p=NATS[G.pid],u=BAL.uav;
+  if(G.uavUntil>G.t){toast(`Your UAV is already overhead (${Math.ceil(G.uavUntil-G.t)}s left).`);return;}
+  if(G.uavReady>G.t){SFX.deny();toast(`The UAV is refuelling. Ready in ${Math.ceil(G.uavReady-G.t)}s.`);return;}
+  if(p.gold<u.cost){SFX.deny();toast(`Need ${fmt(u.cost)} gold for a UAV flight.`);return;}
+  p.gold-=u.cost;G.uavUntil=G.t+u.duration;G.uavReady=G.t+u.cooldown;
+  SFX.radar();toast(`UAV overhead: hidden silos and drones revealed for ${u.duration}s.`,2600);
+}
 // Radar coverage: is (x,y) within range of one of this nation's radars?
 function radarCovers(id,x,y){
   const R2=BAL.radar.range*BAL.radar.range;
@@ -1207,7 +1227,7 @@ function tracked(m){
 const etaOf=m=>Math.hypot(m.tx-m.x,m.ty-m.y)/m.sp/Math.max(1,G.speed);
 // Stealthy drones show once they come within reveal range of the player's land or radar (then stay visible)
 function missileVisible(m){
-  if(!m.stealth||m.seen||m.own===G.pid)return true;
+  if(!m.stealth||m.seen||m.own===G.pid||G.uavUntil>G.t)return true;
   if(radarCovers(G.pid,m.x,m.y)){m.seen=true;return true;}
   const R=BAL.stealth.reveal|0,cx=Math.round(m.x),cy=Math.round(m.y);
   for(let dy=-R;dy<=R;dy++){const y=cy+dy;if(y<0||y>=H)continue;for(let dx=-R;dx<=R;dx++){const x=cx+dx;if(x<0||x>=W||dx*dx+dy*dy>R*R)continue;if(owner[y*W+x]===G.pid){m.seen=true;return true;}}}
@@ -1231,16 +1251,19 @@ function render(now){
   if(s>=5){ctx.fillStyle='rgba(20,16,12,.55)';for(const i of oilCells){if(bld[i])continue;ctx.beginPath();ctx.arc(view.ox+(i%W+.5)*s,view.oy+(((i/W)|0)+.5)*s,s*.16,0,7);ctx.fill();}}
   // buildings
   if(s>=3){
-    for(const i of blist){const b=bld[i];if(!b||!owner[i])continue;
-      const x=view.ox+(i%W+.5)*s,y=view.oy+(((i/W)|0)+.5)*s,r=Math.max(5,s*.72),c=NATS[owner[i]].color,mine=owner[i]===G.pid,strong=G.mode==='build'||G.mode==='strike';
-      // your radar and air defense ranges: always faintly visible, stronger while building or striking
-      if(mine&&(b===7||b===8)){
-        const RR=(b===8?BAL.radar.range:NATS[owner[i]].m.samR)*s,rc=b===8?'140,230,180':'120,210,255';
-        ctx.beginPath();ctx.arc(x,y,RR,0,7);ctx.fillStyle=`rgba(${rc},${strong?.11:.055})`;ctx.fill();
-        ctx.setLineDash(b===8?[7,6]:[]);ctx.strokeStyle=`rgba(${rc},${strong?.75:.45})`;ctx.lineWidth=strong?2.2:1.5;ctx.stroke();ctx.setLineDash([]);
-        if(b===8){const a=now/700%(Math.PI*2),g=ctx.createRadialGradient(x,y,0,x,y,RR);g.addColorStop(0,'rgba(140,230,180,.3)');g.addColorStop(1,'rgba(140,230,180,0)');ctx.beginPath();ctx.moveTo(x,y);ctx.arc(x,y,RR,a-.4,a);ctx.closePath();ctx.fillStyle=g;ctx.fill();}
+    for(const i of blist){const b=bld[i];if(!b||!owner[i]||!bldVisibleTo(G.pid,i))continue;
+      const x=view.ox+(i%W+.5)*s,y=view.oy+(((i/W)|0)+.5)*s,r=Math.max(5,s*.72),c=NATS[owner[i]].color,mine=owner[i]===G.pid;
+      // Ranges: yours are faded until you tap or hover the building; enemy air defense shows only while your UAV is overhead
+      const focused=(G.focus===i&&now<G.focusUntil)||(G.hover>=0&&Math.abs(G.hover%W-i%W)<=1&&Math.abs(((G.hover/W)|0)-((i/W)|0))<=1);
+      if((mine&&(b===7||b===8))||(b===7&&G.uavUntil>G.t)){
+        const RR=(b===8?BAL.radar.range:NATS[owner[i]].m.samR)*s,rc=!mine?'255,140,110':b===8?'140,230,180':'120,210,255';
+        const fa=focused?.13:!mine?.06:b===8?.035:.02,sa=focused?.9:!mine?.55:b===8?.3:.18;
+        ctx.beginPath();ctx.arc(x,y,RR,0,7);ctx.fillStyle=`rgba(${rc},${fa})`;ctx.fill();
+        ctx.setLineDash(b===8?[7,6]:[]);ctx.strokeStyle=`rgba(${rc},${sa})`;ctx.lineWidth=focused?2.4:1.3;ctx.stroke();ctx.setLineDash([]);
+        if(b===8&&mine){const a=now/700%(Math.PI*2),g=ctx.createRadialGradient(x,y,0,x,y,RR);g.addColorStop(0,'rgba(140,230,180,.3)');g.addColorStop(1,'rgba(140,230,180,0)');ctx.beginPath();ctx.moveTo(x,y);ctx.arc(x,y,RR,a-.4,a);ctx.closePath();ctx.fillStyle=g;ctx.fill();}
       }
       drawGlyph(ctx,b,x,y,r,rgb(c));
+      if(b===5&&!mine){const pulse=.5+.5*Math.sin(now/160);ctx.beginPath();ctx.arc(x,y,r*1.6,0,7);ctx.setLineDash([3,3]);ctx.strokeStyle=`rgba(255,111,94,${.5+.4*pulse})`;ctx.lineWidth=1.8;ctx.stroke();ctx.setLineDash([]);}
       if(MAG[b]&&s>=4){
         if(ammo[i]<1){const f=1-bcool[i]/(RELOAD[b]*NATS[owner[i]].m.reload);ctx.beginPath();ctx.arc(x,y,r*1.25,-Math.PI/2,-Math.PI/2+Math.max(0,f)*Math.PI*2);ctx.strokeStyle='rgba(255,111,94,.9)';ctx.lineWidth=2;ctx.stroke();}
         else{const k=Math.floor(ammo[i]),m=magOf(NATS[owner[i]],b),pw=Math.min(4,r*.5);for(let q=0;q<m;q++){ctx.fillStyle=q<k?'#8ce6ff':'rgba(140,230,255,.25)';ctx.fillRect(x-(m*pw*1.4)/2+q*pw*1.4,y+r*1.1,pw,pw);}}
@@ -1306,6 +1329,9 @@ function render(now){
   for(const h of shots){const k=1-(now-h.t)/220,bx=view.ox+(h.bx+.5)*s,by=view.oy+(h.by+.5)*s;ctx.beginPath();ctx.moveTo(view.ox+(h.ax+.5)*s,view.oy+(h.ay+.5)*s);ctx.lineTo(bx,by);
     ctx.strokeStyle=h.aa?`rgba(140,230,255,${k})`:`rgba(255,210,122,${k})`;ctx.lineWidth=2;ctx.stroke();
     ctx.beginPath();ctx.arc(bx,by,3+(1-k)*8,0,7);ctx.strokeStyle=`rgba(255,160,90,${k})`;ctx.stroke();}
+  // UAV overhead: faint green wash and a slow scan line
+  if(G.uavUntil>G.t){const k=(now/2200)%1;ctx.fillStyle='rgba(140,230,180,.05)';ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='rgba(140,230,180,.18)';ctx.fillRect(0,k*h,w,2);ctx.fillStyle='rgba(140,230,180,.06)';ctx.fillRect(0,k*h-24,w,24);}
   // edge arrows for tracked strikes that are off screen
   for(const m of missiles){
     if(!m.tracked||m.done)continue;
@@ -1350,6 +1376,7 @@ function hud(){
   const untracked={drone:inc.drone-trk.filter(m=>m.kind==='drone').length,missile:inc.missile-trk.filter(m=>m.kind==='missile').length};
   if(untracked.missile>0||untracked.drone>0)ch+=`<span class="chip warn">Incoming: ${[untracked.missile>0?untracked.missile+' missile'+(untracked.missile>1?'s':''):'',untracked.drone>0?untracked.drone+' drone'+(untracked.drone>1?'s':''):''].filter(Boolean).join(', ')}${blist.some(j=>bld[j]===8&&owner[j]===G.pid)?'':' · build a radar to track'}</span>`;
   if(mine.missile||mine.drone)ch+=`<span class="chip"><i class="d" style="background:#8ce6ff"></i>In flight: ${mine.missile+mine.drone}</span>`;
+  if(G.uavUntil>G.t)ch+=`<span class="chip evt">UAV overhead ${Math.ceil(G.uavUntil-G.t)}s</span>`;
   if(G.evt)ch+=`<span class="chip evt">${G.evt.id==='oil'?'Oil spike':G.evt.id==='sand'?'Sandstorm':'Event'} ${Math.ceil(G.evtEnd-G.t)}s</span>`;
   if(G.ms<MILESTONES.length)ch+=`<span class="chip">Next decree at ${MILESTONES[G.ms]}%</span>`;
   $('#chips').innerHTML=ch;
@@ -1361,6 +1388,8 @@ function hud(){
   for(const j of blist)if((bld[j]===5||bld[j]===6)&&owner[j]===G.pid){const r=rd[bld[j]];r[2]=true;r[0]+=Math.floor(ammo[j]);if(ammo[j]<1)r[1]=Math.min(r[1],bcool[j]);}
   document.querySelectorAll('#strikeRow small[data-c]').forEach(el=>{const w=weapon(G.pid,el.dataset.c);if(!w)return;const r=rd[w.kind==='drone'?6:5];
     el.textContent=fmt(w.cost)+' g · '+(!r[2]?'no '+(w.kind==='drone'?'hangar':'silo'):r[0]?r[0]+' ready':'reload '+Math.ceil(r[1])+'s');el.parentElement.classList.toggle('poor',p.gold<w.cost);});
+  const ui=$('#uavInfo');if(ui){ui.textContent=G.uavUntil>G.t?`overhead ${Math.ceil(G.uavUntil-G.t)}s`:G.uavReady>G.t?`ready in ${Math.ceil(G.uavReady-G.t)}s`:`${fmt(BAL.uav.cost)} g · reveal ${BAL.uav.duration}s`;
+    ui.parentElement.classList.toggle('poor',G.uavUntil<=G.t&&G.uavReady<=G.t&&p.gold<BAL.uav.cost);ui.parentElement.classList.toggle('on',G.uavUntil>G.t);}
 }
 function setMode(m){G.mode=m;$('#mAtk').classList.toggle('on',m==='attack');$('#mBoat').classList.toggle('on',m==='boat');$('#mStk').classList.toggle('on',m==='strike');$('#mBld').classList.toggle('on',m==='build');$('#sendRow').hidden=m==='build'||m==='strike';$('#buildRow').hidden=m!=='build';$('#strikeRow').hidden=m!=='strike';}
 $('#mAtk').onclick=()=>setMode('attack');
@@ -1369,8 +1398,10 @@ $('#mBld').onclick=()=>{setMode('build');toast('Tap anywhere on your land to bui
 $('#mStk').onclick=()=>{setMode('strike');toast('Tap enemy territory. Drones fly from your hangars, missiles from your silos.');};
 function renderStrikeRow(){
   const ws=weaponsOf(G.pid),row=$('#strikeRow');if(!ws.includes(G.ssel))G.ssel=ws[0]||'';
-  row.style.gridTemplateColumns=`repeat(${Math.max(1,Math.min(4,ws.length))},1fr)`;
-  row.innerHTML=ws.length?ws.map(wid=>{const w=weapon(G.pid,wid);return `<button data-s="${wid}" class="${wid===G.ssel?'on':''}">${esc(w.name)}<small data-c="${wid}">${w.cost} g</small></button>`;}).join(''):'<button disabled>Your nation has no strike weapons</button>';
+  const n=ws.length+1;row.style.gridTemplateColumns=`repeat(${n<=4?n:3},1fr)`;
+  row.innerHTML=ws.map(wid=>{const w=weapon(G.pid,wid);return `<button data-s="${wid}" class="${wid===G.ssel?'on':''}">${esc(w.name)}<small data-c="${wid}">${w.cost} g</small></button>`;}).join('')
+    +'<button class="uav" id="uavBtn">UAV recon<small id="uavInfo"></small></button>';
+  $('#uavBtn').onclick=launchUAV;
   row.querySelectorAll('button[data-s]').forEach(b=>b.onclick=()=>{G.ssel=b.dataset.s;row.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));});
 }
 $('#spd').onclick=()=>{G.speed=G.speed===1?2:G.speed===2?3:1;$('#spd').textContent=G.speed+'×';};
@@ -1384,13 +1415,14 @@ function cellFromScreen(x,y){const cx=Math.floor((x-view.ox)/view.s),cy=Math.flo
 function zoomAt(x,y,f){const s2=Math.max(1.5,Math.min(22,view.s*f));const k=s2/view.s;view.ox=x-(x-view.ox)*k;view.oy=y-(y-view.oy)*k;view.s=s2;clampView();}
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);const r=cv.getBoundingClientRect();const p={x:e.clientX-r.left,y:e.clientY-r.top};ptrs.set(e.pointerId,p);
   if(ptrs.size===1)tapCand={x:p.x,y:p.y};else{tapCand=null;const [a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)};}});
-cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;const r=cv.getBoundingClientRect();const p={x:e.clientX-r.left,y:e.clientY-r.top};const old=ptrs.get(e.pointerId);
+cv.addEventListener('pointermove',e=>{if(G&&e.pointerType==='mouse'&&!e.buttons){const r0=cv.getBoundingClientRect();G.hover=cellFromScreen(e.clientX-r0.left,e.clientY-r0.top);}
+  if(!ptrs.has(e.pointerId))return;const r=cv.getBoundingClientRect();const p={x:e.clientX-r.left,y:e.clientY-r.top};const old=ptrs.get(e.pointerId);
   if(ptrs.size===1){if(tapCand&&Math.hypot(p.x-tapCand.x,p.y-tapCand.y)>8)tapCand=null;if(!tapCand){view.ox+=p.x-old.x;view.oy+=p.y-old.y;clampView();}}
   ptrs.set(e.pointerId,p);
   if(ptrs.size===2&&pinch){const [a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
     if(pinch.mx!==undefined){view.ox+=mx-pinch.mx;view.oy+=my-pinch.my;}zoomAt(mx,my,d/pinch.d);pinch={d,mx,my};}});
 function endPtr(e){if(!ptrs.has(e.pointerId))return;if(ptrs.size===1&&tapCand)handleTap(tapCand.x,tapCand.y);ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(ptrs.size===0)tapCand=null;}
-cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);tapCand=null;pinch=null;});
+cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointerleave',()=>{if(G)G.hover=-1;});cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);tapCand=null;pinch=null;});
 cv.addEventListener('wheel',e=>{e.preventDefault();const r=cv.getBoundingClientRect();zoomAt(e.clientX-r.left,e.clientY-r.top,e.deltaY<0?1.15:1/1.15);},{passive:false});
 
 function handleTap(sx,sy){
@@ -1403,6 +1435,16 @@ function handleTap(sx,sy){
     if(ships.filter(w=>w.port===port).length>=2){ping(true);toast('This port already has 2 warships.');return;}
     const p=NATS[G.pid],c=costOf(p,'ship');if(p.gold<c){ping(true);toast(`Need ${fmt(c)} gold.`);return;}
     spawnShip(p,port);ping(false);SFX.build();toast('Warship launched. It patrols nearby waters and sinks enemy dhows.');return;
+  }
+  if(i>=0&&G.mode!=='build'){
+    let f=-1;const x0=i%W,y0=(i/W)|0;
+    for(let dy=-1;dy<=1&&f<0;dy++)for(let dx=-1;dx<=1;dx++){const j=(y0+dy)*W+x0+dx;if(j>=0&&j<N&&(bld[j]===7||bld[j]===8)&&owner[j]===G.pid){f=j;break;}}
+    if(f>=0&&owner[i]===G.pid){
+      G.focus=f;G.focusUntil=performance.now()+4000;SFX.click();
+      const p=NATS[G.pid];
+      toast(bld[f]===7?`Air defense: ${Math.floor(ammo[f])}/${magOf(p,7)} interceptors${ammo[f]<1?`, reloading ${Math.ceil(bcool[f])}s`:''} · range ${p.m.samR} tiles`:`Radar: tracking range ${BAL.radar.range} tiles`);
+      return;
+    }
   }
   if(i<0||terr[i]<2){ping(true);toast(i>=0&&terr[i]===1?'Outside the theatre of war.':'Open water. Expand over land.');return;}
   const p=NATS[G.pid],o=owner[i];
@@ -1646,7 +1688,8 @@ $('#howBtn').onclick=()=>{openModal(`<h3>How to play</h3>
   <span style="color:var(--pearl)"><b>Sail.</b> Tap a coast you don't border, or use Boat mode, and dhows carry troops across the water, land, and push inland. Up to 3 fleets at once.</span>
   <span style="color:var(--pearl)"><b>Build.</b> Place anything anywhere on your land: cities, forts, oil rigs (best on dark oil fields), ports near water, missile silos, drone hangars and air defense.</span>
   <span style="color:var(--pearl)"><b>Strike.</b> Drones are cheap and slow; missiles are fast and costly. Bigger drone types and higher missile tiers blast a wider area but cost more, and tier II and III silos reload slower. Each nation has its own arsenal (see the nation cards). Iraqi, Iranian and Yemeni drones stay hidden until they near your border. Strikes destroy buildings and kill troops; only ground troops and landings take land.</span>
-  <span style="color:var(--pearl)"><b>Defend.</b> Air defense batteries shoot down incoming drones (most of the time) and missiles (sometimes). Layer them around your capital and silos.</span>
+  <span style="color:var(--pearl)"><b>Defend.</b> Air defense batteries shoot down incoming drones (most of the time) and missiles (sometimes). Layer them around your capital and silos. Tap a battery (or hover it with a mouse) to see its range and ammo; rivals can't see your ranges unless they fly a UAV.</span>
+  <span style="color:var(--pearl)"><b>Hidden silos.</b> Rivals cannot see your silos, and you cannot see theirs, until a silo fires (it stays visible for 10 seconds). A UAV recon flight, in Strike mode, reveals every hidden silo and drone for 15 seconds.</span>
   <span style="color:var(--pearl)"><b>Radar.</b> A radar tracks incoming strikes in its range: red impact zones, a countdown and arrows at the screen edge. It also reveals hidden drones early, and air defense inside its coverage hits more often.</span>
   <span style="color:var(--pearl)"><b>Reload.</b> Silos hold 1 missile (30s reload), hangars 4 drones (35s rearm), air defense 3 interceptors (18s reload). Blue pips show what is ready; a red ring shows reloading.</span>
   <span style="color:var(--pearl)"><b>Counter.</b> Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.</span>

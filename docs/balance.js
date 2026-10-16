@@ -38,6 +38,10 @@ window.GD_BALANCE_DEFAULTS = {
   oil: { gccExtra: 0.05 },
   // Radar: tracking range in tiles, and the hit-chance multiplier for air defense inside its own radar coverage
   radar: { range: 26, samBoost: 1.25 },
+  // Silos are hidden from rivals; after firing they stay visible for `reveal` seconds
+  silo: { reveal: 10 },
+  // UAV recon flight: reveals hidden silos and drones for `duration` seconds, then needs `cooldown` seconds
+  uav: { cost: 120, duration: 15, cooldown: 60 },
 };
 
 // Merge saved overrides over the defaults, keeping only known keys and sane values.
