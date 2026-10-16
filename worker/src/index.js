@@ -298,6 +298,12 @@ async function api(req, env, url, path) {
     return json({ products: r.results.map((p) => ({ ...p, payload: JSON.parse(p.payload || '{}') })), mode: cfg.mode, enabled: !!cfg.key });
   }
 
+  if (path === '/api/config' && method === 'GET') {
+    let config = {};
+    try { config = JSON.parse((await getSetting(env, 'game_config')) || '{}'); } catch {}
+    return json({ config });
+  }
+
   const user = await currentUser(req, env);
   if (!user) return json({ error: 'auth' }, 401);
 
@@ -489,6 +495,20 @@ async function admin(req, env, url, path, method, body, me) {
       }
     }
     await log(env, me.id, 'info', 'admin_settings_saved', { mode: body.mode, region: body.region, currency: body.currency, testKey: body.testKey !== undefined, liveKey: body.liveKey !== undefined });
+    return json({ ok: true });
+  }
+  if (path === '/config' && method === 'GET') {
+    let config = {};
+    try { config = JSON.parse((await getSetting(env, 'game_config')) || '{}'); } catch {}
+    return json({ config });
+  }
+  if (path === '/config' && method === 'PUT') {
+    const cfg = body && typeof body.config === 'object' && !Array.isArray(body.config) ? body.config : null;
+    if (!cfg) return json({ error: 'config must be an object' }, 400);
+    const text = JSON.stringify(cfg);
+    if (text.length > 30000) return json({ error: 'config too large' }, 413);
+    await setSetting(env, 'game_config', text);
+    await log(env, me.id, 'info', 'admin_balance_saved', { bytes: text.length, reset: text === '{}' });
     return json({ ok: true });
   }
   if (path === '/mf/test' && method === 'POST') {

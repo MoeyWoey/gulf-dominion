@@ -90,6 +90,7 @@ td.mono,.mono{font-family:var(--f-mono);font-size:.78rem;overflow-wrap:anywhere}
       <button data-t="users">Players</button>
       <button data-t="orders">Orders</button>
       <button data-t="store">Store</button>
+      <button data-t="balance">Balance</button>
       <button data-t="pay">Payments API</button>
     </nav>
     <span class="who" id="who"></span>
@@ -131,6 +132,13 @@ td.mono,.mono{font-family:var(--f-mono);font-size:.78rem;overflow-wrap:anywhere}
       <div class="card" id="prEdit"></div>
     </section>
 
+    <section data-p="balance" hidden>
+      <p class="hint">Tune weapons, who can use them, hidden drones, the GCC drone handicap and extra oil. Players get the new balance the next time they open the game; campaigns already running keep the old numbers.</p>
+      <div id="balForm" class="grid2" style="grid-template-columns:1fr"></div>
+      <div class="row"><button class="btn gold" id="balSave">Save balance</button><button class="btn danger" id="balReset">Reset to defaults</button></div>
+      <div id="balMsg"></div>
+    </section>
+
     <section data-p="pay" hidden>
       <div class="grid2">
         <div class="card">
@@ -168,6 +176,7 @@ td.mono,.mono{font-family:var(--f-mono);font-size:.78rem;overflow-wrap:anywhere}
   </main>
 </div>
 
+<script src="balance.js"></script>
 <script>
 (()=>{
 'use strict';
@@ -195,7 +204,7 @@ const loaded={};
 function show(t){
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
   document.querySelectorAll('main section').forEach(s=>s.hidden=s.dataset.p!==t);
-  Promise.resolve().then(({overview:loadOverview,logs:()=>loadLogs(false),users:loadUsers,orders:loadOrders,store:loadProducts,pay:loadPay})[t]).catch(e=>{const sec=document.querySelector(`main section[data-p="${t}"]`);sec.insertAdjacentHTML('afterbegin',`<div class="msg bad">Could not load: ${esc(e.message)}</div>`);});
+  Promise.resolve().then(({overview:loadOverview,logs:()=>loadLogs(false),users:loadUsers,orders:loadOrders,store:loadProducts,balance:loadBal,pay:loadPay})[t]).catch(e=>{const sec=document.querySelector(`main section[data-p="${t}"]`);sec.insertAdjacentHTML('afterbegin',`<div class="msg bad">Could not load: ${esc(e.message)}</div>`);});
   try{history.replaceState(null,'','#'+t);}catch(e){}
 }
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>show(b.dataset.t));
@@ -287,6 +296,50 @@ function editProduct(p){
   };
 }
 
+/* ---------- balance ---------- */
+const DKEYS=['light','strike','heavy'],MKEYS=['t1','t2','t3'];
+const COLS={cost:['Cost','gold','1'],radius:['Blast radius','tiles','0.1'],speed:['Speed','tiles/s','0.1'],troops:['Troops hit','%','0.5'],intercept:['Intercept ×','higher = easier to shoot down','0.05'],reload:['Reload ×','silo reload after firing','0.1']};
+const numIn=(k,v,step)=>`<input type="number" min="0" step="${step}" data-k="${k}" value="${esc(v)}" style="width:86px">`;
+async function loadBal(){const r=await api('/api/admin/config');renderBal(GD_mergeBalance(GD_BALANCE_DEFAULTS,r.config||{}));$('#balMsg').innerHTML='';}
+function renderBal(B){
+  const wtable=(title,group,keys,cols)=>`<div class="card"><h2>${title}</h2><div class="tablewrap"><table><thead><tr><th>Name</th>${cols.map(c=>`<th title="${esc(COLS[c][1])}">${COLS[c][0]}<div class="hint" style="text-transform:none;letter-spacing:0">${esc(COLS[c][1])}</div></th>`).join('')}</tr></thead><tbody>
+    ${keys.map(k=>`<tr><td><input data-k="${group}.${k}.name" value="${esc(B[group][k].name)}" maxlength="40" style="width:140px"></td>${cols.map(c=>`<td>${numIn(`${group}.${k}.${c}`,B[group][k][c],COLS[c][2])}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+  const nrows=GD_NATION_CODES.map(([c,name])=>{const a=B.arsenal[c];return `<tr><td><b>${esc(name)}</b> <span class="hint">${c}</span></td>
+    ${DKEYS.map(d=>`<td><input type="checkbox" data-ars="${c}" data-d="${d}" ${a.drones.includes(d)?'checked':''} aria-label="${esc(name)} ${d} drone"></td>`).join('')}
+    <td><select data-tier="${c}">${[0,1,2,3].map(t=>`<option value="${t}" ${t===(a.missileTier|0)?'selected':''}>${t?['I','II','III'][t-1]:'None'}</option>`).join('')}</select></td>
+    <td><input type="checkbox" data-stealth="${c}" ${B.stealth.nations.includes(c)?'checked':''} aria-label="${esc(name)} hidden drones"></td>
+    <td><input type="checkbox" data-hcap="${c}" ${B.droneHandicap.nations.includes(c)?'checked':''} aria-label="${esc(name)} drone handicap"></td></tr>`;}).join('');
+  const h=B.droneHandicap;
+  $('#balForm').innerHTML=
+    wtable('Drones','drones',DKEYS,['cost','radius','speed','troops','intercept'])+
+    wtable('Missiles','missiles',MKEYS,['cost','radius','speed','troops','intercept','reload'])+
+    `<div class="card"><h2>Arsenals</h2><p class="hint">Which drones each nation can fly and its highest missile tier. Hidden drones only appear when they come near the player's border. The drone handicap applies the multipliers below.</p>
+     <div class="tablewrap"><table><thead><tr><th>Nation</th>${DKEYS.map(d=>`<th>${esc(B.drones[d].name)}</th>`).join('')}<th>Max missile tier</th><th>Hidden drones</th><th>Drone handicap</th></tr></thead><tbody>${nrows}</tbody></table></div></div>
+     <div class="card"><h2>Rules</h2><div class="kv" style="align-items:center">
+      <span>Hidden drones appear within</span><span>${numIn('stealth.reveal',B.stealth.reveal,'1')} tiles of the player's land</span>
+      <span>Handicap: drone cost ×</span><span>${numIn('droneHandicap.cost',h.cost,'0.05')}</span>
+      <span>Handicap: intercept ×</span><span>${numIn('droneHandicap.intercept',h.intercept,'0.05')} <span class="hint">higher = easier to shoot down</span></span>
+      <span>Handicap: blast radius ×</span><span>${numIn('droneHandicap.radius',h.radius,'0.05')}</span>
+      <span>Handicap: speed ×</span><span>${numIn('droneHandicap.speed',h.speed,'0.05')}</span>
+      <span>Extra GCC oil fields</span><span>${numIn('oil.gccExtra',B.oil.gccExtra,'0.01')} <span class="hint">0 = real fields only, 0.05 = default, 0.15 = lots</span></span>
+     </div></div>`;
+}
+function collectBal(){
+  const B=GD_mergeBalance(GD_BALANCE_DEFAULTS,{});
+  document.querySelectorAll('#balForm [data-k]').forEach(el=>{const path=el.dataset.k.split('.');let o=B;for(let i=0;i<path.length-1;i++)o=o[path[i]];o[path[path.length-1]]=el.type==='number'?Number(el.value):el.value;});
+  for(const [c] of GD_NATION_CODES)B.arsenal[c]={drones:DKEYS.filter(d=>document.querySelector(`[data-ars="${c}"][data-d="${d}"]`).checked),missileTier:+document.querySelector(`[data-tier="${c}"]`).value};
+  B.stealth.nations=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-stealth="${c}"]`).checked);
+  B.droneHandicap.nations=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-hcap="${c}"]`).checked);
+  return B;
+}
+$('#balSave').onclick=async()=>{try{await api('/api/admin/config',{method:'PUT',body:{config:collectBal()}});$('#balMsg').innerHTML='<div class="msg ok">Balance saved. Players get it the next time they open the game.</div>';}catch(e){$('#balMsg').innerHTML=`<div class="msg bad">${esc(e.message)}</div>`;}};
+let balResetArmed=false;
+$('#balReset').onclick=async()=>{
+  if(!balResetArmed){balResetArmed=true;$('#balReset').textContent='Tap again to reset everything';setTimeout(()=>{balResetArmed=false;$('#balReset').textContent='Reset to defaults';},4000);return;}
+  balResetArmed=false;$('#balReset').textContent='Reset to defaults';
+  try{await api('/api/admin/config',{method:'PUT',body:{config:{}}});await loadBal();$('#balMsg').innerHTML='<div class="msg ok">Back to the default balance.</div>';}catch(e){$('#balMsg').innerHTML=`<div class="msg bad">${esc(e.message)}</div>`;}
+};
+
 /* ---------- payments API ---------- */
 let pay=null,payMode='test';
 async function loadPay(){
@@ -316,7 +369,7 @@ $('#pyLiveClear').onclick=()=>saveKeys({liveKey:''},'Live key removed.');
     const me=await api('/api/me');
     if(!me.user.is_admin){gate('Not an admin',`${me.user.email} is not on the admin list. Add it to ADMIN_EMAILS in the Worker settings.`,'Use another account');return;}
     $('#who').textContent=me.user.email;$('#gate').hidden=true;$('#app').hidden=false;
-    const t=location.hash.slice(1);show(['overview','logs','users','orders','store','pay'].includes(t)?t:'overview');
+    const t=location.hash.slice(1);show(['overview','logs','users','orders','store','balance','pay'].includes(t)?t:'overview');
   }catch(e){
     if(e.status===401){try{localStorage.removeItem('gd_token');}catch(_){}TOKEN=null;gate('Admin sign-in','Your session ended. Sign in again.','Sign in with Google');}
     else gate('Cannot reach the server',`The Worker did not answer (${e.message}). Check the gd-api address and that the Worker is deployed.`);
