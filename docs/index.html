@@ -77,6 +77,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-o
 .notice.ok{border-color:var(--ok);color:#c9f2de}
 .notice.bad{border-color:var(--danger);color:#ffd2cb}
 .builds button.uav{border-color:var(--teal);color:#bff3ee}
+.builds button.rush{border-color:#f0b44c;color:#ffe2ad}
 .builds button.uav.on{background:#123a37;box-shadow:inset 0 0 0 1px var(--teal)}
 .builds button img.bico{width:24px;height:24px;display:block}
 .upg.snd input[type=range]{width:110px;flex:none}
@@ -416,7 +417,8 @@ function arsenalText(id){
   const a=arsenalOf(id),c=codeOf(id),dr=DRONE_KEYS.filter(d=>a.drones.includes(d)).map(d=>BAL.drones[d].name);
   const tags=[];if(dr.length&&BAL.stealth.nations.includes(c))tags.push('hidden until close');if(dr.length&&BAL.droneHandicap.nations.includes(c))tags.push('weaker');
   const t=Math.min(3,a.missileTier|0);
-  return `Drones: ${dr.length?dr.join(', ')+(tags.length?` (${tags.join(', ')})`:''):'none'} · Missiles: ${t?'up to tier '+['I','II','III'][t-1]:'none'}`;
+  const ab=[hasAbility(id,'uav')?'UAV recon':null,hasAbility(id,'droneRush')?'Drone rush':null].filter(Boolean);
+  return (ab.length?`Ability: ${ab.join(', ')} · `:'')+`Drones: ${dr.length?dr.join(', ')+(tags.length?` (${tags.join(', ')})`:''):'none'} · Missiles: ${t?'up to tier '+['I','II','III'][t-1]:'none'}`;
 }
 function applyOil(){
   const ex=Math.max(0,Math.min(.4,BAL.oil.gccExtra)),th=1-ex*2.5;oilCells.length=0;
@@ -628,7 +630,7 @@ function startRun(){
   owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);siloSeen.fill(0);
   G={pid,diff,t:0,speed:1,paused:false,over:false,acc:0,econAcc:0,
      aiRegen:.8+.12*diff,aiCap:.9+.1*diff,aiThresh:Math.max(.3,.62-.06*diff),aiFrac:Math.min(.65,.3+.07*diff),
-     sand:1,kills:0,peak:0,ms:0,drafts:0,rerolls:lvl('reroll'),cards:[],nextEvt:140,ssel:'',focus:-1,focusUntil:0,hover:-1,uavUntil:0,uavReady:0,aiUav:{},aiUavReady:{},evt:null,evtEnd:0,oilBoost:1,sandstorm:1,
+     sand:1,kills:0,peak:0,ms:0,drafts:0,rerolls:lvl('reroll'),cards:[],nextEvt:140,ssel:'',rushReady:0,aiRushReady:{},focus:-1,focusUntil:0,hover:-1,uavUntil:0,uavReady:0,aiUav:{},aiUavReady:{},evt:null,evtEnd:0,oilBoost:1,sandstorm:1,
      mode:'attack',bsel:'city',ratio:+$('#ratio').value/100,pings:[]};
   NATS=[null];
   for(let id=1;id<=NNAT;id++)NATS.push(newNation(id,id===pid,diff));
@@ -1057,7 +1059,10 @@ function stepMissiles(dt){
 }
 function aiStrike(n){
   if(G.t<150)return;
-  if(!((G.aiUav[n.id]||0)>G.t)&&(G.aiUavReady[n.id]||0)<=G.t&&n.gold>BAL.uav.cost*3&&Math.random()<.12){
+  if(hasAbility(n.id,'droneRush')&&(G.aiRushReady[n.id]||0)<=G.t&&readyDrones(n.id)>=3&&n.gold>250&&Math.random()<.18){
+    const r=droneRush(n.id);if(r.n){G.aiRushReady[n.id]=G.t+BAL.droneRush.cooldown*1.3;return;}
+  }
+  if(hasAbility(n.id,'uav')&&!((G.aiUav[n.id]||0)>G.t)&&(G.aiUavReady[n.id]||0)<=G.t&&n.gold>BAL.uav.cost*3&&Math.random()<.12){
     n.gold-=BAL.uav.cost;G.aiUav[n.id]=G.t+BAL.uav.duration;G.aiUavReady[n.id]=G.t+BAL.uav.cooldown*1.5;
     if(!sameBloc(n.id,G.pid)&&sfxOK('aiuav',20000))toast(`A ${n.name} recon UAV is scanning the region. Your silos may be spotted.`,3000);
   }
@@ -1199,7 +1204,38 @@ function bldVisibleTo(viewer,i){
   if(siloSeen[i]>G.t)return true;
   return viewer===G.pid?G.uavUntil>G.t:(G.aiUav[viewer]||0)>G.t;
 }
+const hasAbility=(id,ab)=>(BAL.abilities[ab]||[]).includes(codeOf(id));
+// Drone rush: every ready drone in every hangar flies at a random enemy building in range, at a discount
+function readyDrones(id){let k=0;for(const j of blist)if(bld[j]===6&&owner[j]===id)k+=Math.floor(ammo[j]);return k;}
+function droneRush(attId){
+  const n=NATS[attId],ws=weaponsOf(attId).filter(w=>w.startsWith('drone'));if(!ws.length)return {n:0,why:'nodrones'};
+  const hangars=blist.filter(j=>bld[j]===6&&owner[j]===attId&&ammo[j]>=1);if(!hangars.length)return {n:0,why:'noready'};
+  const R2=RANGE.drone*RANGE.drone;let launched=0,spent=0,poor=false;const victims=new Set();
+  for(const h of hangars){
+    const hx=h%W,hy=(h/W)|0;
+    const inRange=blist.filter(j=>{const o=owner[j];if(!bld[j]||!o||o===attId||!bldVisibleTo(attId,j))return false;const dx=j%W-hx,dy=((j/W)|0)-hy;return dx*dx+dy*dy<=R2;});
+    const rivals=inRange.filter(j=>!sameBloc(attId,owner[j])),pool=rivals.length?rivals:inRange;if(!pool.length)continue;
+    while(ammo[h]>=1){
+      const wid=ws[(Math.random()*ws.length)|0],w=weapon(attId,wid),cost=Math.max(1,Math.round(w.cost*BAL.droneRush.discount));
+      if(n.gold<cost){poor=true;break;}
+      const t=pool[(Math.random()*pool.length)|0];n.gold-=cost;spent+=cost;ammo[h]--;victims.add(owner[t]);
+      missiles.push({kind:'drone',wid,name:w.name,own:attId,x:hx,y:hy,tx:t%W+(Math.random()-.5),ty:((t/W)|0)+(Math.random()-.5),sp:w.speed*(.9+Math.random()*.2),r:w.radius,tp:w.troops,pk:w.intercept,stealth:w.stealth,seen:false,size:WSIZE[w.key]||1,done:false});
+      launched++;
+    }
+    if(ammo[h]<1)bcool[h]=RELOAD[6]*n.m.reload;
+  }
+  return {n:launched,spent,victims,why:launched?'':poor?'gold':'notargets'};
+}
+function launchRush(){
+  if(!hasAbility(G.pid,'droneRush'))return;
+  if(G.rushReady>G.t){SFX.deny();toast(`Drone rush is regrouping. Ready in ${Math.ceil(G.rushReady-G.t)}s.`);return;}
+  const r=droneRush(G.pid);
+  if(!r.n){SFX.deny();toast({nodrones:'Your nation has no drones.',noready:'No drones are ready. Build hangars and wait for them to rearm.',gold:'Not enough gold to launch even one drone.',notargets:'No enemy buildings in drone range.'}[r.why]);return;}
+  G.rushReady=G.t+BAL.droneRush.cooldown;SFX.droneLaunch();setTimeout(SFX.droneLaunch,180);setTimeout(SFX.droneLaunch,360);
+  toast(`Drone rush: ${r.n} drone${r.n>1?'s':''} launched at ${[...r.victims].map(o=>NATS[o].name).join(', ')} (${fmt(r.spent)} gold).`,3000);
+}
 function launchUAV(){
+  if(!hasAbility(G.pid,'uav'))return;
   const p=NATS[G.pid],u=BAL.uav;
   if(G.uavUntil>G.t){toast(`Your UAV is already overhead (${Math.ceil(G.uavUntil-G.t)}s left).`);return;}
   if(G.uavReady>G.t){SFX.deny();toast(`The UAV is refuelling. Ready in ${Math.ceil(G.uavReady-G.t)}s.`);return;}
@@ -1390,6 +1426,7 @@ function hud(){
     el.textContent=fmt(w.cost)+' g · '+(!r[2]?'no '+(w.kind==='drone'?'hangar':'silo'):r[0]?r[0]+' ready':'reload '+Math.ceil(r[1])+'s');el.parentElement.classList.toggle('poor',p.gold<w.cost);});
   const ui=$('#uavInfo');if(ui){ui.textContent=G.uavUntil>G.t?`overhead ${Math.ceil(G.uavUntil-G.t)}s`:G.uavReady>G.t?`ready in ${Math.ceil(G.uavReady-G.t)}s`:`${fmt(BAL.uav.cost)} g · reveal ${BAL.uav.duration}s`;
     ui.parentElement.classList.toggle('poor',G.uavUntil<=G.t&&G.uavReady<=G.t&&p.gold<BAL.uav.cost);ui.parentElement.classList.toggle('on',G.uavUntil>G.t);}
+  const ri=$('#rushInfo');if(ri){const k=readyDrones(G.pid);ri.textContent=G.rushReady>G.t?`ready in ${Math.ceil(G.rushReady-G.t)}s`:`${k} drone${k===1?'':'s'} ready · ${Math.round(BAL.droneRush.discount*100)}% cost`;ri.parentElement.classList.toggle('poor',G.rushReady<=G.t&&!k);}
 }
 function setMode(m){G.mode=m;$('#mAtk').classList.toggle('on',m==='attack');$('#mBoat').classList.toggle('on',m==='boat');$('#mStk').classList.toggle('on',m==='strike');$('#mBld').classList.toggle('on',m==='build');$('#sendRow').hidden=m==='build'||m==='strike';$('#buildRow').hidden=m!=='build';$('#strikeRow').hidden=m!=='strike';}
 $('#mAtk').onclick=()=>setMode('attack');
@@ -1398,10 +1435,13 @@ $('#mBld').onclick=()=>{setMode('build');toast('Tap anywhere on your land to bui
 $('#mStk').onclick=()=>{setMode('strike');toast('Tap enemy territory. Drones fly from your hangars, missiles from your silos.');};
 function renderStrikeRow(){
   const ws=weaponsOf(G.pid),row=$('#strikeRow');if(!ws.includes(G.ssel))G.ssel=ws[0]||'';
-  const n=ws.length+1;row.style.gridTemplateColumns=`repeat(${n<=4?n:3},1fr)`;
+  const abil=[hasAbility(G.pid,'uav')?'uav':null,hasAbility(G.pid,'droneRush')?'rush':null].filter(Boolean);
+  const n=ws.length+abil.length||1;row.style.gridTemplateColumns=`repeat(${n<=4?n:3},1fr)`;
   row.innerHTML=ws.map(wid=>{const w=weapon(G.pid,wid);return `<button data-s="${wid}" class="${wid===G.ssel?'on':''}">${esc(w.name)}<small data-c="${wid}">${w.cost} g</small></button>`;}).join('')
-    +'<button class="uav" id="uavBtn">UAV recon<small id="uavInfo"></small></button>';
-  $('#uavBtn').onclick=launchUAV;
+    +(abil.includes('uav')?'<button class="uav" id="uavBtn">UAV recon<small id="uavInfo"></small></button>':'')
+    +(abil.includes('rush')?'<button class="uav rush" id="rushBtn">Drone rush<small id="rushInfo"></small></button>':'')
+    +(!n||(!ws.length&&!abil.length)?'<button disabled>Your nation has no strike weapons</button>':'');
+  if($('#uavBtn'))$('#uavBtn').onclick=launchUAV;if($('#rushBtn'))$('#rushBtn').onclick=launchRush;
   row.querySelectorAll('button[data-s]').forEach(b=>b.onclick=()=>{G.ssel=b.dataset.s;row.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));});
 }
 $('#spd').onclick=()=>{G.speed=G.speed===1?2:G.speed===2?3:1;$('#spd').textContent=G.speed+'×';};
@@ -1689,7 +1729,8 @@ $('#howBtn').onclick=()=>{openModal(`<h3>How to play</h3>
   <span style="color:var(--pearl)"><b>Build.</b> Place anything anywhere on your land: cities, forts, oil rigs (best on dark oil fields), ports near water, missile silos, drone hangars and air defense.</span>
   <span style="color:var(--pearl)"><b>Strike.</b> Drones are cheap and slow; missiles are fast and costly. Bigger drone types and higher missile tiers blast a wider area but cost more, and tier II and III silos reload slower. Each nation has its own arsenal (see the nation cards). Iraqi, Iranian and Yemeni drones stay hidden until they near your border. Strikes destroy buildings and kill troops; only ground troops and landings take land.</span>
   <span style="color:var(--pearl)"><b>Defend.</b> Air defense batteries shoot down incoming drones (most of the time) and missiles (sometimes). Layer them around your capital and silos. Tap a battery (or hover it with a mouse) to see its range and ammo; rivals can't see your ranges unless they fly a UAV.</span>
-  <span style="color:var(--pearl)"><b>Hidden silos.</b> Rivals cannot see your silos, and you cannot see theirs, until a silo fires (it stays visible for 10 seconds). A UAV recon flight, in Strike mode, reveals every hidden silo and drone for 15 seconds.</span>
+  <span style="color:var(--pearl)"><b>Hidden silos.</b> Rivals cannot see your silos, and you cannot see theirs, until a silo fires (it stays visible for 10 seconds). GCC states can fly a UAV recon flight (Strike mode) that reveals every hidden silo, drone and air defense range for 15 seconds.</span>
+  <span style="color:var(--pearl)"><b>Drone rush.</b> Iran can launch every ready drone at once at random enemy buildings in range, at half price. It then needs 90 seconds to regroup.</span>
   <span style="color:var(--pearl)"><b>Radar.</b> A radar tracks incoming strikes in its range: red impact zones, a countdown and arrows at the screen edge. It also reveals hidden drones early, and air defense inside its coverage hits more often.</span>
   <span style="color:var(--pearl)"><b>Reload.</b> Silos hold 1 missile (30s reload), hangars 4 drones (35s rearm), air defense 3 interceptors (18s reload). Blue pips show what is ready; a red ring shows reloading.</span>
   <span style="color:var(--pearl)"><b>Counter.</b> Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.</span>

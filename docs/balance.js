@@ -42,6 +42,10 @@ window.GD_BALANCE_DEFAULTS = {
   silo: { reveal: 10 },
   // UAV recon flight: reveals hidden silos and drones for `duration` seconds, then needs `cooldown` seconds
   uav: { cost: 120, duration: 15, cooldown: 60 },
+  // Special abilities by nation: UAV recon, and Drone rush (all ready drones at once at random enemy buildings)
+  abilities: { uav: ['KW', 'SA', 'BH', 'QA', 'AE', 'OM'], droneRush: ['IR'] },
+  // Drone rush: each drone costs `discount` × its normal price; then the ability needs `cooldown` seconds
+  droneRush: { discount: 0.5, cooldown: 90 },
 };
 
 // Merge saved overrides over the defaults, keeping only known keys and sane values.

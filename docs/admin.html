@@ -308,13 +308,15 @@ function renderBal(B){
     ${DKEYS.map(d=>`<td><input type="checkbox" data-ars="${c}" data-d="${d}" ${a.drones.includes(d)?'checked':''} aria-label="${esc(name)} ${d} drone"></td>`).join('')}
     <td><select data-tier="${c}">${[0,1,2,3].map(t=>`<option value="${t}" ${t===(a.missileTier|0)?'selected':''}>${t?['I','II','III'][t-1]:'None'}</option>`).join('')}</select></td>
     <td><input type="checkbox" data-stealth="${c}" ${B.stealth.nations.includes(c)?'checked':''} aria-label="${esc(name)} hidden drones"></td>
-    <td><input type="checkbox" data-hcap="${c}" ${B.droneHandicap.nations.includes(c)?'checked':''} aria-label="${esc(name)} drone handicap"></td></tr>`;}).join('');
+    <td><input type="checkbox" data-hcap="${c}" ${B.droneHandicap.nations.includes(c)?'checked':''} aria-label="${esc(name)} drone handicap"></td>
+    <td><input type="checkbox" data-abuav="${c}" ${B.abilities.uav.includes(c)?'checked':''} aria-label="${esc(name)} UAV recon"></td>
+    <td><input type="checkbox" data-abrush="${c}" ${B.abilities.droneRush.includes(c)?'checked':''} aria-label="${esc(name)} drone rush"></td></tr>`;}).join('');
   const h=B.droneHandicap;
   $('#balForm').innerHTML=
     wtable('Drones','drones',DKEYS,['cost','radius','speed','troops','intercept'])+
     wtable('Missiles','missiles',MKEYS,['cost','radius','speed','troops','intercept','reload'])+
-    `<div class="card"><h2>Arsenals</h2><p class="hint">Which drones each nation can fly and its highest missile tier. Hidden drones only appear when they come near the player's border. The drone handicap applies the multipliers below.</p>
-     <div class="tablewrap"><table><thead><tr><th>Nation</th>${DKEYS.map(d=>`<th>${esc(B.drones[d].name)}</th>`).join('')}<th>Max missile tier</th><th>Hidden drones</th><th>Drone handicap</th></tr></thead><tbody>${nrows}</tbody></table></div></div>
+    `<div class="card"><h2>Arsenals</h2><p class="hint">Which drones each nation can fly, its highest missile tier, and its special abilities. Hidden drones only appear when they come near the player's border. The drone handicap applies the multipliers below.</p>
+     <div class="tablewrap"><table><thead><tr><th>Nation</th>${DKEYS.map(d=>`<th>${esc(B.drones[d].name)}</th>`).join('')}<th>Max missile tier</th><th>Hidden drones</th><th>Drone handicap</th><th>UAV recon</th><th>Drone rush</th></tr></thead><tbody>${nrows}</tbody></table></div></div>
      <div class="card"><h2>Rules</h2><div class="kv" style="align-items:center">
       <span>Hidden drones appear within</span><span>${numIn('stealth.reveal',B.stealth.reveal,'1')} tiles of the player's land</span>
       <span>Handicap: drone cost ×</span><span>${numIn('droneHandicap.cost',h.cost,'0.05')}</span>
@@ -327,6 +329,8 @@ function renderBal(B){
       <span>UAV recon cost</span><span>${numIn('uav.cost',B.uav.cost,'10')} gold</span>
       <span>UAV recon duration</span><span>${numIn('uav.duration',B.uav.duration,'1')} seconds</span>
       <span>UAV recon cooldown</span><span>${numIn('uav.cooldown',B.uav.cooldown,'5')} seconds</span>
+      <span>Drone rush cost ×</span><span>${numIn('droneRush.discount',B.droneRush.discount,'0.05')} <span class="hint">of each drone's normal price</span></span>
+      <span>Drone rush cooldown</span><span>${numIn('droneRush.cooldown',B.droneRush.cooldown,'5')} seconds</span>
       <span>Extra GCC oil fields</span><span>${numIn('oil.gccExtra',B.oil.gccExtra,'0.01')} <span class="hint">0 = real fields only, 0.05 = default, 0.15 = lots</span></span>
      </div></div>`;
 }
@@ -336,6 +340,8 @@ function collectBal(){
   for(const [c] of GD_NATION_CODES)B.arsenal[c]={drones:DKEYS.filter(d=>document.querySelector(`[data-ars="${c}"][data-d="${d}"]`).checked),missileTier:+document.querySelector(`[data-tier="${c}"]`).value};
   B.stealth.nations=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-stealth="${c}"]`).checked);
   B.droneHandicap.nations=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-hcap="${c}"]`).checked);
+  B.abilities.uav=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-abuav="${c}"]`).checked);
+  B.abilities.droneRush=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-abrush="${c}"]`).checked);
   return B;
 }
 $('#balSave').onclick=async()=>{try{await api('/api/admin/config',{method:'PUT',body:{config:collectBal()}});$('#balMsg').innerHTML='<div class="msg ok">Balance saved. Players get it the next time they open the game.</div>';}catch(e){$('#balMsg').innerHTML=`<div class="msg bad">${esc(e.message)}</div>`;}};
