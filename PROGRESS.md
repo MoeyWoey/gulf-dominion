@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `45d6ab1`)_
+_Last updated: 2026-10-17 (after commit `304792c`)_
 
 ---
 
@@ -189,6 +189,30 @@ Safety rules we keep:
 - The dashboard has a **Daily** tab to review and remove suspicious scores.
 - The new D1 table `daily_scores` was added to the live database.
 
+### 10. Diplomacy — `304792c`
+
+- Tap any nation in the top-right list to open talks. The game pauses while you negotiate.
+- **Ceasefire (60 s):**
+  - They stop attacking, striking and landing on you.
+  - Anything they already have under way against you is called off.
+- **Alliance (3 min, 3× the price):** the same, plus they turn on your rivals.
+- **Price** = (60 + 0.05 × their tiles + 0.02 × their troops) × (1 + 0.2 × (heat − 1)).
+- **Acceptance odds** start at 60%:
+  - −25% if they're much stronger than you
+  - +20% if you're much stronger than them
+  - +15% if you're in the same bloc
+  - −30% if they're still angry after a betrayal
+  - −25% if you're attacking them right now
+  - Alliances are ×0.7 harder to get.
+- A refusal costs nothing, but that nation won't talk again for 30 s.
+- **Betrayal:** attacking, striking or landing on a partner asks you to tap twice, then breaks the deal.
+  - They seek revenge for 2 min.
+  - They refuse talks for 4 min.
+  - Every nation charges 50% more for 2.5 min.
+- Deals show as HUD chips, as ALLY/TRUCE tags in the nation list, and on the map labels. Iran's Drone rush never targets your partners.
+- New achievement **Peacemaker**: 5 treaties, +40 pearls.
+- The Balance tab has the ceasefire length, alliance length and a price multiplier.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -213,6 +237,7 @@ Safety rules we keep:
 | Magazines (reload) | Silo 1 (30 s), Hangar 4 (35 s), Air defense 3 (18 s) |
 | Unlock goals | Tier II: 15 strikes · Tier III: 40 buildings destroyed · UAV: 3 radars · Drone rush: 60 drones |
 | World news | First at 200 s, then every 280–420 s, effects last 60 s |
+| Diplomacy | Ceasefire 60 s, alliance 180 s, price ×1 |
 | Win condition | 60% of the land, or every rival eliminated |
 
 Every value above can be changed live from the dashboard's **Balance** tab.
