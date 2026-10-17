@@ -1502,6 +1502,8 @@ function droneRush(attId){
   const n=NATS[attId],ws=weaponsOf(attId).filter(w=>w.startsWith('drone'));if(!ws.length)return {n:0,why:'nodrones'};
   const hangars=blist.filter(j=>bld[j]===6&&owner[j]===attId&&ammo[j]>=1);if(!hangars.length)return {n:0,why:'noready'};
   const R2=RANGE.drone*RANGE.drone;let launched=0,spent=0,poor=false;const victims=new Set();
+  // Spread the swarm: each drone takes the building with the fewest drones already heading for it (this rush and any in flight)
+  const aimed=new Map();for(const m of missiles)if(m.own===attId&&!m.done){const c=Math.round(m.ty)*W+Math.round(m.tx);aimed.set(c,(aimed.get(c)||0)+1);}
   for(const h of hangars){
     const hx=h%W,hy=(h/W)|0;
     const inRange=blist.filter(j=>{const o=owner[j];if(!bld[j]||!o||o===attId||!bldVisibleTo(attId,j))return false;if(attId===G.pid?treaty(o):(o===G.pid&&treaty(attId)))return false;const dx=j%W-hx,dy=((j/W)|0)-hy;return dx*dx+dy*dy<=R2;});
@@ -1509,7 +1511,8 @@ function droneRush(attId){
     while(ammo[h]>=1){
       const wid=ws[(Math.random()*ws.length)|0],w=weapon(attId,wid),cost=Math.max(1,Math.round(w.cost*BAL.droneRush.discount));
       if(n.gold<cost){poor=true;break;}
-      const t=pool[(Math.random()*pool.length)|0];n.gold-=cost;spent+=cost;ammo[h]--;victims.add(owner[t]);
+      let low=1e9,cand=[];for(const j of pool){const k=aimed.get(j)||0;if(k<low){low=k;cand=[j];}else if(k===low)cand.push(j);}
+      const t=cand[(Math.random()*cand.length)|0];aimed.set(t,low+1);n.gold-=cost;spent+=cost;ammo[h]--;victims.add(owner[t]);
       missiles.push({kind:'drone',wid,name:w.name,own:attId,x:hx,y:hy,tx:t%W+(Math.random()-.5),ty:((t/W)|0)+(Math.random()-.5),sp:w.speed*(.9+Math.random()*.2),r:w.radius,tp:w.troops,pk:w.intercept,stealth:w.stealth,seen:false,size:WSIZE[w.key]||1,done:false});
       launched++;
     }
