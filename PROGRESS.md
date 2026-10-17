@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-16 (after commit `296e172`)_
+_Last updated: 2026-10-17 (after commit `d48a70d`)_
 
 ---
 
@@ -129,6 +129,49 @@ Safety rules we keep:
 - **Drone rush** (Iran only): launches every ready drone at random enemy buildings in range at half price, then a 90-second cooldown.
 - The AI uses both abilities.
 
+### 8. Achievements, unlocks and world news — `d48a70d`
+
+- New **Achievements** tab: a third tab on the home screen and in the panel. It has 12 achievements with progress bars, pearl rewards and a "new" badge.
+- Fresh progress starts with these **locked for everyone**, both you and every AI. Each unlocks when you earn its achievement:
+
+  | Locked item | Achievement | Goal |
+  |---|---|---|
+  | Missile II + Strike drone | Arms development | 15 strikes launched |
+  | Missile III + Heavy drone | Strategic deterrent | 40 enemy buildings destroyed by strikes |
+  | UAV recon (GCC) | Eyes in the sky | 3 radars built |
+  | Drone rush (Iran) | Swarm doctrine | 60 drones launched |
+
+- Pearl achievements:
+
+  | Achievement | Goal | Reward |
+  |---|---|---|
+  | First campaign | Finish a campaign | +20 |
+  | Expansionist | Hold 10% of the region | +30 |
+  | Regional power | Hold 30% of the region | +60 |
+  | Kingmaker | Take a capital | +40 |
+  | Conqueror | Eliminate a nation | +40 |
+  | Iron wall | 50 interceptions | +50 |
+  | Dominion | Win a campaign | +100 |
+  | Under fire | Win at Heat 3 or higher | +150 |
+
+- Locked weapons appear in Strike mode as dashed buttons that name the achievement needed. Nation cards mark locked items.
+- **World news:** a breaking-news banner appears every 280–420 s (the first at 200 s), and its effect lasts 60 s for every nation:
+
+  | Headline | Effect |
+  |---|---|
+  | Fed rate cut | Oil income ×1.5 |
+  | Fed rate rise | Oil income ×0.6 |
+  | OPEC+ cut | Oil income ×1.4 |
+  | Oil glut | Oil income ×0.7 |
+  | Gas shortage | Silo reload ×1.5 |
+  | Arms embargo | Missiles +30% cost |
+  | Hormuz insurance | Dhows ×0.6 speed |
+  | Interceptor tech | Air defense ×1.2 |
+  | Sandstorm | Desert ×2.2 |
+
+  There are also two one-off events: tribal support adds troops, and traders bring gold. News replaced the old 2-minute events.
+- Achievements are logged in the dashboard's Logs as `achievement` events. The unlock goals and news timing are in the Balance tab.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -151,6 +194,8 @@ Safety rules we keep:
 | Drone rush | 50% cost, 90 s cooldown |
 | Extra GCC oil | 0.05 |
 | Magazines (reload) | Silo 1 (30 s), Hangar 4 (35 s), Air defense 3 (18 s) |
+| Unlock goals | Tier II: 15 strikes · Tier III: 40 buildings destroyed · UAV: 3 radars · Drone rush: 60 drones |
+| World news | First at 200 s, then every 280–420 s, effects last 60 s |
 | Win condition | 60% of the land, or every rival eliminated |
 
 Every value above can be changed live from the dashboard's **Balance** tab.
@@ -166,6 +211,8 @@ Every value above can be changed live from the dashboard's **Balance** tab.
 - [ ] **Real phone check:** sound, vibration and touch controls are only verified in a desktop browser.
 - [ ] **Wrangler** is on 3.114; an upgrade to v4 is recommended (`npm install --save-dev wrangler@4` in `worker/`).
 - [ ] Deep silos cost isn't dashboard-tunable yet (Majlis upgrade costs are fixed in code).
+- [ ] Existing saves (including yours) also start with tier II/III and abilities locked. There's no admin grant for unlocks yet.
+- [ ] Achievement thresholds for pearl rewards (10%, 30%, 50 interceptions, …) are fixed in code; only the four unlock goals are in the Balance tab.
 
 ## Ideas suggested but not built
 
