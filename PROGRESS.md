@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `99f11f0`)_
+_Last updated: 2026-10-17 (after commit `9b6fea5`)_
 
 ---
 
@@ -24,7 +24,8 @@ _Last updated: 2026-10-17 (after commit `99f11f0`)_
 | `docs/index.html` | The game (single file) |
 | `docs/admin.html` | Admin dashboard |
 | `docs/balance.js` | Shared balance defaults, read by both pages; dashboard overrides merge over them |
-| `worker/src/index.js` | Worker: Google sign-in, cloud saves, logs, store, MyFatoorah, balance config |
+| `worker/src/index.js` | Worker: Google sign-in, cloud saves, logs, store, MyFatoorah, balance config, online room routes |
+| `worker/src/room.js` | `GameRoom` Durable Object: one per online game; holds the lobby and relays messages |
 | `worker/schema.sql` | D1 tables and starter store items |
 | `worker/wrangler.toml` | Worker config (vars only, no secrets) |
 | `DEPLOY.md` | Full first-time setup guide |
@@ -236,6 +237,38 @@ Safety rules we keep:
 - In-game it shows as a "Realistic" chip and on the end screen. The daily challenge ignores it.
 - The Balance tab has all four multipliers.
 
+### 13. Online multiplayer (host runs the game) — `9b6fea5`
+
+- **How it works:** the host's browser runs the simulation. A Cloudflare Durable Object (`GameRoom`, one per game) holds the lobby and relays messages:
+  - players' orders go to the host
+  - the host's game state goes to everyone else (5 snapshots a second)
+- **Home card "Play online"** (needs Google sign-in): create a game, or join with a 5-character code. Invite links look like `…/gulf-dominion/#room=CODE` and still work after the sign-in redirect.
+- **Lobby:**
+  - up to 9 players, each nation can be picked once
+  - host badge and connection dots for each player
+  - the host sets heat (1–5) and the Realistic switch
+  - Start needs 2 connected players with nations; anyone without a nation watches as a spectator
+- **Online rules:**
+  - no Majlis upgrades
+  - every weapon and ability unlocked
+  - speed fixed at 1×
+  - no diplomacy or decrees
+  - AI runs every nation nobody picked
+  - win by holding 60% of the land, or by being the last player standing
+  - if every player falls, the AI with the most land wins
+- **Disconnects:** a dropped player's nation is run by the AI until they reconnect, which happens automatically. Reloading the page and opening the invite link also rejoins. If the host drops, the others see a "waiting for the host" bar.
+- **Menu (II button):** shows every player's land. The host can end the game for everyone; it's then scored on current land.
+- **Results screen** for everyone: winner, each player's peak land and kills, and pearls earned (peak, kills, time, win bonus, heat and Realistic multipliers). Online games and wins are counted on the home card.
+- **Server:**
+  - routes: `POST /api/rooms`, `GET /api/rooms/:code`, and the WebSocket at `/ws/room/:code`
+  - the WebSocket checks the site origin and the session token
+  - `room_created` is logged; clients log `mp_end`
+- **Tested locally with two players:** lobby, picking, start, guest attacks, builds and missile strikes, impact and intercept messages on both sides, a guest reload and rejoin, disconnect and AI takeover, and host ending with results. After deploy, the live routes reject unsigned requests (401) and other sites (403).
+- **Limits:**
+  - the host should keep the tab open and on screen; a phone host that locks its screen pauses the game for everyone
+  - if the host's page reloads, that game ends
+  - not tested yet with real people on separate phones
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -280,11 +313,12 @@ Every value above can be changed live from the dashboard's **Balance** tab.
 - [ ] **Wrangler** is on 3.114; an upgrade to v4 is recommended (`npm install --save-dev wrangler@4` in `worker/`).
 - [ ] Deep silos cost isn't dashboard-tunable yet (Majlis upgrade costs are fixed in code).
 - [ ] Existing saves (including yours) also start with tier II/III and abilities locked. There's no admin grant for unlocks yet.
+- [ ] **Online play with real people:** play a full game on two or more phones over mobile data. Check that the game keeps going when the host's screen is on but the tab is in the background.
 - [ ] Achievement thresholds for pearl rewards (10%, 30%, 50 interceptions, …) are fixed in code; only the four unlock goals are in the Balance tab.
 
 ## Ideas suggested but not built
 
+- Online phase 3: player-to-player diplomacy, quick chat, a public game list
+
 - Rival-specific events (e.g. a GCC summit truce, an oil embargo)
-- Daily challenge seed with a leaderboard
-- Cruise missiles that fly low under air defense; a counter-battery radar
 - Nation-specific decree cards
