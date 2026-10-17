@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `6d9d99d`)_
+_Last updated: 2026-10-17 (after commit `b304652`)_
 
 ---
 
@@ -651,7 +651,20 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
   | Normal | 8.0–13.8% | 9.3–13.2% |
   | Realistic | 6.4–16.7% | 8.1–15.8% |
 
-- **Noticed:** Kuwait builds far fewer cities than others (about 5 vs about 14), probably because its land is mostly oil fields where cities aren't placed. Worth a look.
+- **Noticed:** Kuwait built far fewer cities than others. Fixed in entry 42.
+
+### 42. Fix: AI nations spend their gold — `b304652`
+
+- **The bug:** at 10 minutes Kuwait had about 1 city and 50,000 gold banked, against Saudi Arabia's 13 cities and 5,000 gold. Three causes:
+  - AI city and port spots came from random tiles across the whole map, which rarely hit a small nation's land
+  - oil rigs were always built first
+  - the AI made only one build per turn
+- **Fix:**
+  - building spots come from the nation's own land
+  - rigs stay in proportion to cities (at most 6 + 3 per city)
+  - a nation with a large gold surplus builds a city first, and can make up to 4 builds per turn while it stays rich
+- **Result:** Kuwait has about 9 cities and 3,000 gold at 10 minutes. Spread is 9.0–13.6% normal and 7.5–16.3% Realistic.
+- **Measurement note:** earlier "forts standing" counts in entry 41 were inflated by duplicate entries in the building list. The real figure is about 9–13 forts per nation.
 
 ---
 
