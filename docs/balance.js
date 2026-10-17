@@ -79,6 +79,38 @@ window.GD_BALANCE_DEFAULTS = {
     sam: { name: 'Air defense network', base: 150, grow: 2.25, max: 2 },
     dhow: { name: 'Dhow fleet', base: 50, grow: 1.65, max: 15 },
   },
+  // Decree drawbacks (Common and Rare decrees; Epic ones have none). Each value multiplies that stat when the decree is taken:
+  // gold, regen, cap, def, samPow, navy, boatSpeed (below 1 = worse); atk, missileCost, desert, mount, reload (above 1 = worse).
+  // troopsNow: share of troops lost at once; goldNow: gold lost at once.
+  decrees: {
+    falcon: { name: 'Falcon scouts', gold: 0.9 },
+    bedouin: { name: 'Bedouin riders', mount: 1.2 },
+    mount: { name: 'Mountain guides', desert: 1.2 },
+    consc: { name: 'Conscription', regen: 0.9 },
+    muster: { name: 'Majlis muster', cap: 0.9 },
+    walls: { name: 'Mud-brick walls', atk: 1.1 },
+    pearl: { name: 'Pearl banks', gold: 0.95 },
+    souq: { name: 'Grand souq', regen: 0.9 },
+    chest: { name: 'Merchant caravan', troopsNow: 0.15 },
+    reinf: { name: 'Reinforcements', goldNow: 150 },
+    diver: { name: 'Master diver', gold: 0.9 },
+    layer: { name: 'Layered air defense', reload: 1.15 },
+    bunker: { name: 'Hardened bunkers', gold: 0.9 },
+    workshop: { name: 'Drone workshops', missileCost: 1.2 },
+    drums: { name: 'War drums', def: 0.9 },
+    oil: { name: 'Oil boom', regen: 0.9 },
+    blitz: { name: 'Blitz', atk: 1.1 },
+    urban: { name: 'Urban planning', gold: 0.9 },
+    fortd: { name: 'Fortress doctrine', atk: 1.1 },
+    plunder: { name: 'Plunder', def: 0.9 },
+    armada: { name: 'Dhow armada', navy: 0.8 },
+    navy: { name: 'Royal navy', boatSpeed: 0.8 },
+    hyper: { name: 'Hypersonic warheads', missileCost: 1.25 },
+    arsenal: { name: 'Strategic arsenal', reload: 1.15 },
+    rearm: { name: 'Rapid rearm', samPow: 0.9 },
+    mag: { name: 'Deep magazines', reload: 1.2 },
+    falaj: { name: 'Falaj irrigation', cap: 0.85 },
+  },
   // Pearl achievements: the goal (cumulative across campaigns, or the best single campaign for land %) and the pearls it pays.
   // The four weapon-unlock achievements use the unlocks goals above.
   achievements: {
@@ -140,7 +172,9 @@ window.GD_BALANCE_DEFAULTS = {
   // Stops the whole GCC taking turns on Yemen. Never shields the player.
   // fortTiles: AI nations may keep one fort per this many tiles (on threatened borders); stuckTime: seconds at its troop cap
   // before an AI puts cities and air defense first
-  ai: { bloc: 6, blocChance: 0.05, pile: 0.04, pileTime: 60, fortTiles: 300, stuckTime: 25 },
+  ai: { bloc: 6, blocChance: 0.05, pile: 0.04, pileTime: 60, fortTiles: 300, stuckTime: 25, leaderPct: 30, leaderFocus: 3, leaderLoyalty: 0.3, leaderDef: 1.6 },
+  // Leader coalition: once the biggest nation holds leaderPct% of the land, AI rivals see it as leaderFocus× more attractive
+  // to attack and strike, their bloc loyalty toward it is multiplied by leaderLoyalty, and the leader's attacks on nations cost leaderDef× more.
   // Blocs: nations in the same bloc mostly spare each other. loyalty (normal games) and realistic (Realistic mode) run from
   // 1 = full loyalty to 0 = they treat each other like anyone else. A nation in no bloc stands alone; a nation listed in two
   // blocs belongs to the first. Codes not on the current map are ignored. Edit, add or remove blocs in the dashboard.

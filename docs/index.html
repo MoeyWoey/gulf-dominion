@@ -197,6 +197,13 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-o
 .chip.ally{border-color:var(--ok);color:#c9f2de}
 .card.dip:disabled{opacity:.45}
 .lb .r.dead{opacity:.35;text-decoration:line-through}
+.decs{position:absolute;right:max(10px,env(safe-area-inset-right,0px));pointer-events:auto;background:var(--panel-a);border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-size:.66rem;display:flex;flex-direction:column;gap:4px;width:180px;max-height:38vh;overflow-y:auto}
+.decs .dh{font-size:.6rem;color:var(--muted);letter-spacing:.04em;cursor:pointer;user-select:none}
+.decs .d b{color:var(--pearl);font-weight:700}
+.decs .d em{font-style:normal;color:var(--sand);font-weight:700;margin-left:4px}
+.decs .d small{display:block;color:#bfe6c8;line-height:1.25}
+.decs .d small.dn{color:#ff9d8e}
+.card .down{color:#ff9d8e;font-size:.78rem}
 .dock{position:absolute;left:0;right:0;bottom:0;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px));pointer-events:none}
 .dockin{pointer-events:auto;max-width:560px;margin:0 auto;background:var(--panel-a);border:1px solid var(--line);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:8px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .seg{display:flex;gap:6px}
@@ -430,6 +437,7 @@ body.pc .toast{left:50%;transform:translateX(-50%);text-align:center;max-width:m
     <div class="chips" id="chips"></div>
   </div>
   <div class="lb" id="lb"></div>
+  <div class="decs" id="decs" hidden></div>
   <div class="toast" id="toast" style="opacity:0"></div>
   <div class="tip" id="tip" hidden></div>
   <div class="news" id="news" hidden role="status"></div>
@@ -670,7 +678,7 @@ let _blocMap=null,_blocFor=null;
 function blocOf(id){if(_blocFor!==BAL.blocs){_blocFor=BAL.blocs;_blocMap={};(BAL.blocs||[]).forEach((g,i)=>g.nations.forEach(c=>{if(!(c in _blocMap))_blocMap[c]=i;}));}const i=_blocMap[codeOf(id)];return i===undefined?-1:i;}
 const sameBloc=(a,b)=>{if(!(a>0&&b>0))return false;const i=blocOf(a);return i>=0&&i===blocOf(b);};
 // Bloc loyalty between two nations: 0 for different blocs, otherwise the bloc's loyalty (normal) or realistic value (Realistic mode)
-const blocL=(a,b)=>{if(!sameBloc(a,b))return 0;const g=BAL.blocs[blocOf(a)];return G&&G.real?g.realistic:g.loyalty;};
+const blocL=(a,b)=>{if(!sameBloc(a,b))return 0;const g=BAL.blocs[blocOf(a)];let L=G&&G.real?g.realistic:g.loyalty;if(G&&G.leader&&b===G.leader&&a!==b)L*=BAL.ai.leaderLoyalty;return L;}; // loyalty toward the leading nation drops (coalition)
 function baseMods(){return {respect:1,neutral:1,desert:1,mount:1,cap:1,regen:1,atk:1,def:1,mountDef:1,oil:1,gold:1,coast:0,speed:1,cityCost:1,cityCap:400,fortR:BAL.combat.fortRadius,fortPow:0,plunder:0,lion:false,pearl:1,falaj:false,boatSpeed:1,boatPow:1,boats:3,navy:1,patrol:9,reload:1,magD:0,magS:0,magM:0,droneCost:1,missileCost:1,artyCost:1,droneN:1,evade:1,samR:7,samPow:1,bunker:0,blast:2,startSilo:false};}
 // Nation perks come from BAL.perks (editable in the dashboard): coast and cityCap add, startSilo switches on, the rest multiply
 const PERK_ADD={coast:1,cityCap:1,samR:1};
@@ -959,7 +967,7 @@ function tileCost(att,defId,i){
   const C=BAL.combat;
   if(!defId)return C.tileBase*tm*att.m.neutral*lm;
   const d=NATS[defId],dens=d.troops/Math.max(1,d.tiles);
-  return (C.tileBase+dens*C.defDensity)*tm*att.m.atk*d.m.def*(terr[i]===4?d.m.mountDef:1)*fortMul(d,i)*lm;
+  return (C.tileBase+dens*C.defDensity)*tm*att.m.atk*d.m.def*(terr[i]===4?d.m.mountDef:1)*fortMul(d,i)*lm*(G.leader&&att.id===G.leader?BAL.ai.leaderDef:1); // rivals hold out harder against the leader
 }
 function sidesOf(i,id){const x=i%W;return (x>0&&owner[i-1]===id)+(x<W-1&&owner[i+1]===id)+(i>=W&&owner[i-W]===id)+(i<N-W&&owner[i+W]===id);}
 // Empty pockets of up to BAL.combat.fillPocket tiles touching only one nation's land join that nation for free
@@ -1214,6 +1222,8 @@ function econ(init){
     const om=n.m.oil*G.fx.oil;
     n.goldNow=n.alive?(n.tiles*.04+n.oilT*.5*om+n.rigs*4*om+n.rigsDry*1.2*om+n.cities*1.5+n.ports*2+n.coastT*n.m.coast)*n.m.gold*(G.real?BAL.realistic.gold:1):0;
     if(!init)n.gold+=n.goldNow;
+    if(id===NATS.length-1){let bt=0,best=0;for(let q=1;q<NATS.length;q++)if(NATS[q].alive&&NATS[q].tiles>bt){bt=NATS[q].tiles;best=q;}const was=G.leader;G.leader=bt/LANDN*100>=BAL.ai.leaderPct?best:0;
+      if(!init&&G.leader&&G.leader!==was&&!G.spec){if(G.leader===G.pid)toast('You lead the region. Your rivals are uniting against you.',4000);else toast(`${NATS[G.leader].name} leads the region. Its rivals are turning on it.`,3500);}}
     if(n.alive&&n.tiles===0&&!init){eliminate(n,{name:'its rivals',isPlayer:false});if(G.over)return;}
   }
 }
@@ -1257,7 +1267,7 @@ function aiThink(n){
   else if(nations.length){
     let best=-1,bs=1e12;
     for(const o of nations){const d=NATS[o];let sc=d.troops/Math.max(1,cnt.get(o))*(.7+Math.random()*.6);
-      if(d.isPlayer)sc*=G.aiFocus;sc*=1+(BAL.ai.bloc-1)*blocL(n.id,o);sc*=d.m.respect||1;if(pact==='alliance'&&!d.isPlayer&&!treaty(o))sc*=.55;if(d.isPlayer&&dipOf(n.id).hostileUntil>G.t)sc*=.5;if(sc<bs){bs=sc;best=o;}}
+      if(d.isPlayer)sc*=G.aiFocus;sc*=1+(BAL.ai.bloc-1)*blocL(n.id,o);sc*=d.m.respect||1;if(G.leader===o)sc/=BAL.ai.leaderFocus;if(pact==='alliance'&&!d.isPlayer&&!treaty(o))sc*=.55;if(d.isPlayer&&dipOf(n.id).hostileUntil>G.t)sc*=.5;if(sc<bs){bs=sc;best=o;}}
     const d=NATS[best];
     if((n.troops*G.aiFrac>d.troops*.35||n.troops>n.cap*.92)&&Math.random()>=blocL(n.id,best)*(1-BAL.ai.blocChance)&&Math.random()<1/(d.m.respect||1)&&!piled(best))target=best;
     else if(cnt.has(0))target=0;
@@ -1530,7 +1540,7 @@ function aiStrike(n){
   const kind=wid.split(':')[0];
   const code=LAUNCHER[kind],cands=[];let tot=0;
   for(const j of blist){const o=owner[j];if(!bld[j]||!o||o===n.id||!bldVisibleTo(n.id,j)||(o===G.pid&&treaty(n.id)))continue;if(nearestLauncher(n,code,j,RANGE[kind])<0)continue;
-    let w=bld[j]===7?3:bld[j]===5||bld[j]===6?2.5:1;if(NATS[o].isPlayer)w*=1+.15*G.diff;w*=1-.94*blocL(n.id,o);w/=NATS[o].m.respect||1;cands.push([j,w]);tot+=w;}
+    let w=bld[j]===7?3:bld[j]===5||bld[j]===6?2.5:1;if(NATS[o].isPlayer)w*=1+.15*G.diff;w*=1-.94*blocL(n.id,o);w/=NATS[o].m.respect||1;if(G.leader===o)w*=BAL.ai.leaderFocus;cands.push([j,w]);tot+=w;}
   let tgt=-1;
   if(cands.length){let r=Math.random()*tot;for(const [j,w] of cands){r-=w;if(r<=0){tgt=j;break;}}if(tgt<0)tgt=cands[0][0];}
   else for(let k=0;k<40;k++){const j=(Math.random()*N)|0,o=owner[j];if(!o||o===n.id||terr[j]<2||(o===G.pid&&treaty(n.id))||Math.random()<.92*blocL(n.id,o)||Math.random()>1/(NATS[o].m.respect||1))continue;if(nearestLauncher(n,code,j,RANGE[kind])>=0){tgt=j;break;}}
@@ -1935,6 +1945,7 @@ function hud(){
   const fly=mine.missile+mine.drone+mine.artillery+mine.antiship;if(fly)ch+=`<span class="chip"><i class="d" style="background:#8ce6ff"></i>In flight: ${fly}</span>`;
   if(G.uavUntil>G.t)ch+=`<span class="chip evt">UAV overhead ${Math.ceil(G.uavUntil-G.t)}s</span>`;
   for(let id=1;id<NATS.length;id++){const t=treaty(id);if(t)ch+=`<span class="chip ally"><i class="d" style="background:${rgb(NATS[id].color)}"></i>${t==='alliance'?'Alliance':'Ceasefire'} · ${NATS[id].name} · ${Math.ceil(G.dip[id].until-G.t)}s</span>`;}
+  if(G.leader&&!G.spec)ch+=G.leader===G.pid?'<span class="chip" style="border-color:var(--danger);color:#ffd2cb">You lead · rivals unite against you</span>':`<span class="chip"><i class="d" style="background:${rgb(NATS[G.leader].color)}"></i>${esc(NATS[G.leader].name)} leads · rivals turn on it</span>`;
   if(G.real)ch+=`<span class="chip real">Realistic</span>`;
   if(G.news)ch+=`<span class="chip evt">${esc(G.news.chip)} · ${Math.ceil(G.newsEnd-G.t)}s</span>`;
   if(G.mp){const away=NATS.filter(n=>n&&n.human&&n.away&&n.alive);for(const n of away)ch+=`<span class="chip"><i class="d" style="background:${rgb(n.color)}"></i>${esc(G.names[n.id]||n.name)} away · AI in charge</span>`;if(G.spec)ch+='<span class="chip evt">Spectating</span>';else if(!NATS[G.pid].alive)ch+='<span class="chip warn">Your nation has fallen · watching</span>';}
@@ -1943,6 +1954,7 @@ function hud(){
   const rows=NATS.slice(1).sort((a,b)=>b.tiles-a.tiles);
   $('#lb').innerHTML=`<div class="lbh">${G.mp?'Online · '+esc(MP?MP.code:''):'Tap a nation to negotiate'}</div>`+rows.map(n=>{const t=treaty(n.id),me=n.id===G.pid&&!G.spec;return `<div class="r ${me?'me':''} ${n.alive?'':'dead'} ${!G.mp&&!n.isPlayer&&n.alive?'talk':''}" data-n="${n.id}"><span class="chip d" style="padding:0;border:0;width:8px;height:8px;border-radius:2px;background:${rgb(n.color)}"></span><span>${n.short||NAT[n.id].short}${t?`<em class="tr">${t==='alliance'?'ALLY':'TRUCE'}</em>`:''}${G.mp&&n.human&&!me?`<em class="tr hu">${esc((G.names[n.id]||'').slice(0,10))}</em>`:''}</span><span class="num">${(n.tiles/LANDN*100).toFixed(1)}%</span></div>`;}).join('');
   const hudEl=document.querySelector('.hud');$('#lb').style.top=(hudEl.offsetTop+hudEl.offsetHeight+4)+'px';placeTop();
+  renderDecs();
   for(const t of ['city','fort','rig','port','ship','silo','hangar','sam','radar','cb','arty','coastal']){const c=costOf(p,t),el=$('#c'+t[0].toUpperCase()+t.slice(1));el.textContent=fmt(c)+' g';el.parentElement.classList.toggle('poor',p.gold<c);}
   const rd={5:[0,1e9,false],6:[0,1e9,false],10:[0,1e9,false]};
   for(const j of blist)if(rd[bld[j]]&&owner[j]===G.pid){const r=rd[bld[j]];r[2]=true;r[0]+=Math.floor(ammo[j]);if(ammo[j]<1)r[1]=Math.min(r[1],bcool[j]);}
@@ -2177,6 +2189,19 @@ function showResult(res,ping){
       nosea:'No sea route from your coast to there.',maxboats:`All ${p.m.boats} of your fleets are already at sea.`,own:'You already hold that shore.'}[res.r]);}
 }
 
+// Active decrees, each with its count (×2, ×3) and its net effect, under the nation list
+let decsKey='',decsOpen=null;
+function renderDecs(){
+  const el=$('#decs');if(!el)return;if(!G||G.mp||!G.cards||!G.cards.length){el.hidden=true;decsKey='';return;}
+  if(decsOpen===null)decsOpen=innerWidth>=700;
+  const key=G.cards.join()+'|'+decsOpen;
+  if(key!==decsKey){decsKey=key;const cnt={};for(const id of G.cards)cnt[id]=(cnt[id]||0)+1;
+    el.innerHTML=`<div class="dh" id="decsH">DECREES (${G.cards.length}) ${decsOpen?'▾':'▸'}</div>`+(decsOpen?Object.keys(cnt).map(id=>{const c=CARDS.find(x=>x.id===id);if(!c)return '';const dn=decreeDown(id);
+      return `<div class="d"><b>${esc(c.name)}</b>${cnt[id]>1?`<em>×${cnt[id]}</em>`:''}<small>${esc(c.desc)}</small>${dn?`<small class="dn">${esc(dn)}</small>`:''}</div>`;}).join(''):'');
+    $('#decsH').onclick=()=>{decsOpen=!decsOpen;renderDecs();};}
+  el.hidden=false;const lb=$('#lb');el.style.top=(lb.offsetTop+lb.offsetHeight+6)+'px';
+}
+
 /* ================= Modals ================= */
 let modalOpen=false;
 function openModal(html){hideTip();$('#mbox').innerHTML=html;$('#modal').hidden=false;modalOpen=true;}
@@ -2186,14 +2211,25 @@ function draftOptions(){
   while(out.length<k&&pool.length){const w=pool.map(c=>[6,3,1][c.r]),tot=w.reduce((a,b)=>a+b,0);let r=Math.random()*tot,j=0;while(r>w[j]){r-=w[j];j++;}out.push(pool.splice(j,1)[0]);}
   return out;
 }
+const DSTAT={gold:['gold',1],regen:['regen',1],cap:['troop cap',1],def:['defense',1],samPow:['air defense accuracy',1],navy:['warships',1],boatSpeed:['dhow speed',1],atk:['land attacks',-1],missileCost:['missiles',-1],desert:['deserts',-1],mount:['mountains',-1],reload:['reloads',-2]};
+function decreeDown(id){const d=BAL.decrees&&BAL.decrees[id];if(!d)return '';const out=[];
+  for(const [k,v] of Object.entries(d)){if(k==='name'||!v)continue;
+    if(k==='troopsNow')out.push(`lose ${Math.round(v*100)}% of your troops now`);else if(k==='goldNow')out.push(`lose ${fmt(v)} gold now`);
+    else if(DSTAT[k]&&v!==1){const [w,t]=DSTAT[k],p=Math.round(Math.abs(v-1)*100);out.push(t===1?`${w} ${v>1?'+':'−'}${p}%`:`${w} ${p}% ${v>1?(t===-2?'slower':'costlier'):(t===-2?'faster':'cheaper')}`);}}
+  return out.join(', ');}
+function applyDecree(c,n){
+  if(c.apply)c.apply(n.m);if(c.now)c.now(n);if(c.global)c.global();
+  const d=BAL.decrees&&BAL.decrees[c.id];if(d)for(const [k,v] of Object.entries(d)){if(k==='name')continue;
+    if(k==='troopsNow')n.troops=Math.max(0,n.troops*(1-v));else if(k==='goldNow')n.gold=Math.max(0,n.gold-v);else if(k in n.m&&typeof n.m[k]==='number')n.m[k]*=v;}
+}
 function openDraft(){
   SFX.chime();
   G.drafts--;const opts=draftOptions();
   openModal(`<h3>Issue a decree</h3><p class="sub">${G.ms?`You hold ${(NATS[G.pid].tiles/LANDN*100).toFixed(1)}% of the land.`:''} Choose one. It lasts for this campaign.</p>
-   <div class="cards">${opts.map((c,k)=>`<button class="card r${c.r}" data-k="${k}"><span class="rar">${RAR[c.r]}</span><b>${c.name}</b><span>${c.desc}</span></button>`).join('')}</div>
+   <div class="cards">${opts.map((c,k)=>`<button class="card r${c.r}" data-k="${k}"><span class="rar">${RAR[c.r]}</span><b>${c.name}</b><span>${c.desc}</span>${decreeDown(c.id)?`<span class="down">Drawback: ${esc(decreeDown(c.id))}</span>`:''}</button>`).join('')}</div>
    ${G.rerolls?`<button class="btn" id="reroll">Reroll (${G.rerolls} left)</button>`:''}`);
   document.querySelectorAll('.card').forEach(b=>b.onclick=()=>{const c=opts[+b.dataset.k],p=NATS[G.pid];
-    if(c.apply)c.apply(p.m);if(c.now)c.now(p);if(c.global)c.global();G.cards.push(c.id);closeModal();econ(true);toast(`Decree: ${c.name}`);});
+    applyDecree(c,p);G.cards.push(c.id);closeModal();econ(true);toast(`Decree: ${c.name}`);});
   const rr=$('#reroll');if(rr)rr.onclick=()=>{G.rerolls--;G.drafts++;openDraft();};
 }
 function openPause(){
@@ -2578,7 +2614,7 @@ const GUIDE=[
  ['online','Play online',()=>`Sign in, create a game and share the code or invite link. Up to 9 players each pick a nation; the AI runs the rest. Everyone starts equal. The host's device runs the game, so the host keeps the tab open. Win with ${WIN_PCT}% of the land or as the last player standing.`],
  ['daily','Daily challenge',()=>`Every day everyone plays the same nation, heat and twist with the same random seed and no upgrades. Your score counts land, rivals eliminated, capitals taken and a fast win. Signed-in players appear on the leaderboard.`],
  ['news','World news',()=>`Now and then a headline shifts the whole region for a minute: rate cuts lift oil prices, gas shortages slow silo reloads, embargoes raise missile costs.`],
- ['decrees','Decrees and achievements',()=>`Each land milestone and each fallen rival lets you pick a power for this campaign. Achievements unlock Missile II and III, bigger drones, UAV recon and Drone rush, for you and the AI alike.`],
+ ['decrees','Decrees and achievements',()=>`Each land milestone and each fallen rival lets you pick a power for this campaign. Common and Rare decrees come with a drawback (in red); Epic ones don't. Your decrees are listed under the nation list. Once any nation holds ${BAL.ai.leaderPct}% of the land, its rivals unite against it: they target it more and defend harder against its attacks. Achievements unlock Missile II and III, bigger drones, UAV recon and Drone rush, for you and the AI alike.`],
  ['grow','Win and grow',()=>`Hold ${WIN_PCT}% of the land to win. Every campaign, won or lost, pays pearls for permanent upgrades, new nations and higher heat.`],
 ];
 // "Syria, Lebanon Militias and Turkey": nations on this map whose arsenal has flag f
