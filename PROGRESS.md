@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `e369582`)_
+_Last updated: 2026-10-17 (after commit `6937301`)_
 
 ---
 
@@ -562,6 +562,12 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
   - the preview map is cached
   - online updates send only changed buildings; reload timers go out as a "ready at" time, and guests re-sync timers on every update
 - **Tested** in a two-player local game.
+
+### 36. Destroyed buildings lower their price — `6937301`
+
+- **Change:** when a strike destroys a building (missile, drone, artillery, an anti-ship hit on a port, or a crater), its owner's price counter for that type drops by one, so the next one costs a step less.
+- **Not affected:** capture doesn't refund, and prices never drop below the first-building price.
+- **Tested:** 3 Iraqi cities (next city 295 gold); one destroyed, and the next city costs 219 gold.
 
 ---
 
