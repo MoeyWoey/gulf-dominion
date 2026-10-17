@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `70099a0`)_
+_Last updated: 2026-10-17 (after commit `b16af81`)_
 
 ---
 
@@ -397,6 +397,21 @@ Safety rules we keep:
 - **Change:** a nation that has recently lost a big share of its land gets a breather. Once its losses in the last ~60 s pass 4% of its land, other AIs stop opening new attacks and boat landings on it until the losses fade. Attacks already under way carry on. It never protects the player.
 - **Dashboard:** a new **AI targeting** card in the Balance tab holds the same-bloc weight (×6), the same-bloc attack chance (5%), the breather threshold (0.04) and the fade time (60 s).
 
+### 24. Yemen stronger on land and in the mountains — `b16af81`
+
+- **New Yemen bonuses:** troop regen +20%, defense +25% on all its land, and +60% defense on its mountain tiles. The mountain defense is a new perk stat, editable in the Nation perks card.
+- **Simulation** (all-AI, 8 seeded games each):
+
+  | Yemen's bonuses | Land at 8 min | Worst game | Land at 12 min |
+  |---|---|---|---|
+  | Before | 7.2% | 5.2% | 5.6% |
+  | Defense only | 7.1% | — | 5.6% |
+  | Regen +12% | 9.0% | 7.2% | — |
+  | **Regen +20% (applied)** | **11.6%** | **9.2%** | **11.3%** |
+
+  - Defense alone didn't help, because Yemen gets drained to about one troop per tile.
+  - With the applied bonuses Yemen sits mid-table without snowballing, and the lead stays spread across nations.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -426,7 +441,7 @@ Safety rules we keep:
 | Counter-battery | 55-tile range, silos revealed 30 s |
 | Realistic mode | Gold ×0.5, land ×2 (everyone), pearls ×1.5, diplomacy ×0.75 |
 | Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 · empty pockets up to 30 tiles auto-claimed · missile craters 0.5 × blast radius, empty for 30 s |
-| Nation perks | KW oil ×1.6 · SA troop cap ×1.2 · BH regen ×1.12, coastal gold · QA gold ×1.4 · AE cities ×0.65 cost · OM mountains ×0.5, defense ×1.15 · IQ regen ×1.1, +100 cap per city · IR missiles ×0.7, starts with a silo · YE attacks ×0.75, expansion ×0.85, mountains ×0.5, cap ×1.2 |
+| Nation perks | KW oil ×1.6 · SA troop cap ×1.2 · BH regen ×1.12, coastal gold · QA gold ×1.4 · AE cities ×0.65 cost · OM mountains ×0.5, defense ×1.15 · IQ regen ×1.1, +100 cap per city · IR missiles ×0.7, starts with a silo · YE attacks ×0.75, expansion ×0.85, mountains ×0.5, cap ×1.2, defense ×1.25, mountain defense ×1.6, regen ×1.2 |
 | AI targeting | Same-bloc target ×6, attacked 5% of the time · breather: no new AI attacks or landings on a nation that lost over 4% of its land recently (fades over 60 s); never shields the player |
 | Win condition | 60% of the land, or every rival eliminated |
 
