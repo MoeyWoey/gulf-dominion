@@ -91,8 +91,9 @@ window.GD_BALANCE_DEFAULTS = {
   // regen/cap/troops: added multiplier per level; aggression: lower attack threshold per level; sendMore: bigger share sent
   // per level; playerFocus: how much more they pick on you per level; strikesEarlier: seconds earlier strikes begin per level.
   heat: { regen: 0.2, cap: 0.2, troops: 0.2, aggression: 0.1, sendMore: 0.12, playerFocus: 0.12, strikesEarlier: 20 },
-  // Realistic mode (switch beside Begin campaign), applied to every nation: gold income and land-cost multipliers, pearl reward and diplomacy price multipliers
-  realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75 },
+  // Realistic mode (switch beside Begin campaign), applied to every nation: gold income and land-cost multipliers, pearl reward and diplomacy price multipliers,
+  // and blocLoyalty: how much nations still spare their own bloc (1 = as in normal games, 0 = everyone treats everyone the same)
+  realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75, blocLoyalty: 0.8 },
 };
 
 // Merge saved overrides over the defaults, keeping only known keys and sane values.

@@ -332,7 +332,7 @@ body.pc .toast{left:50%;transform:translateX(-50%);text-align:center;max-width:m
 
     <div class="sec">
       <h2>Choose your nation</h2>
-      <p class="hint">GCC states rarely attack each other, and Iraq, Iran and Yemen rarely attack each other. Your bloc's AIs mostly leave you alone too. Realistic mode turns blocs off.</p>
+      <p class="hint">GCC states rarely attack each other, and Iraq, Iran and Yemen rarely attack each other. Your bloc's AIs mostly leave you alone too. Realistic mode weakens that loyalty.</p>
       <div class="nations" id="nations"></div>
     </div>
 
@@ -585,7 +585,9 @@ function applyOil(){
 applyOil();
 // Blocs: the six GCC states, and Iraq/Iran/Yemen. AI rarely attacks inside its own bloc.
 const BLOC=[0,1,1,1,1,1,1,2,2,2];
-const sameBloc=(a,b)=>!(G&&G.real)&&a>0&&b>0&&BLOC[a]===BLOC[b]; // Realistic mode: no bloc loyalty, every nation treats every other the same
+const sameBloc=(a,b)=>a>0&&b>0&&BLOC[a]===BLOC[b];
+// Bloc loyalty between two nations: 0 for rival blocs; 1 for the same bloc, or BAL.realistic.blocLoyalty in Realistic mode (0 = everyone treats everyone the same)
+const blocL=(a,b)=>sameBloc(a,b)?(G&&G.real?BAL.realistic.blocLoyalty:1):0;
 function baseMods(){return {neutral:1,desert:1,mount:1,cap:1,regen:1,atk:1,def:1,mountDef:1,oil:1,gold:1,coast:0,speed:1,cityCost:1,cityCap:400,fortR:4,fortPow:0,plunder:0,lion:false,pearl:1,falaj:false,boatSpeed:1,boatPow:1,boats:3,navy:1,patrol:9,reload:1,magD:0,magS:0,magM:0,droneCost:1,missileCost:1,droneN:1,evade:1,samR:7,samPow:1,bunker:0,blast:2,startSilo:false};}
 // Nation perks come from BAL.perks (editable in the dashboard): coast and cityCap add, startSilo switches on, the rest multiply
 const PERK_ADD={coast:1,cityCap:1};
@@ -845,7 +847,7 @@ function startRun(spec){
   else if(spec)toast(`Daily challenge: ${NAT[pid].name}, Heat ${diff}. ${spec.twist.name}: ${spec.twist.desc}`,6000);else toast(S.tut?`Heat ${diff}. Expand from ${NATS[pid].name} and hold ${WIN_PCT}% of the region.`:'Tap sand next to your land to expand. Drag to pan, pinch to zoom.',5000);
   S.tut=1;save();
   if(!mp)logEvent('run_start',{nation:NAT[pid].name,heat:diff,realistic:!!G.real});
-  if(G.real)setTimeout(()=>toast(`Realistic rules: gold ×${BAL.realistic.gold}, land ×${BAL.realistic.land} for every nation, and no bloc loyalty. Pearls ×${BAL.realistic.pearls}.`,4500),5200);
+  if(G.real)setTimeout(()=>toast(`Realistic rules: gold ×${BAL.realistic.gold}, land ×${BAL.realistic.land} for every nation, bloc loyalty ${Math.round(BAL.realistic.blocLoyalty*100)}%. Pearls ×${BAL.realistic.pearls}.`,4500),5200);
 }
 
 /* ================= Simulation ================= */
@@ -1098,7 +1100,7 @@ function stepShips(dt){
 function aiBoat(n,cnt){
   if(G.t<180||!n.coastT||boats.filter(b=>b.att===n.id).length>=2)return false;
   for(let k=0;k<40;k++){
-    const j=coastCells[(Math.random()*coastCells.length)|0],o=owner[j];if(o===n.id||cnt.has(o)||(o===G.pid&&treaty(n.id))||(sameBloc(n.id,o)&&Math.random()<.9))continue;
+    const j=coastCells[(Math.random()*coastCells.length)|0],o=owner[j];if(o===n.id||cnt.has(o)||(o===G.pid&&treaty(n.id))||Math.random()<.9*blocL(n.id,o))continue;
     const dx=j%W-n.cx,dy=((j/W)|0)-n.cy;if(dx*dx+dy*dy>70*70)continue;
     if(o&&(NATS[o].troops>n.troops*.6||piled(o)))continue;
     return launchBoat(n.id,j,n.troops*(o?G.aiFrac:.35))==='ok';
@@ -1157,9 +1159,9 @@ function aiThink(n){
   else if(nations.length){
     let best=-1,bs=1e12;
     for(const o of nations){const d=NATS[o];let sc=d.troops/Math.max(1,cnt.get(o))*(.7+Math.random()*.6);
-      if(d.isPlayer)sc*=G.aiFocus;if(sameBloc(n.id,o))sc*=BAL.ai.bloc;if(pact==='alliance'&&!d.isPlayer&&!treaty(o))sc*=.55;if(d.isPlayer&&dipOf(n.id).hostileUntil>G.t)sc*=.5;if(sc<bs){bs=sc;best=o;}}
+      if(d.isPlayer)sc*=G.aiFocus;sc*=1+(BAL.ai.bloc-1)*blocL(n.id,o);if(pact==='alliance'&&!d.isPlayer&&!treaty(o))sc*=.55;if(d.isPlayer&&dipOf(n.id).hostileUntil>G.t)sc*=.5;if(sc<bs){bs=sc;best=o;}}
     const d=NATS[best];
-    if((n.troops*G.aiFrac>d.troops*.35||n.troops>n.cap*.92)&&(!sameBloc(n.id,best)||Math.random()<BAL.ai.blocChance)&&!piled(best))target=best;
+    if((n.troops*G.aiFrac>d.troops*.35||n.troops>n.cap*.92)&&Math.random()>=blocL(n.id,best)*(1-BAL.ai.blocChance)&&!piled(best))target=best;
     else if(cnt.has(0))target=0;
   }
   if(target<0)return;
@@ -1314,7 +1316,7 @@ function aiStrike(n){
   }
   if(hasAbility(n.id,'uav')&&!((G.aiUav[n.id]||0)>G.t)&&(G.aiUavReady[n.id]||0)<=G.t&&n.gold>BAL.uav.cost*3&&Math.random()<.12){
     n.gold-=BAL.uav.cost;G.aiUav[n.id]=G.t+BAL.uav.duration;G.aiUavReady[n.id]=G.t+BAL.uav.cooldown*1.5;
-    if(!sameBloc(n.id,G.pid)&&sfxOK('aiuav',20000))toast(`A ${n.name} recon UAV is scanning the region. Your silos may be spotted.`,3000);
+    if(blocL(n.id,G.pid)<.5&&sfxOK('aiuav',20000))toast(`A ${n.name} recon UAV is scanning the region. Your silos may be spotted.`,3000);
   }
   let hasSilo=false,hasHangar=false;for(const j of blist){if(owner[j]!==n.id)continue;if(bld[j]===5)hasSilo=true;else if(bld[j]===6)hasHangar=true;}
   const opts=weaponsOf(n.id).filter(wid=>(wid.startsWith('drone')?hasHangar:hasSilo)&&n.gold>=weapon(n.id,wid).cost*1.2);
@@ -1325,10 +1327,10 @@ function aiStrike(n){
   const kind=wid.split(':')[0];
   const code=kind==='drone'?6:5,cands=[];let tot=0;
   for(const j of blist){const o=owner[j];if(!bld[j]||!o||o===n.id||!bldVisibleTo(n.id,j)||(o===G.pid&&treaty(n.id)))continue;if(nearestLauncher(n,code,j,RANGE[kind])<0)continue;
-    let w=bld[j]===7?3:bld[j]===5||bld[j]===6?2.5:1;if(NATS[o].isPlayer)w*=1+.15*G.diff;if(sameBloc(n.id,o))w*=.06;cands.push([j,w]);tot+=w;}
+    let w=bld[j]===7?3:bld[j]===5||bld[j]===6?2.5:1;if(NATS[o].isPlayer)w*=1+.15*G.diff;w*=1-.94*blocL(n.id,o);cands.push([j,w]);tot+=w;}
   let tgt=-1;
   if(cands.length){let r=Math.random()*tot;for(const [j,w] of cands){r-=w;if(r<=0){tgt=j;break;}}if(tgt<0)tgt=cands[0][0];}
-  else for(let k=0;k<40;k++){const j=(Math.random()*N)|0,o=owner[j];if(!o||o===n.id||terr[j]<2||(o===G.pid&&treaty(n.id))||(sameBloc(n.id,o)&&Math.random()<.92))continue;if(nearestLauncher(n,code,j,RANGE[kind])>=0){tgt=j;break;}}
+  else for(let k=0;k<40;k++){const j=(Math.random()*N)|0,o=owner[j];if(!o||o===n.id||terr[j]<2||(o===G.pid&&treaty(n.id))||Math.random()<.92*blocL(n.id,o))continue;if(nearestLauncher(n,code,j,RANGE[kind])>=0){tgt=j;break;}}
   if(tgt>=0&&launchStrike(n.id,wid,tgt)==='cooldown'&&kind==='missile'&&dr.length)launchStrike(n.id,dr[0],tgt);
 }
 
@@ -1496,7 +1498,7 @@ function droneRush(attId){
   for(const h of hangars){
     const hx=h%W,hy=(h/W)|0;
     const inRange=blist.filter(j=>{const o=owner[j];if(!bld[j]||!o||o===attId||!bldVisibleTo(attId,j))return false;if(attId===G.pid?treaty(o):(o===G.pid&&treaty(attId)))return false;const dx=j%W-hx,dy=((j/W)|0)-hy;return dx*dx+dy*dy<=R2;});
-    const rivals=inRange.filter(j=>!sameBloc(attId,owner[j])),pool=rivals.length?rivals:inRange;if(!pool.length)continue;
+    const rivals=inRange.filter(j=>blocL(attId,owner[j])<.5),pool=rivals.length?rivals:inRange;if(!pool.length)continue;
     while(ammo[h]>=1){
       const wid=ws[(Math.random()*ws.length)|0],w=weapon(attId,wid),cost=Math.max(1,Math.round(w.cost*BAL.droneRush.discount));
       if(n.gold<cost){poor=true;break;}
@@ -2011,7 +2013,7 @@ function dipCost(id,type){
 }
 function dipChance(id,type){
   const n=NATS[id],p=NATS[G.pid],d=dipOf(id);if(d.refuseUntil>G.t)return 0;
-  let c=.6;if(n.troops>p.troops*1.3)c-=.25;if(p.troops>n.troops*1.5)c+=.2;if(sameBloc(id,G.pid))c+=.15;
+  let c=.6;if(n.troops>p.troops*1.3)c-=.25;if(p.troops>n.troops*1.5)c+=.2;c+=.15*blocL(id,G.pid);
   if(d.hostileUntil>G.t)c-=.3;if(attacks.some(a=>a.att===G.pid&&a.def===id&&!a.done))c-=.25;if(type==='alliance')c*=.7;
   return Math.max(.05,Math.min(.95,c));
 }
@@ -2050,7 +2052,7 @@ function openDiplomacy(id,note){
   const offer=(type,label)=>{const dur=type==='alliance'?BAL.diplomacy.alliance:BAL.diplomacy.ceasefire,c=dipCost(id,type),ch=Math.round(dipChance(id,type)*100);
     return `<button class="card dip" data-t="${type}" ${ch===0?'disabled':''}><span class="rar">${label}</span><b>${type==='alliance'?'Alliance':'Ceasefire'} · ${t?'+':''}${dur}s</b><span>${fmt(c)} gold · ${ch}% likely to accept · ${type==='alliance'?'no attacks on you, and they turn on your rivals':'no attacks on you while it lasts'}</span></button>`;};
   openModal(`<h3><span class="sw" style="display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:8px;background:${rgb(n.color)}"></span>${esc(n.name)}</h3>
-   <p class="sub">${t?`${t==='alliance'?'Alliance':'Ceasefire'} · ${Math.ceil(d.until-G.t)}s left`:d.hostileUntil>G.t?'Hostile after your betrayal':'At war'} · ${G.real?'no blocs (Realistic)':sameBloc(id,G.pid)?'same bloc':'rival bloc'}</p>
+   <p class="sub">${t?`${t==='alliance'?'Alliance':'Ceasefire'} · ${Math.ceil(d.until-G.t)}s left`:d.hostileUntil>G.t?'Hostile after your betrayal':'At war'} · ${sameBloc(id,G.pid)?(G.real?`same bloc · loyalty ${Math.round(BAL.realistic.blocLoyalty*100)}%`:'same bloc'):'rival bloc'}</p>
    <div class="kv"><span>Their land · troops</span><span class="num">${pct(n)} · ${fmt(n.troops)}</span><span>Your land · troops</span><span class="num">${pct(p)} · ${fmt(p.troops)}</span><span>Your gold</span><span class="num">${fmt(p.gold)}</span></div>
    <div class="cards">${offer('ceasefire','Short truce')}${offer('alliance','Pact')}</div>
    <p class="sub" id="dipMsg">${note?esc(note):'Attacking, striking or landing on a nation you have a deal with breaks it, and every nation will trust you less for a while.'}</p>
@@ -2271,7 +2273,7 @@ function renderHome(){
   $('#heatDn').disabled=S.diff<=1;$('#heatUp').disabled=S.diff>=S.maxDiff;
   $('#go').textContent=`Begin campaign as ${NAT[S.nation].name}`;
   const rl=!!S.realistic;$('#go').classList.toggle('real',rl);$('#realTog').classList.toggle('on',rl);$('#realTog').setAttribute('aria-checked',String(rl));
-  $('#realNote').hidden=!rl;$('#realNote').textContent=`Realistic: gold ×${BAL.realistic.gold} · land ×${BAL.realistic.land} · no blocs, everyone fights everyone · pearls ×${BAL.realistic.pearls}`;
+  $('#realNote').hidden=!rl;$('#realNote').textContent=`Realistic: gold ×${BAL.realistic.gold} · land ×${BAL.realistic.land} · bloc loyalty ${Math.round(BAL.realistic.blocLoyalty*100)}% · pearls ×${BAL.realistic.pearls}`;
   $('#upgs').innerHTML=UPG.map(u=>{const l=lvl(u.k),max=l>=u.max,c=upgCost(u);
     return `<div class="upg"><div class="t"><b>${u.name}</b><small>${u.desc}</small><div class="pips">${Array.from({length:u.max},(_,k)=>`<i class="${k<l?'on':''}"></i>`).join('')}</div></div>
     <button class="btn ${!max&&S.pearls>=c?'gold':''}" data-k="${u.k}" ${max||S.pearls<c?'disabled':''}>${max?'Max':`<span class="num">${c}</span>`}</button></div>`;}).join('');
@@ -2304,7 +2306,7 @@ $('#howBtn').onclick=()=>{openModal(`<h3>How to play</h3>
   <span style="color:var(--pearl)"><b>Reload.</b> Silos hold 1 missile (30s reload), hangars 4 drones (35s rearm), air defense 3 interceptors (18s reload). Blue pips show what is ready; a red ring shows reloading.</span>
   <span style="color:var(--pearl)"><b>Counter.</b> Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.</span>
   <span style="color:var(--pearl)"><b>Navy.</b> Launch warships from a port. They patrol nearby waters and sink enemy dhows and warships.</span>
-  <span style="color:var(--pearl)"><b>Realistic mode.</b> The switch beside Begin campaign halves gold income and doubles the cost of taking land, for every nation, and turns off bloc loyalty: GCC states attack each other as readily as anyone else, and so do Iraq, Iran and Yemen. Deals are 25% cheaper and campaigns pay 1.5× pearls. It doesn't apply to the daily challenge.</span>
+  <span style="color:var(--pearl)"><b>Realistic mode.</b> The switch beside Begin campaign halves gold income and doubles the cost of taking land, for every nation, and weakens bloc loyalty: GCC states fight each other far more often, and so do Iraq, Iran and Yemen. Deals are 25% cheaper and campaigns pay 1.5× pearls. It doesn't apply to the daily challenge.</span>
   <span style="color:var(--pearl)"><b>Diplomacy.</b> Tap a nation in the list at the top right to offer gold for a ceasefire (60s) or an alliance (3 min, and they turn on your rivals). Stronger, angrier nations charge more and refuse more often. Attacking a partner breaks the deal: they want revenge and everyone trusts you less.</span>
   <span style="color:var(--pearl)"><b>Play online.</b> Sign in, create a game and share the code or invite link. Up to 9 players each pick a nation; the AI runs the rest. Everyone starts equal: no upgrades, every weapon unlocked, speed 1×. The host's device runs the game, so the host should keep the tab open. If a player drops out, the AI holds their nation until they rejoin. Win with ${WIN_PCT}% of the land or by being the last player standing.</span>
   <span style="color:var(--pearl)"><b>Daily challenge.</b> Every day everyone plays the same nation, heat and twist with the same random seed and no Majlis upgrades. Your score counts land held, rivals eliminated, capitals taken and a fast win. Signed-in players appear on the leaderboard.</span>
