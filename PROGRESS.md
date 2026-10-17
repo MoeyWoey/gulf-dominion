@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `19c6da0`)_
+_Last updated: 2026-10-17 (after commit `a03b819`)_
 
 ---
 
@@ -590,7 +590,24 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
   - Kuwait is the front line for both militias and perks only move it slightly.
   - Lower loyalty weakens the GCC and helps the militias.
   - Saudi Arabia clearly improved.
-- **Open:** Kuwait still weakest. Options are a bigger starting region or reverting loyalty to 0.8.
+- **Open:** Kuwait still weakest (addressed in entry 38 with the Diplomacy perk).
+
+### 38. Kuwait's Diplomacy perk — `a03b819`
+
+- **New perk stat "Diplomacy" (respect):** rival AIs, militias included, score the nation as a less attractive target. With Kuwait at 2×:
+  - they go ahead with a planned attack on it only half the time
+  - they pick its buildings for strikes half as often
+  - they land dhows on its coast less
+  - retaliation against attacks Kuwait starts still happens
+- **First attempt:** scoring alone did nothing (26 vs 25 attacks a game), so the "go ahead half the time" rule was added.
+- **Results** (20 games, 15 min):
+
+  | Mode | Kuwait before | Kuwait after | Spread after |
+  |---|---|---|---|
+  | Realistic | 5.1% (last) | 8.2% (UAE now last at 6.4%) | 6.4–16.7% |
+  | Normal | 6.9% | 8.0% | 8.0–13.8% |
+
+- **Dashboard:** "Diplomacy (rivals target it less)" in the Nation perks card.
 
 ---
 
@@ -624,7 +641,7 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
 | Realistic mode | Gold ×0.5, land ×2 (everyone), bloc loyalty 0.6, pearls ×1.5, diplomacy ×0.75 |
 | Heat (per level above 1) | AI regen +0.2, cap +0.2, starting troops +20%, attack threshold −0.1, send share +0.12, player focus +0.12, strikes 20 s earlier |
 | Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 · empty pockets up to 30 tiles auto-claimed · missile craters 0.5 × blast radius, empty for 30 s |
-| Nation perks | KW oil ×1.6, defense ×1.6, cap ×1.25, regen ×1.08 · SA cap ×1.25, expansion ×0.8, defense ×1.15, regen ×1.05 · BH regen ×1.12, coastal gold · QA gold ×1.4 · AE cities ×0.65 cost · OM mountains ×0.5, defense ×1.15 · IQ regen ×1.1, +100 cap per city · IR missiles ×0.7, starts with a silo · YE attacks ×0.75, expansion ×0.85, mountains ×0.5, cap ×1.2, defense ×1.25, mountain defense ×1.6, regen ×1.2 |
+| Nation perks | KW Diplomacy ×2, oil ×1.6, defense ×1.6, cap ×1.25, regen ×1.08 · SA cap ×1.25, expansion ×0.8, defense ×1.15, regen ×1.05 · BH regen ×1.12, coastal gold · QA gold ×1.4 · AE cities ×0.65 cost · OM mountains ×0.5, defense ×1.15 · IQ regen ×1.1, +100 cap per city · IR missiles ×0.7, starts with a silo · YE attacks ×0.75, expansion ×0.85, mountains ×0.5, cap ×1.2, defense ×1.25, mountain defense ×1.6, regen ×1.2 |
 | AI targeting | Same-bloc target ×6, attacked 5% of the time · breather: no new AI attacks or landings on a nation that lost over 4% of its land recently (fades over 60 s); never shields the player |
 | Win condition | 80% of the land, or every rival eliminated (online: or last player standing) |
 
