@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `01d7052`)_
+_Last updated: 2026-10-17 (after commit `0320a3f`)_
 
 ---
 
@@ -444,6 +444,24 @@ Safety rules we keep:
   Heat 1 played out identically.
 - **Realistic** turns off bloc loyalty for everyone: the GCC states fight each other, and so do Iraq, Iran and Yemen. In AI-only games, same-bloc attacks went from 8% to 79% of all attacks.
 
+### 28. Realistic bloc loyalty as a dial — `0320a3f`
+
+- Realistic now weakens bloc loyalty instead of turning it off. The setting runs from 1 (normal blocs) to 0 (none); the default is **0.8**.
+- **Share of attacks that stay inside a bloc** (AI-only Realistic games, 5 per value):
+
+  | Loyalty | Same-bloc attacks |
+  |---|---|
+  | 1 | 19% |
+  | 0.9 | 32% |
+  | 0.8 | 55% |
+  | 0.6 | 69% |
+  | 0.3 | 74% |
+  | 0 | 80% |
+
+  - The curve is steep near 1 because most nations only border their own bloc.
+  - 0.8 splits wars about half and half and gave the most even land spread.
+- **Dashboard:** Balance → Rules → "Realistic: bloc loyalty".
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -471,7 +489,7 @@ Safety rules we keep:
 | World news | First at 200 s, then every 280–420 s, effects last 60 s |
 | Diplomacy | Ceasefire 60 s, alliance 180 s, price ×1 |
 | Counter-battery | 55-tile range, silos revealed 30 s |
-| Realistic mode | Gold ×0.5, land ×2 (everyone), no bloc loyalty, pearls ×1.5, diplomacy ×0.75 |
+| Realistic mode | Gold ×0.5, land ×2 (everyone), bloc loyalty 0.8, pearls ×1.5, diplomacy ×0.75 |
 | Heat (per level above 1) | AI regen +0.2, cap +0.2, starting troops +20%, attack threshold −0.1, send share +0.12, player focus +0.12, strikes 20 s earlier |
 | Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 · empty pockets up to 30 tiles auto-claimed · missile craters 0.5 × blast radius, empty for 30 s |
 | Nation perks | KW oil ×1.6 · SA troop cap ×1.2 · BH regen ×1.12, coastal gold · QA gold ×1.4 · AE cities ×0.65 cost · OM mountains ×0.5, defense ×1.15 · IQ regen ×1.1, +100 cap per city · IR missiles ×0.7, starts with a silo · YE attacks ×0.75, expansion ×0.85, mountains ×0.5, cap ×1.2, defense ×1.25, mountain defense ×1.6, regen ×1.2 |
