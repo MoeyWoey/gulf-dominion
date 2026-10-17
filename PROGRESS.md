@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `07497eb`)_
+_Last updated: 2026-10-17 (after commit `e557929`)_
 
 ---
 
@@ -331,6 +331,25 @@ Safety rules we keep:
 - **Fix 1:** attacks now take any tile that has the attacker's land on 3 or more sides before pushing on. In the same test there were 0 holes left, with the same land gained in the same time.
 - **Fix 2 (safety net):** once a second, any empty pocket of up to 30 tiles that touches only one nation's land joins that nation for free. Bigger pockets are left alone. It costs under 1 ms.
 - **Dashboard:** Balance → Combat → "Auto-claim empty pockets up to N tiles" (0 turns it off).
+
+### 20. Radar "aggression" investigated — `e557929`
+
+- **Question:** does building a radar make nations attack you?
+- **Test:** seeded A/B simulations, replaying the same game with and without the radar.
+- **Answer: no.** Over 5 games at Heat 1, after building a city vs a radar at 2:00:
+
+  | | City | Radar |
+  |---|---|---|
+  | Ground attacks on you | 55 | 53 |
+  | Strikes at you | 73 | 68 |
+  | Warnings you see | 5 | 31 |
+
+  - Any first building (city, fort or radar) draws the same strikes. Air defense draws about twice as many.
+  - The radar reveals about 6 times more incoming strikes, and each tracked missile used to play its own siren, so a salvo sounded like a new assault.
+- **Fix:**
+  - A new radar says how many strikes were already heading your way.
+  - One siren per salvo and one tracking ping every 2s.
+  - The radar notice counts how many missiles are inbound.
 
 ---
 
