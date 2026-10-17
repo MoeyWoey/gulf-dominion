@@ -345,6 +345,9 @@ function renderBal(B){
       <span>First world news after</span><span>${numIn('news.first',B.news.first,'10')} seconds</span>
       <span>Then one every</span><span>${numIn('news.min',B.news.min,'10')} to ${numIn('news.max',B.news.max,'10')} seconds</span>
       <span>News effects last</span><span>${numIn('news.duration',B.news.duration,'5')} seconds</span>
+      <span>Ceasefire length</span><span>${numIn('diplomacy.ceasefire',B.diplomacy.ceasefire,'5')} seconds</span>
+      <span>Alliance length</span><span>${numIn('diplomacy.alliance',B.diplomacy.alliance,'10')} seconds</span>
+      <span>Diplomacy price ×</span><span>${numIn('diplomacy.costMul',B.diplomacy.costMul,'0.1')} <span class="hint">what AI nations charge for a deal</span></span>
       <span>Extra GCC oil fields</span><span>${numIn('oil.gccExtra',B.oil.gccExtra,'0.01')} <span class="hint">0 = real fields only, 0.05 = default, 0.15 = lots</span></span>
      </div></div>`;
 }

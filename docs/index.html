@@ -176,6 +176,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-o
 .lb .r{display:flex;align-items:center;gap:6px}
 .lb .r span:nth-child(2){flex:1}
 .lb .r.me{color:var(--sand);font-weight:700}
+.lb .r.talk{cursor:pointer;border-radius:5px;padding:2px 3px;margin:0 -3px}
+.lb .r.talk:hover,.lb .r.talk:active{background:rgba(255,255,255,.07)}
+.lb .lbh{font-size:.6rem;color:var(--muted);letter-spacing:.04em;margin-bottom:2px}
+.lb .tr{font-style:normal;font-size:.55rem;font-weight:700;color:var(--ok);margin-left:4px;letter-spacing:.06em}
+.chip.ally{border-color:var(--ok);color:#c9f2de}
+.card.dip:disabled{opacity:.45}
 .lb .r.dead{opacity:.35;text-decoration:line-through}
 .dock{position:absolute;left:0;right:0;bottom:0;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px));pointer-events:none}
 .dockin{pointer-events:auto;max-width:560px;margin:0 auto;background:var(--panel-a);border:1px solid var(--line);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:8px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
@@ -719,7 +725,7 @@ function startRun(spec){
   owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);siloSeen.fill(0);
   G={pid,diff,daily:spec||null,caps:0,t:0,speed:1,paused:false,over:false,acc:0,econAcc:0,
      aiRegen:.8+.12*diff,aiCap:.9+.1*diff,aiThresh:Math.max(.3,.62-.06*diff),aiFrac:Math.min(.65,.3+.07*diff),
-     sand:1,kills:0,peak:0,ms:0,drafts:0,rerolls:lvl('reroll'),cards:[],nextNews:BAL.news.first,news:null,newsEnd:0,fx:fxBase(),ssel:'',rushReady:0,aiRushReady:{},focus:-1,focusUntil:0,hover:-1,uavUntil:0,uavReady:0,aiUav:{},aiUavReady:{},evt:null,evtEnd:0,oilBoost:1,sandstorm:1,
+     sand:1,kills:0,peak:0,ms:0,drafts:0,rerolls:lvl('reroll'),cards:[],nextNews:BAL.news.first,news:null,newsEnd:0,fx:fxBase(),ssel:'',dip:{},trustUntil:0,breakArm:0,breakArmUntil:0,rushReady:0,aiRushReady:{},focus:-1,focusUntil:0,hover:-1,uavUntil:0,uavReady:0,aiUav:{},aiUavReady:{},evt:null,evtEnd:0,oilBoost:1,sandstorm:1,
      mode:'attack',bsel:'city',ratio:+$('#ratio').value/100,pings:[]};
   NATS=[null];
   for(let id=1;id<=NNAT;id++)NATS.push(newNation(id,id===pid,diff));
@@ -961,7 +967,7 @@ function stepShips(dt){
 function aiBoat(n,cnt){
   if(G.t<180||!n.coastT||boats.filter(b=>b.att===n.id).length>=2)return false;
   for(let k=0;k<40;k++){
-    const j=coastCells[(Math.random()*coastCells.length)|0],o=owner[j];if(o===n.id||cnt.has(o)||(sameBloc(n.id,o)&&Math.random()<.9))continue;
+    const j=coastCells[(Math.random()*coastCells.length)|0],o=owner[j];if(o===n.id||cnt.has(o)||(o===G.pid&&treaty(n.id))||(sameBloc(n.id,o)&&Math.random()<.9))continue;
     const dx=j%W-n.cx,dy=((j/W)|0)-n.cy;if(dx*dx+dy*dy>70*70)continue;
     if(o&&NATS[o].troops>n.troops*.6)continue;
     return launchBoat(n.id,j,n.troops*(o?G.aiFrac:.35))==='ok';
@@ -1010,12 +1016,12 @@ function aiThink(n){
   if(n.troops>n.cap*.5&&Math.random()<(cnt.has(0)?.05:.2)&&aiBoat(n,cnt))return;
   if(!cnt.size)return;
   let target=-1;
-  const nations=[...cnt.keys()].filter(o=>o!==0);
+  const pact=treaty(n.id),nations=[...cnt.keys()].filter(o=>o!==0&&!(o===G.pid&&pact));
   if(cnt.has(0)&&(!nations.length||Math.random()<.78))target=0;
   else if(nations.length){
     let best=-1,bs=1e12;
     for(const o of nations){const d=NATS[o];let sc=d.troops/Math.max(1,cnt.get(o))*(.7+Math.random()*.6);
-      if(d.isPlayer)sc*=Math.max(.55,1-.08*G.diff);if(sameBloc(n.id,o))sc*=6;if(sc<bs){bs=sc;best=o;}}
+      if(d.isPlayer)sc*=Math.max(.55,1-.08*G.diff);if(sameBloc(n.id,o))sc*=6;if(pact==='alliance'&&!d.isPlayer&&!treaty(o))sc*=.55;if(d.isPlayer&&dipOf(n.id).hostileUntil>G.t)sc*=.5;if(sc<bs){bs=sc;best=o;}}
     const d=NATS[best];
     if((n.troops*G.aiFrac>d.troops*.35||n.troops>n.cap*.92)&&(!sameBloc(n.id,best)||Math.random()<.05))target=best;
     else if(cnt.has(0))target=0;
@@ -1168,11 +1174,11 @@ function aiStrike(n){
   const wid=mis.length&&(!dr.length||Math.random()<.5)?mis[Math.max(0,mis.length-1-((Math.random()*2)|0))]:dr[(Math.random()*dr.length)|0];
   const kind=wid.split(':')[0];
   const code=kind==='drone'?6:5,cands=[];let tot=0;
-  for(const j of blist){const o=owner[j];if(!bld[j]||!o||o===n.id||!bldVisibleTo(n.id,j))continue;if(nearestLauncher(n,code,j,RANGE[kind])<0)continue;
+  for(const j of blist){const o=owner[j];if(!bld[j]||!o||o===n.id||!bldVisibleTo(n.id,j)||(o===G.pid&&treaty(n.id)))continue;if(nearestLauncher(n,code,j,RANGE[kind])<0)continue;
     let w=bld[j]===7?3:bld[j]===5||bld[j]===6?2.5:1;if(NATS[o].isPlayer)w*=1+.15*G.diff;if(sameBloc(n.id,o))w*=.06;cands.push([j,w]);tot+=w;}
   let tgt=-1;
   if(cands.length){let r=Math.random()*tot;for(const [j,w] of cands){r-=w;if(r<=0){tgt=j;break;}}if(tgt<0)tgt=cands[0][0];}
-  else for(let k=0;k<40;k++){const j=(Math.random()*N)|0,o=owner[j];if(!o||o===n.id||terr[j]<2||(sameBloc(n.id,o)&&Math.random()<.92))continue;if(nearestLauncher(n,code,j,RANGE[kind])>=0){tgt=j;break;}}
+  else for(let k=0;k<40;k++){const j=(Math.random()*N)|0,o=owner[j];if(!o||o===n.id||terr[j]<2||(o===G.pid&&treaty(n.id))||(sameBloc(n.id,o)&&Math.random()<.92))continue;if(nearestLauncher(n,code,j,RANGE[kind])>=0){tgt=j;break;}}
   if(tgt>=0&&launchStrike(n.id,wid,tgt)==='cooldown'&&kind==='missile'&&dr.length)launchStrike(n.id,dr[0],tgt);
 }
 
@@ -1325,7 +1331,7 @@ function droneRush(attId){
   const R2=RANGE.drone*RANGE.drone;let launched=0,spent=0,poor=false;const victims=new Set();
   for(const h of hangars){
     const hx=h%W,hy=(h/W)|0;
-    const inRange=blist.filter(j=>{const o=owner[j];if(!bld[j]||!o||o===attId||!bldVisibleTo(attId,j))return false;const dx=j%W-hx,dy=((j/W)|0)-hy;return dx*dx+dy*dy<=R2;});
+    const inRange=blist.filter(j=>{const o=owner[j];if(!bld[j]||!o||o===attId||!bldVisibleTo(attId,j))return false;if(attId===G.pid?treaty(o):(o===G.pid&&treaty(attId)))return false;const dx=j%W-hx,dy=((j/W)|0)-hy;return dx*dx+dy*dy<=R2;});
     const rivals=inRange.filter(j=>!sameBloc(attId,owner[j])),pool=rivals.length?rivals:inRange;if(!pool.length)continue;
     while(ammo[h]>=1){
       const wid=ws[(Math.random()*ws.length)|0],w=weapon(attId,wid),cost=Math.max(1,Math.round(w.cost*BAL.droneRush.discount));
@@ -1428,7 +1434,7 @@ function render(now){
     const fs=Math.max(9,Math.min(26,Math.sqrt(n.tiles)*s*.32));
     const x=view.ox+(n.cx+.5)*s,y=view.oy+(n.cy+.5)*s;
     ctx.font=`700 ${fs}px 'Reem Kufi',sans-serif`;ctx.lineWidth=3;ctx.strokeStyle='rgba(8,14,16,.75)';ctx.fillStyle='#fff8ea';
-    ctx.strokeText(n.name,x,y-fs*.35);ctx.fillText(n.name,x,y-fs*.35);
+    const tl=treaty(n.id),nm=tl?`${n.name} · ${tl==='alliance'?'ally':'truce'}`:n.name;ctx.strokeText(nm,x,y-fs*.35);ctx.fillText(nm,x,y-fs*.35);
     ctx.font=`600 ${fs*.78}px 'IBM Plex Sans Arabic',sans-serif`;ctx.strokeText(fmt(n.troops),x,y+fs*.55);ctx.fillText(fmt(n.troops),x,y+fs*.55);}
   // boats
   for(const b of boats){
@@ -1525,11 +1531,12 @@ function hud(){
   if(untracked.missile>0||untracked.drone>0)ch+=`<span class="chip warn">Incoming: ${[untracked.missile>0?untracked.missile+' missile'+(untracked.missile>1?'s':''):'',untracked.drone>0?untracked.drone+' drone'+(untracked.drone>1?'s':''):''].filter(Boolean).join(', ')}${blist.some(j=>bld[j]===8&&owner[j]===G.pid)?'':' · build a radar to track'}</span>`;
   if(mine.missile||mine.drone)ch+=`<span class="chip"><i class="d" style="background:#8ce6ff"></i>In flight: ${mine.missile+mine.drone}</span>`;
   if(G.uavUntil>G.t)ch+=`<span class="chip evt">UAV overhead ${Math.ceil(G.uavUntil-G.t)}s</span>`;
+  for(let id=1;id<NATS.length;id++){const t=treaty(id);if(t)ch+=`<span class="chip ally"><i class="d" style="background:${rgb(NATS[id].color)}"></i>${t==='alliance'?'Alliance':'Ceasefire'} · ${NATS[id].name} · ${Math.ceil(G.dip[id].until-G.t)}s</span>`;}
   if(G.news)ch+=`<span class="chip evt">${esc(G.news.chip)} · ${Math.ceil(G.newsEnd-G.t)}s</span>`;
   if(G.ms<MILESTONES.length)ch+=`<span class="chip">Next decree at ${MILESTONES[G.ms]}%</span>`;
   $('#chips').innerHTML=ch;
   const rows=NATS.slice(1).sort((a,b)=>b.tiles-a.tiles);
-  $('#lb').innerHTML=rows.map(n=>`<div class="r ${n.isPlayer?'me':''} ${n.alive?'':'dead'}"><span class="chip d" style="padding:0;border:0;width:8px;height:8px;border-radius:2px;background:${rgb(n.color)}"></span><span>${n.short||NAT[n.id].short}</span><span class="num">${(n.tiles/LANDN*100).toFixed(1)}%</span></div>`).join('');
+  $('#lb').innerHTML='<div class="lbh">Tap a nation to negotiate</div>'+rows.map(n=>{const t=treaty(n.id);return `<div class="r ${n.isPlayer?'me':''} ${n.alive?'':'dead'} ${!n.isPlayer&&n.alive?'talk':''}" data-n="${n.id}"><span class="chip d" style="padding:0;border:0;width:8px;height:8px;border-radius:2px;background:${rgb(n.color)}"></span><span>${n.short||NAT[n.id].short}${t?`<em class="tr">${t==='alliance'?'ALLY':'TRUCE'}</em>`:''}</span><span class="num">${(n.tiles/LANDN*100).toFixed(1)}%</span></div>`;}).join('');
   const hudEl=document.querySelector('.hud');$('#lb').style.top=(hudEl.offsetTop+hudEl.offsetHeight+4)+'px';
   for(const t of ['city','fort','rig','port','ship','silo','hangar','sam','radar']){const c=costOf(p,t),el=$('#c'+t[0].toUpperCase()+t.slice(1));el.textContent=fmt(c)+' g';el.parentElement.classList.toggle('poor',p.gold<c);}
   const rd={5:[0,1e9,false],6:[0,1e9,false]};
@@ -1561,6 +1568,7 @@ $('#spd').onclick=()=>{G.speed=G.speed===1?2:G.speed===2?3:1;$('#spd').textConte
 $('#ratio').oninput=e=>{G.ratio=e.target.value/100;};
 document.querySelectorAll('#buildRow button').forEach(b=>b.onclick=()=>{G.bsel=b.dataset.b;document.querySelectorAll('#buildRow button').forEach(x=>x.classList.toggle('on',x===b));});
 $('#pauseBtn').onclick=()=>openPause();
+$('#lb').addEventListener('click',e=>{const r=e.target.closest('.r.talk');if(r)openDiplomacy(+r.dataset.n);});
 
 /* ================= Input ================= */
 const ptrs=new Map();let tapCand=null,pinch=null;
@@ -1602,6 +1610,7 @@ function handleTap(sx,sy){
   if(i<0||terr[i]<2){ping(true);toast(i>=0&&terr[i]===1?'Outside the theatre of war.':'Open water. Expand over land.');return;}
   const p=NATS[G.pid],o=owner[i];
   if(G.mode==='strike'){
+    if(o&&o!==G.pid&&!confirmBreak(o,ping))return;
     const w=weapon(G.pid,G.ssel),k=w?w.kind:'drone',r=w?launchStrike(G.pid,G.ssel,i):'locked';ping(r!=='ok');if(r==='ok')(k==='missile'?SFX.missileLaunch:SFX.droneLaunch)();
     toast({ok:k==='drone'?(p.m.droneN>1?`${w.name} swarm away.`:`${w.name} away.`):`${w.name} launched.`,target:'Pick enemy territory to strike.',locked:'Your nation cannot use that weapon.',
       nolauncher:k==='drone'?'Build a drone hangar first.':'Build a missile silo first.',
@@ -1617,6 +1626,7 @@ function handleTap(sx,sy){
     place(p,i,G.bsel);ping(false);if(G.bsel==='radar'){SFX.radar();bump('radars');}else SFX.build();toast({city:'City founded: more troops and gold.',fort:'Fort raised: nearby land is far harder to take.',rig:oil[i]?'Oil rig on an oil field: +4 gold/s.':'Oil rig pumping: +1.2 gold/s. Oil fields pay +4.',port:'Port opened: +2 gold/s. Launch warships from here.',silo:`Missile silo ready. Missiles reach ${RANGE.missile} tiles.`,hangar:`Drone hangar ready. Drones reach ${RANGE.drone} tiles.`,sam:'Air defense battery online. It shoots down drones and missiles nearby.',radar:`Radar online: tracks incoming strikes within ${BAL.radar.range} tiles, reveals hidden drones and sharpens nearby air defense.`}[G.bsel]);econ(true);return;
   }
   if(o===G.pid){ping(true);toast(G.mode==='boat'?'Your own shore. Tap a coast you want to invade.':'Your land. Tap neutral sand or a rival next to your border.');return;}
+  if(!confirmBreak(o,ping))return;
   const troops=p.troops*G.ratio;
   if(G.mode==='attack'){const r=launchAttack(G.pid,o,troops,i%W,(i/W)|0);
     if(r==='ok'){ping(false);SFX.attack();return;}
@@ -1691,6 +1701,64 @@ function endRun(win,retreat){
   if(daily)endDaily();
 }
 
+/* ================= Diplomacy: pay an AI nation for a ceasefire or an alliance; attacking it breaks the deal ================= */
+const dipOf=id=>G.dip[id]||(G.dip[id]={});
+function treaty(id){const d=G&&G.dip&&G.dip[id];return d&&d.type&&d.until>G.t?d.type:null;}
+const treatyName=t=>t==='alliance'?'alliance':'ceasefire';
+function dipCost(id,type){
+  const n=NATS[id],base=(60+n.tiles*.05+n.troops*.02)*(1+.2*(G.diff-1))*BAL.diplomacy.costMul*(G.trustUntil>G.t?1.5:1);
+  return Math.max(10,Math.round(base*(type==='alliance'?3:1)));
+}
+function dipChance(id,type){
+  const n=NATS[id],p=NATS[G.pid],d=dipOf(id);if(d.refuseUntil>G.t)return 0;
+  let c=.6;if(n.troops>p.troops*1.3)c-=.25;if(p.troops>n.troops*1.5)c+=.2;if(sameBloc(id,G.pid))c+=.15;
+  if(d.hostileUntil>G.t)c-=.3;if(attacks.some(a=>a.att===G.pid&&a.def===id&&!a.done))c-=.25;if(type==='alliance')c*=.7;
+  return Math.max(.05,Math.min(.95,c));
+}
+function proposeTreaty(id,type){
+  const n=NATS[id],p=NATS[G.pid],d=dipOf(id);
+  if(d.refuseUntil>G.t)return {ok:false,msg:`${n.name} won't negotiate after your betrayal. Try again in ${Math.ceil(d.refuseUntil-G.t)}s.`};
+  if(d.cooldown>G.t)return {ok:false,msg:`${n.name} won't talk again for ${Math.ceil(d.cooldown-G.t)}s.`};
+  const cost=dipCost(id,type);if(p.gold<cost)return {ok:false,msg:`You need ${fmt(cost)} gold for that offer.`};
+  if(Math.random()>dipChance(id,type)){d.cooldown=G.t+30;return {ok:false,msg:`${n.name} refused your offer. You can try again in 30s. No gold was spent.`};}
+  p.gold-=cost;
+  const dur=type==='alliance'?BAL.diplomacy.alliance:BAL.diplomacy.ceasefire,had=treaty(id);
+  d.type=had==='alliance'?'alliance':type;d.until=Math.max(had?d.until:G.t,G.t)+dur;
+  // they stand down: ground attacks recalled, landings turned back, strikes aimed at you called off
+  for(const a of attacks)if(a.att===id&&a.def===G.pid)a.done=true;
+  for(const b of boats)if(b.att===id&&owner[b.land]===G.pid&&!b.done){b.done=true;n.troops+=b.troops;}
+  for(const m of missiles)if(m.own===id&&targetsPlayer(m))m.done=true;
+  bump('treaties');
+  return {ok:true,msg:`${n.name} accepted ${type==='alliance'?'an alliance':'a ceasefire'}. It runs for ${Math.ceil(d.until-G.t)}s.`};
+}
+function breakTreaty(id){
+  const d=dipOf(id),t=treaty(id);if(!t)return;
+  d.type=null;d.until=0;d.hostileUntil=G.t+120;d.refuseUntil=G.t+240;G.trustUntil=G.t+150;
+  toast(`You broke the ${treatyName(t)} with ${NATS[id].name}. They want revenge, and every nation trusts you less for a while.`,4000);SFX.alarm();
+}
+// Ask before an action that would break a treaty: the first tap warns, a second tap within 3s goes ahead
+function confirmBreak(o,ping){
+  if(!o||!treaty(o))return true;
+  const now=performance.now();
+  if(G.breakArm===o&&now<G.breakArmUntil){breakTreaty(o);return true;}
+  G.breakArm=o;G.breakArmUntil=now+3000;ping(true);toast(`You have a ${treatyName(treaty(o))} with ${NATS[o].name}. Tap again to break it and attack.`,3000);
+  return false;
+}
+function openDiplomacy(id,note){
+  const n=NATS[id],p=NATS[G.pid];if(!G||G.over||!n||!n.alive||n.isPlayer)return;
+  const t=treaty(id),d=dipOf(id),pct=v=>(v.tiles/LANDN*100).toFixed(1)+'%';
+  const offer=(type,label)=>{const dur=type==='alliance'?BAL.diplomacy.alliance:BAL.diplomacy.ceasefire,c=dipCost(id,type),ch=Math.round(dipChance(id,type)*100);
+    return `<button class="card dip" data-t="${type}" ${ch===0?'disabled':''}><span class="rar">${label}</span><b>${type==='alliance'?'Alliance':'Ceasefire'} · ${t?'+':''}${dur}s</b><span>${fmt(c)} gold · ${ch}% likely to accept · ${type==='alliance'?'no attacks on you, and they turn on your rivals':'no attacks on you while it lasts'}</span></button>`;};
+  openModal(`<h3><span class="sw" style="display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:8px;background:${rgb(n.color)}"></span>${esc(n.name)}</h3>
+   <p class="sub">${t?`${t==='alliance'?'Alliance':'Ceasefire'} · ${Math.ceil(d.until-G.t)}s left`:d.hostileUntil>G.t?'Hostile after your betrayal':'At war'} · ${sameBloc(id,G.pid)?'same bloc':'rival bloc'}</p>
+   <div class="kv"><span>Their land · troops</span><span class="num">${pct(n)} · ${fmt(n.troops)}</span><span>Your land · troops</span><span class="num">${pct(p)} · ${fmt(p.troops)}</span><span>Your gold</span><span class="num">${fmt(p.gold)}</span></div>
+   <div class="cards">${offer('ceasefire','Short truce')}${offer('alliance','Pact')}</div>
+   <p class="sub" id="dipMsg">${note?esc(note):'Attacking, striking or landing on a nation you have a deal with breaks it, and every nation will trust you less for a while.'}</p>
+   <button class="go" id="dipClose">Back to the war</button>`);
+  document.querySelectorAll('.card.dip').forEach(b=>b.onclick=()=>{const r=proposeTreaty(id,b.dataset.t);(r.ok?SFX.chime:SFX.deny)();openDiplomacy(id,r.msg);if(r.ok)toast(r.msg,3000);});
+  $('#dipClose').onclick=closeModal;
+}
+
 /* ================= Achievements ================= */
 const ACH=[
  {id:'first_run',name:'First campaign',desc:'Finish a campaign, won or lost',stat:'campaigns',goal:1,reward:{pearls:20}},
@@ -1704,6 +1772,7 @@ const ACH=[
  {id:'kills',name:'Conqueror',desc:'Eliminate a rival nation',stat:'kills',goal:1,reward:{pearls:40}},
  {id:'expand30',name:'Regional power',desc:'Hold 30% of the region in one campaign',stat:'peak',goal:30,reward:{pearls:60}},
  {id:'win',name:'Dominion',desc:'Win a campaign',stat:'wins',goal:1,reward:{pearls:100}},
+ {id:'treaties',name:'Peacemaker',desc:'Sign ceasefires or alliances',stat:'treaties',goal:5,reward:{pearls:40}},
  {id:'dailies',name:'Daily devotion',desc:'Finish daily challenges on 5 different days',stat:'dailies',goal:5,reward:{pearls:100}},
  {id:'heat3',name:'Under fire',desc:'Win a campaign at Heat 3 or higher',stat:'heatWin',goal:3,reward:{pearls:150}}
 ];
@@ -1928,6 +1997,7 @@ $('#howBtn').onclick=()=>{openModal(`<h3>How to play</h3>
   <span style="color:var(--pearl)"><b>Reload.</b> Silos hold 1 missile (30s reload), hangars 4 drones (35s rearm), air defense 3 interceptors (18s reload). Blue pips show what is ready; a red ring shows reloading.</span>
   <span style="color:var(--pearl)"><b>Counter.</b> Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.</span>
   <span style="color:var(--pearl)"><b>Navy.</b> Launch warships from a port. They patrol nearby waters and sink enemy dhows and warships.</span>
+  <span style="color:var(--pearl)"><b>Diplomacy.</b> Tap a nation in the list at the top right to offer gold for a ceasefire (60s) or an alliance (3 min, and they turn on your rivals). Stronger, angrier nations charge more and refuse more often. Attacking a partner breaks the deal: they want revenge and everyone trusts you less.</span>
   <span style="color:var(--pearl)"><b>Daily challenge.</b> Every day everyone plays the same nation, heat and twist with the same random seed and no Majlis upgrades. Your score counts land held, rivals eliminated, capitals taken and a fast win. Signed-in players appear on the leaderboard.</span>
   <span style="color:var(--pearl)"><b>Achievements.</b> Missile II and III, Strike and Heavy drones, UAV recon and Drone rush start locked for everyone, including the AI. Earn their achievements to unlock them in every campaign.</span>
   <span style="color:var(--pearl)"><b>World news.</b> Now and then a headline shifts the whole region for a minute: rate cuts lift oil prices, gas shortages slow silo reloads, embargoes raise missile costs.</span>

@@ -50,6 +50,8 @@ window.GD_BALANCE_DEFAULTS = {
   unlocks: { tier2Strikes: 15, tier3Buildings: 40, uavRadars: 3, rushDrones: 60 },
   // World news: first headline after `first` seconds, then one every `min`–`max` seconds; effects last `duration` seconds
   news: { first: 200, min: 280, max: 420, duration: 60 },
+  // Diplomacy: ceasefire and alliance length in seconds, and a multiplier on what AI nations charge
+  diplomacy: { ceasefire: 60, alliance: 180, costMul: 1 },
 };
 
 // Merge saved overrides over the defaults, keeping only known keys and sane values.
