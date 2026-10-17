@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `d48a70d`)_
+_Last updated: 2026-10-17 (after commit `45d6ab1`)_
 
 ---
 
@@ -171,6 +171,23 @@ Safety rules we keep:
 
   There are also two one-off events: tribal support adds troops, and traders bring gold. News replaced the old 2-minute events.
 - Achievements are logged in the dashboard's Logs as `achievement` events. The unlock goals and news timing are in the Balance tab.
+
+### 9. Daily challenge — `45d6ab1`
+
+- A **Daily challenge** card sits above the heat selector on the home screen. Everyone gets the same setup each UTC day:
+  - a nation (any of the nine, even locked ones)
+  - a heat level from 1 to 3
+  - a twist: Standard, Oil shock, Fuel rationing, Arms race, Full arsenal, Storm season, Calm seas or Iron sky
+- Fair play:
+  - The day's seed drives all randomness.
+  - Majlis upgrades and the Founder perk are off.
+  - Weapon unlocks come only from the twist.
+- **Score** = peak land % × 100 + 400 per rival eliminated + 250 per capital taken + 3,000 for a win + up to 2,700 for a fast win.
+- The first finish each day pays +50 pearls. There's a new achievement, **Daily devotion** (5 different days, +100 pearls). Daily wins don't raise your heat.
+- **Leaderboard** (Today / Yesterday) shows first name and last initial only. Only each player's best score counts.
+- The Worker accepts scores for today or yesterday only, with sanity limits (max 25,000).
+- The dashboard has a **Daily** tab to review and remove suspicious scores.
+- The new D1 table `daily_scores` was added to the live database.
 
 ---
 
