@@ -59,6 +59,8 @@ window.GD_BALANCE_DEFAULTS = {
   cruiseHandicap: { nations: ['IQ', 'IR', 'YE'], cost: 1.5, reload: 1.4, slots: 2 },
   // Counter-battery radar: enemy silos that fire within `range` tiles stay revealed to you for `reveal` seconds
   counterBattery: { range: 55, reveal: 30 },
+  // Realistic mode (switch beside Begin campaign), applied to every nation: gold income and land-cost multipliers, pearl reward and diplomacy price multipliers
+  realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75 },
 };
 
 // Merge saved overrides over the defaults, keeping only known keys and sane values.

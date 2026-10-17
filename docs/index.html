@@ -110,6 +110,18 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-o
 .lbrow .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lbrow .nm small{color:var(--muted);margin-left:6px}
 .lbrow .sc{font-weight:700;font-variant-numeric:tabular-nums}
+.gorow{display:flex;gap:8px;align-items:stretch}
+.gorow .go{flex:1;min-width:0}
+.rtog{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px 10px;border-radius:12px;border:1.5px solid var(--line-2);background:var(--panel);font-size:.72rem;font-weight:700;letter-spacing:.04em;color:var(--muted);min-width:84px}
+.rtog .sw2{width:38px;height:21px;border-radius:999px;background:#203a40;position:relative;transition:background .2s}
+.rtog .sw2 i{position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#8ea5a4;transition:transform .2s,background .2s}
+.rtog.on{border-color:#c0583e;color:#ffd2c4;background:#2a1712}
+.rtog.on .sw2{background:#c0583e}
+.rtog.on .sw2 i{transform:translateX(17px);background:#fff3ea}
+.go.real{background:linear-gradient(180deg,#d9825f,#a84a31);color:#fff6ef;box-shadow:0 6px 20px rgba(192,88,62,.25)}
+.realnote{margin:-8px 0 0;font-size:.8rem;color:#ffb8a3;text-align:center}
+.chip.real{border-color:#c0583e;color:#ffd2c4}
+@media (prefers-reduced-motion:reduce){.rtog .sw2,.rtog .sw2 i{transition:none}}
 .builds button.locked{opacity:.55;border-style:dashed}
 .builds button.locked small{color:var(--sand)}
 .builds button.rush{border-color:#f0b44c;color:#ffe2ad}
@@ -255,7 +267,11 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
       <button class="step" id="heatUp" aria-label="Raise heat">+</button>
     </div>
 
-    <button class="go" id="go">Begin campaign</button>
+    <div class="gorow">
+      <button class="go" id="go">Begin campaign</button>
+      <button class="rtog" id="realTog" role="switch" aria-checked="false" aria-label="Realistic mode"><span class="sw2"><i></i></span><span>Realistic</span></button>
+    </div>
+    <p class="realnote" id="realNote" hidden></p>
 
     <div class="sec">
       <h2>Choose your nation</h2>
@@ -726,7 +742,7 @@ function startRun(spec){
   closeSheet();
   const pid=spec?spec.nation:S.nation,diff=spec?spec.heat:S.diff;
   owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);siloSeen.fill(0);
-  G={pid,diff,daily:spec||null,caps:0,t:0,speed:1,paused:false,over:false,acc:0,econAcc:0,
+  G={pid,diff,daily:spec||null,real:!spec&&!!S.realistic,caps:0,t:0,speed:1,paused:false,over:false,acc:0,econAcc:0,
      aiRegen:.8+.12*diff,aiCap:.9+.1*diff,aiThresh:Math.max(.3,.62-.06*diff),aiFrac:Math.min(.65,.3+.07*diff),
      sand:1,kills:0,peak:0,ms:0,drafts:0,rerolls:lvl('reroll'),cards:[],nextNews:BAL.news.first,news:null,newsEnd:0,fx:fxBase(),ssel:'',cbSeen:{},dip:{},trustUntil:0,breakArm:0,breakArmUntil:0,rushReady:0,aiRushReady:{},focus:-1,focusUntil:0,hover:-1,uavUntil:0,uavReady:0,aiUav:{},aiUavReady:{},evt:null,evtEnd:0,oilBoost:1,sandstorm:1,
      mode:'attack',bsel:'city',ratio:+$('#ratio').value/100,pings:[]};
@@ -745,7 +761,8 @@ function startRun(spec){
   renderStrikeRow();setMode('attack');
   if(spec)toast(`Daily challenge: ${NAT[pid].name}, Heat ${diff}. ${spec.twist.name}: ${spec.twist.desc}`,6000);else toast(S.tut?`Heat ${diff}. Expand from ${NATS[pid].name} and hold ${WIN_PCT}% of the region.`:'Tap sand next to your land to expand. Drag to pan, pinch to zoom.',5000);
   S.tut=1;save();
-  logEvent('run_start',{nation:NAT[pid].name,heat:diff});
+  logEvent('run_start',{nation:NAT[pid].name,heat:diff,realistic:!!G.real});
+  if(G.real)setTimeout(()=>toast(`Realistic rules: gold ×${BAL.realistic.gold}, land ×${BAL.realistic.land} for every nation. Pearls ×${BAL.realistic.pearls}.`,4500),5200);
 }
 
 /* ================= Simulation ================= */
@@ -759,9 +776,10 @@ function fortMul(d,i){
 }
 function tileCost(att,defId,i){
   const tm=terrMul(att.m,i);
-  if(!defId)return 4*tm*att.m.neutral;
+  const lm=G.real?BAL.realistic.land:1;
+  if(!defId)return 4*tm*att.m.neutral*lm;
   const d=NATS[defId],dens=d.troops/Math.max(1,d.tiles);
-  return (4+dens*1.1)*tm*att.m.atk*d.m.def*fortMul(d,i);
+  return (4+dens*1.1)*tm*att.m.atk*d.m.def*fortMul(d,i)*lm;
 }
 function adjTo(i,id){const x=i%W;return (x>0&&owner[i-1]===id)||(x<W-1&&owner[i+1]===id)||(i>=W&&owner[i-W]===id)||(i<N-W&&owner[i+W]===id);}
 
@@ -987,7 +1005,7 @@ function econ(init){
     if(c.t){n.cx=c.sx/c.t;n.cy=c.sy/c.t;}
     n.cap=(300+n.tiles*10+n.cities*n.m.cityCap)*n.m.cap*(n.isPlayer?1:G.aiCap);
     const om=n.m.oil*G.fx.oil;
-    n.goldNow=n.alive?(n.tiles*.04+n.oilT*.5*om+n.rigs*4*om+n.rigsDry*1.2*om+n.cities*1.5+n.ports*2+n.coastT*n.m.coast)*n.m.gold:0;
+    n.goldNow=n.alive?(n.tiles*.04+n.oilT*.5*om+n.rigs*4*om+n.rigsDry*1.2*om+n.cities*1.5+n.ports*2+n.coastT*n.m.coast)*n.m.gold*(G.real?BAL.realistic.gold:1):0;
     if(!init)n.gold+=n.goldNow;
     if(n.alive&&n.tiles===0&&!init){eliminate(n,{name:'its rivals',isPlayer:false});if(G.over)return;}
   }
@@ -1559,6 +1577,7 @@ function hud(){
   if(mine.missile||mine.drone)ch+=`<span class="chip"><i class="d" style="background:#8ce6ff"></i>In flight: ${mine.missile+mine.drone}</span>`;
   if(G.uavUntil>G.t)ch+=`<span class="chip evt">UAV overhead ${Math.ceil(G.uavUntil-G.t)}s</span>`;
   for(let id=1;id<NATS.length;id++){const t=treaty(id);if(t)ch+=`<span class="chip ally"><i class="d" style="background:${rgb(NATS[id].color)}"></i>${t==='alliance'?'Alliance':'Ceasefire'} · ${NATS[id].name} · ${Math.ceil(G.dip[id].until-G.t)}s</span>`;}
+  if(G.real)ch+=`<span class="chip real">Realistic</span>`;
   if(G.news)ch+=`<span class="chip evt">${esc(G.news.chip)} · ${Math.ceil(G.newsEnd-G.t)}s</span>`;
   if(G.ms<MILESTONES.length)ch+=`<span class="chip">Next decree at ${MILESTONES[G.ms]}%</span>`;
   $('#chips').innerHTML=ch;
@@ -1700,12 +1719,13 @@ function openPause(){
 function pearlsFor(win){
   const p=NATS[G.pid];
   const base=G.peak*1.2+G.kills*10+Math.min(20,G.t/60*2)+(win?50:0);
-  return Math.max(1,Math.round(base*(1+.3*(G.diff-1))*p.m.pearl*(1+.15*lvl('fortune'))));
+  return Math.max(1,Math.round(base*(1+.3*(G.diff-1))*p.m.pearl*(1+.15*lvl('fortune'))*(G.real?BAL.realistic.pearls:1)));
 }
 function endRun(win,retreat){
   if(G.over)return;G.over=true;
   const earned=pearlsFor(win);
-  bump('campaigns');bumpMax('peak',Math.floor(G.peak*10)/10);if(win){bump('wins');bumpMax('heatWin',G.diff);}
+  bump('campaigns');bumpMax('peak',Math.floor(G.peak*10)/10);if(win){bump('wins');bumpMax('heatWin',G.diff);if(G.real)bump('realWins');}
+  if(G.real)S.bestReal=Math.max(S.bestReal||0,Math.round(G.peak*10)/10);
   (win?SFX.win:SFX.lose)();
   const daily=G.daily,dscore=daily?dailyScore(win):0;let dailyBonus=0;
   if(daily){S.dailyBest=S.dailyBest||{};S.dailyBest[daily.key]=Math.max(S.dailyBest[daily.key]||0,dscore);
@@ -1714,7 +1734,7 @@ function endRun(win,retreat){
   logEvent('run_end',{nation:NAT[G.pid].name,heat:G.diff,win:!!win,retreat:!!retreat,peak:Math.round(G.peak*10)/10,minutes:Math.round(G.t/6)/10,kills:G.kills,pearls:earned});
   setTimeout(()=>{
     openModal(`<h3>${win?'The Gulf is yours':retreat?'You withdraw':'Your nation has fallen'}</h3>
-     <p class="sub">${NATS[G.pid].name} · Heat ${G.diff} · ${Math.floor(G.t/60)}m ${Math.floor(G.t%60)}s</p>
+     <p class="sub">${NATS[G.pid].name} · Heat ${G.diff}${G.real?' · Realistic':''} · ${Math.floor(G.t/60)}m ${Math.floor(G.t%60)}s</p>
      <div class="kv"><span>Peak land</span><span class="num">${G.peak.toFixed(1)}%</span><span>Rivals defeated</span><span class="num">${G.kills}</span><span>Decrees issued</span><span class="num">${G.cards.length}</span></div>
      ${daily?`<div class="dscore"><span>Daily score</span><b class="num">${dscore.toLocaleString()}</b><small id="dailyRes">${ACCOUNT?'Posting to the leaderboard…':'Sign in with Google to post daily scores.'}</small></div>`:''}
      <div class="big"><i class="pearl" style="width:22px;height:22px"></i>+${earned+dailyBonus} pearls${dailyBonus?' <small style="font-size:.8rem;color:var(--muted)">(includes +50 first daily)</small>':''}</div>
@@ -1733,7 +1753,7 @@ const dipOf=id=>G.dip[id]||(G.dip[id]={});
 function treaty(id){const d=G&&G.dip&&G.dip[id];return d&&d.type&&d.until>G.t?d.type:null;}
 const treatyName=t=>t==='alliance'?'alliance':'ceasefire';
 function dipCost(id,type){
-  const n=NATS[id],base=(60+n.tiles*.05+n.troops*.02)*(1+.2*(G.diff-1))*BAL.diplomacy.costMul*(G.trustUntil>G.t?1.5:1);
+  const n=NATS[id],base=(60+n.tiles*.05+n.troops*.02)*(1+.2*(G.diff-1))*BAL.diplomacy.costMul*(G.real?BAL.realistic.diplomacy:1)*(G.trustUntil>G.t?1.5:1);
   return Math.max(10,Math.round(base*(type==='alliance'?3:1)));
 }
 function dipChance(id,type){
@@ -1802,6 +1822,7 @@ const ACH=[
  {id:'cruise',name:'Under the radar',desc:'Land cruise missile hits',stat:'cruiseHits',goal:10,reward:{pearls:40}},
  {id:'treaties',name:'Peacemaker',desc:'Sign ceasefires or alliances',stat:'treaties',goal:5,reward:{pearls:40}},
  {id:'dailies',name:'Daily devotion',desc:'Finish daily challenges on 5 different days',stat:'dailies',goal:5,reward:{pearls:100}},
+ {id:'realwin',name:'Hard truths',desc:'Win a campaign on Realistic',stat:'realWins',goal:1,reward:{pearls:120}},
  {id:'heat3',name:'Under fire',desc:'Win a campaign at Heat 3 or higher',stat:'heatWin',goal:3,reward:{pearls:150}}
 ];
 const stats=()=>S.st||(S.st={});
@@ -1996,6 +2017,8 @@ function renderHome(){
   $('#heatSub').textContent=S.maxDiff>1?`Rivals regen ${Math.round((.8+.12*S.diff)*100)}% speed. Pearls +${(S.diff-1)*30}%.`:'Win a campaign to unlock Heat 2: tougher rivals, more pearls.';
   $('#heatDn').disabled=S.diff<=1;$('#heatUp').disabled=S.diff>=S.maxDiff;
   $('#go').textContent=`Begin campaign as ${NAT[S.nation].name}`;
+  const rl=!!S.realistic;$('#go').classList.toggle('real',rl);$('#realTog').classList.toggle('on',rl);$('#realTog').setAttribute('aria-checked',String(rl));
+  $('#realNote').hidden=!rl;$('#realNote').textContent=`Realistic: gold ×${BAL.realistic.gold} · land ×${BAL.realistic.land} for every nation · pearls ×${BAL.realistic.pearls}`;
   $('#upgs').innerHTML=UPG.map(u=>{const l=lvl(u.k),max=l>=u.max,c=upgCost(u);
     return `<div class="upg"><div class="t"><b>${u.name}</b><small>${u.desc}</small><div class="pips">${Array.from({length:u.max},(_,k)=>`<i class="${k<l?'on':''}"></i>`).join('')}</div></div>
     <button class="btn ${!max&&S.pearls>=c?'gold':''}" data-k="${u.k}" ${max||S.pearls<c?'disabled':''}>${max?'Max':`<span class="num">${c}</span>`}</button></div>`;}).join('');
@@ -2004,12 +2027,13 @@ function renderHome(){
     if(u.k==='dhow'&&lvl('dhow')){S.pearls+=Math.floor(idleStored());S.lastIdle=Date.now();}
     S.pearls-=c;S.upg[u.k]=lvl(u.k)+1;save();renderHome();});
   renderTabBadges();
-  $('#stats').textContent=S.runs?`${S.runs} campaigns · ${S.wins} won · best ${S.best}% of the region`:'No campaigns yet. Kuwait and Saudi Arabia are ready to march.';
+  $('#stats').textContent=S.runs?`${S.runs} campaigns · ${S.wins} won · best ${S.best}% of the region${S.bestReal?` · best on Realistic ${S.bestReal}%`:''}`:'No campaigns yet. Kuwait and Saudi Arabia are ready to march.';
   drawHero();
 }
 $('#heatDn').onclick=()=>{S.diff=Math.max(1,S.diff-1);save();renderHome();};
 $('#heatUp').onclick=()=>{S.diff=Math.min(S.maxDiff,S.diff+1);save();renderHome();};
 $('#go').onclick=()=>startRun();
+$('#realTog').onclick=()=>{S.realistic=!S.realistic;save();renderHome();};
 let resetArmed=false;
 $('#resetBtn').onclick=e=>{if(!resetArmed){resetArmed=true;e.target.textContent='Tap again to erase all pearls and upgrades';setTimeout(()=>{resetArmed=false;e.target.textContent='Reset progress';},4000);return;}S=defSave();if(ACCOUNT)applyEnt(ENT_LIST);save();resetArmed=false;e.target.textContent='Reset progress';renderHome();};
 $('#howBtn').onclick=()=>{openModal(`<h3>How to play</h3>
@@ -2027,6 +2051,7 @@ $('#howBtn').onclick=()=>{openModal(`<h3>How to play</h3>
   <span style="color:var(--pearl)"><b>Reload.</b> Silos hold 1 missile (30s reload), hangars 4 drones (35s rearm), air defense 3 interceptors (18s reload). Blue pips show what is ready; a red ring shows reloading.</span>
   <span style="color:var(--pearl)"><b>Counter.</b> Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.</span>
   <span style="color:var(--pearl)"><b>Navy.</b> Launch warships from a port. They patrol nearby waters and sink enemy dhows and warships.</span>
+  <span style="color:var(--pearl)"><b>Realistic mode.</b> The switch beside Begin campaign halves gold income and doubles the cost of taking land, for every nation. Deals are 25% cheaper and campaigns pay 1.5× pearls. It doesn't apply to the daily challenge.</span>
   <span style="color:var(--pearl)"><b>Diplomacy.</b> Tap a nation in the list at the top right to offer gold for a ceasefire (60s) or an alliance (3 min, and they turn on your rivals). Stronger, angrier nations charge more and refuse more often. Attacking a partner breaks the deal: they want revenge and everyone trusts you less.</span>
   <span style="color:var(--pearl)"><b>Daily challenge.</b> Every day everyone plays the same nation, heat and twist with the same random seed and no Majlis upgrades. Your score counts land held, rivals eliminated, capitals taken and a fast win. Signed-in players appear on the leaderboard.</span>
   <span style="color:var(--pearl)"><b>Achievements.</b> Missile II and III, Strike and Heavy drones, UAV recon and Drone rush start locked for everyone, including the AI. Earn their achievements to unlock them in every campaign.</span>
