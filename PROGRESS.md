@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `b304652`)_
+_Last updated: 2026-10-17 (after commit `6dafa24`)_
 
 ---
 
@@ -666,6 +666,14 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
 - **Result:** Kuwait has about 9 cities and 3,000 gold at 10 minutes. Spread is 9.0–13.6% normal and 7.5–16.3% Realistic.
 - **Measurement note:** earlier "forts standing" counts in entry 41 were inflated by duplicate entries in the building list. The real figure is about 9–13 forts per nation.
 
+### 43. Decree drawbacks, decree list and leader coalition — `6dafa24`
+- **Why:** a winning nation could stack decrees and roll over everyone.
+- **Decree drawbacks:** every Common and Rare decree now costs something, shown in red on the draft card. Examples: Falcon scouts gold −10%, War drums defense −10%, Blitz land attacks 10% costlier, Merchant caravan loses 15% of troops, Reinforcements costs 150 gold. Epic decrees have no drawback. All values are in `BAL.decrees`, editable in the dashboard's new "Decree drawbacks" card.
+- **Decree list:** a compact panel under the nation list shows each decree held, its effect and drawback, with ×2 / ×3 for repeats. Tap the header to fold it; it starts folded on phones. Hidden in online games.
+- **Leader coalition:** once any nation holds 30% of the land, AI rivals target it 3× more, their bloc loyalty toward it drops to 30%, and its attacks on nations cost 1.6×. A HUD chip and a notice name the leader. This applies to the player too. The settings are `BAL.ai.leaderPct`, `leaderFocus`, `leaderLoyalty` and `leaderDef`, all in AI targeting.
+- **Sim (one AI fed random decrees at the player milestones, 20 seeds, 15 min):** average land is unchanged at 14.4%, and the best run fell from 29.9% to 26.9%. No fed nation reached 30% in 15 minutes.
+- **Runaway test (double decrees, 30 min):** at the default coalition settings, going from 30% to 50% land took 571 s instead of 98 s. A gentler setting (attacks ×1.3, focus ×2) made no measurable difference.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -700,6 +708,8 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
 | Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 · empty pockets up to 30 tiles auto-claimed · missile craters 0.5 × blast radius, empty for 30 s |
 | Nation perks | KW Diplomacy ×2, oil ×1.6, defense ×1.6, cap ×1.25, regen ×1.08 · SA cap ×1.25, expansion ×0.8, defense ×1.15, regen ×1.05 · BH regen ×1.12, coastal gold · QA gold ×1.4 · AE cities ×0.65 cost · OM mountains ×0.5, defense ×1.15 · IQ regen ×1.1, +100 cap per city · IR missiles ×0.7, starts with a silo · YE attacks ×0.75, expansion ×0.85, mountains ×0.5, cap ×1.2, defense ×1.25, mountain defense ×1.6, regen ×1.2 |
 | AI targeting | Same-bloc target ×6, attacked 5% of the time · breather: no new AI attacks or landings on a nation that lost over 4% of its land recently (fades over 60 s); never shields the player |
+| Decrees | Common and Rare decrees carry a drawback (`BAL.decrees`); Epic ones don't |
+| Leader coalition | From 30% land: AI target weight ×3, bloc loyalty toward the leader ×0.3, the leader's attacks cost ×1.6 |
 | Win condition | 80% of the land, or every rival eliminated (online: or last player standing) |
 
 Every value above can be changed live from the dashboard's **Balance** tab.
