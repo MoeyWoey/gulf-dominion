@@ -1504,9 +1504,12 @@ const targetsPlayer=m=>{const cx=Math.round(m.tx),cy=Math.round(m.ty);return m.o
 function tracked(m){
   if(m.tracked)return true;
   if(m.cruise||!targetsPlayer(m)||!radarCovers(G.pid,m.x,m.y))return false;
-  m.tracked=true;m.seen=true;(m.kind==='missile'?SFX.siren:SFX.radar)();
+  m.tracked=true;m.seen=true;
+  // One siren per salvo, not one per missile (a salvo used to sound like a whole new assault)
+  if(m.kind==='missile'?sfxOK('trkSiren',3500):sfxOK('trkPing',2000))(m.kind==='missile'?SFX.siren:SFX.radar)();
   if(m.kind==='missile'){const now=performance.now();
-    if(now-(G.lastWarn||0)>4000){G.lastWarn=now;toast(`Radar: ${m.name} inbound from ${NATS[m.own].name}. Impact in ${Math.max(1,Math.ceil(etaOf(m)))}s.`,3000);
+    if(now-(G.lastWarn||0)>4000){G.lastWarn=now;const inb=missiles.filter(q=>q.tracked&&!q.done&&q.kind==='missile').length;
+      toast(inb>1?`Radar: ${inb} missiles inbound. Nearest: ${m.name} from ${NATS[m.own].name}, impact in ${Math.max(1,Math.ceil(etaOf(m)))}s.`:`Radar: ${m.name} inbound from ${NATS[m.own].name}. Impact in ${Math.max(1,Math.ceil(etaOf(m)))}s.`,3000);
       try{if(navigator.vibrate&&(!navigator.userActivation||navigator.userActivation.hasBeenActive))navigator.vibrate([90,60,90]);}catch(e){}}}
   return true;
 }
@@ -1884,7 +1887,11 @@ function showResult(res,ping){
       gold:`Need ${fmt(res.cost)} gold.`}[res.r]);return;}
   if(res.k==='bld'){
     if(res.r!=='ok'){ping(true);toast({notown:'You can only build on your own land.',built:'Something is already built here.',nowater:'Ports need open water within 3 tiles.',gold:`Need ${fmt(res.cost)} gold.`}[res.r]);return;}
-    ping(false);if(res.b==='radar'){SFX.radar();bump('radars');}else SFX.build();
+    ping(false);if(res.b==='radar'){SFX.radar();bump('radars');
+      // A new radar reveals strikes that were already on the way; say so, so it doesn't look like the radar provoked them
+      const rx=i%W,ry=(i/W)|0,already=missiles.filter(m=>!m.done&&!m.cruise&&targetsPlayer(m)&&Math.hypot(m.tx-rx,m.ty-ry)<=BAL.radar.range).length;
+      if(already){G.lastWarn=performance.now();toast(`Radar online. It reveals ${already} strike${already>1?'s':''} that ${already>1?'were':'was'} already heading your way.`,4500);return;}}
+    else SFX.build();
     toast({city:'City founded: more troops and gold.',fort:'Fort raised: nearby land is far harder to take.',rig:res.oil?'Oil rig on an oil field: +4 gold/s.':'Oil rig pumping: +1.2 gold/s. Oil fields pay +4.',port:'Port opened: +2 gold/s. Launch warships from here.',silo:`Missile silo ready. Missiles reach ${RANGE.missile} tiles.`,hangar:`Drone hangar ready. Drones reach ${RANGE.drone} tiles.`,sam:'Air defense battery online. It shoots down drones and missiles nearby.',radar:`Radar online: tracks incoming strikes within ${BAL.radar.range} tiles, reveals hidden drones and sharpens nearby air defense.`,cb:`Counter-battery radar online: enemy silos that fire within ${BAL.counterBattery.range} tiles stay revealed for ${BAL.counterBattery.reveal}s.`}[res.b]);return;}
   if(res.k==='atk'||res.k==='boat'){
     const o=res.o;
