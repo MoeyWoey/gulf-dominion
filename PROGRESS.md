@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `7d6c012`)_
+_Last updated: 2026-10-17 (after commit `d089a9a`)_
 
 ---
 
@@ -468,6 +468,11 @@ Safety rules we keep:
 - **New sections:** craters, and keyboard and mouse.
 - **Live numbers:** the times and percentages in the guide come from the balance settings.
 - **Layout:** a wider window on PC with larger pictures; compact on phones. Checked at both sizes.
+
+### 30. Drone rush spreads targets — `d089a9a`
+
+- **Change:** each rush drone takes the enemy building with the fewest drones already aimed at it, counting every hangar in the rush and drones already in flight.
+- **Test:** 12 drones at 6 buildings hit each one exactly twice. Random picking used to miss about 0.7 buildings per rush.
 
 ---
 
