@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `3860456`)_
+_Last updated: 2026-10-17 (after commit `6d9d99d`)_
 
 ---
 
@@ -636,6 +636,22 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
   - Players tab shows each player's upgrade levels and achievements, with **Reset upgrades** and **Reset achievements** (tap twice)
 - **Safety:** saves made before a reset are refused, so an open game adopts the reset and shows the player a note.
 - **Tested** locally, including a reset while the player's game was open.
+
+### 41. AI forts and stuck-at-cap building — `6d9d99d`
+
+- **Forts:** the AI now builds them, two tiles inside threatened borders (attacked in the last 90 s, or facing a stronger rival from another bloc), without overlapping its own.
+  - one per 300 tiles, +1 from Heat 3
+  - more willing at higher heat
+- **Stuck at cap:** when an AI's troops sit at its cap for 25 s, it builds every turn: a city first, then air defense, and it saves up for a city that's within reach.
+- **Dashboard:** fort radius (Combat card), AI fort density and stuck time (AI targeting card).
+- **Results** (20 games per mode):
+
+  | Mode | Spread before | Spread now |
+  |---|---|---|
+  | Normal | 8.0–13.8% | 9.3–13.2% |
+  | Realistic | 6.4–16.7% | 8.1–15.8% |
+
+- **Noticed:** Kuwait builds far fewer cities than others (about 5 vs about 14), probably because its land is mostly oil fields where cities aren't placed. Worth a look.
 
 ---
 
