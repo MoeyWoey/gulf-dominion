@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `6b82eaa`)_
+_Last updated: 2026-10-17 (after commit `3860456`)_
 
 ---
 
@@ -622,6 +622,21 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
 - **Fixed:** Israel and Turkey on the Middle East map were wrongly sharing a bloc.
 - **Tested:** add, rename, tick, save, reload and remove in the dashboard against the local server.
 
+### 40. Progression rebalance and player resets — `3860456`
+
+- **Upgrades:**
+  - first levels cost about 2.5× more, and each level grows a little faster
+  - Pearl merchants is capped at 6 levels
+  - owning every upgrade at level 1 takes about 21 average campaigns, versus about 8 before plus 790 pearls from easy achievements
+- **Achievements:**
+  - weapon unlocks need 60 strikes, 8 radars, 150 buildings destroyed and 250 drones
+  - pearl achievements need more, for slightly bigger rewards
+- **Dashboard:**
+  - new Majlis upgrades card (first price, growth, levels, with a total-to-max column) and Achievements card (goal, pearls)
+  - Players tab shows each player's upgrade levels and achievements, with **Reset upgrades** and **Reset achievements** (tap twice)
+- **Safety:** saves made before a reset are refused, so an open game adopts the reset and shows the player a note.
+- **Tested** locally, including a reset while the player's game was open.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -647,7 +662,7 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
 | Drone rush | 50% cost, 90 s cooldown |
 | Extra GCC oil | 0.05 |
 | Magazines (reload) | Silo 1 (30 s), Hangar 4 (35 s), Air defense 3 (18 s), Artillery 1 salvo (12 s), Coastal battery 2 (20 s) |
-| Unlock goals | Tier II: 15 strikes · Tier III: 40 buildings destroyed · UAV: 3 radars · Drone rush: 60 drones |
+| Unlock goals | Tier II: 60 strikes · Tier III: 150 buildings destroyed · UAV: 8 radars · Drone rush: 250 drones |
 | World news | First at 200 s, then every 280–420 s, effects last 60 s |
 | Diplomacy | Ceasefire 60 s, alliance 180 s, price ×1 |
 | Counter-battery | 55-tile range, silos revealed 30 s |
@@ -670,12 +685,10 @@ Every value above can be changed live from the dashboard's **Balance** tab.
 - [ ] **Full play-through:** no campaign has been played start to finish since the slower pace and the new weapons. Pacing, AI strike frequency and drone rush strength need a real playtest.
 - [ ] **Real phone check:** sound, vibration and touch controls are only verified in a desktop browser.
 - [ ] **Wrangler** is on 3.114; an upgrade to v4 is recommended (`npm install --save-dev wrangler@4` in `worker/`).
-- [ ] Deep silos cost isn't dashboard-tunable yet (Majlis upgrade costs are fixed in code).
-- [ ] Existing saves (including yours) also start with tier II/III and abilities locked. There's no admin grant for unlocks yet.
+- [ ] There's no admin grant for weapon unlocks yet (resets exist).
 - [ ] **Online play with real people:** play a full game on two or more phones over mobile data. Check that the game keeps going when the host's screen is on but the tab is in the background.
 - [x] **Yemen collapses early** in AI-only simulations (0–2% land by 8 min). Fixed in `70099a0` with the AI breather: Yemen now averages ~7%. It's still the smallest nation on average, so watch it in real games.
 - [ ] **Israel is weak on the Middle East map:** it's eliminated in about 60% of all-AI games, with or without the new weapons. Look at its perks or start area.
-- [ ] Achievement thresholds for pearl rewards (10%, 30%, 50 interceptions, …) are fixed in code; only the four unlock goals are in the Balance tab.
 
 ## Ideas suggested but not built
 
