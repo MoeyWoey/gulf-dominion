@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `639864b`)_
+_Last updated: 2026-10-17 (after commit `2c4eeac`)_
 
 ---
 
@@ -272,6 +272,13 @@ Safety rules we keep:
 ### 14. Home order — `639864b`
 
 - Begin campaign (with the heat picker and Realistic switch) now always sits right under the map and the dhow fleet card, above the daily challenge and Play online.
+
+### 15. PC tooltips and build menu — `2c4eeac`
+
+- PC only (mouse, window at least 900px wide). Phones keep the old layout.
+- **Hover a building** on the map to see its name, owner, what it does (using that nation's own bonuses) and its live status, e.g. interceptors ready or reload time. Only buildings you can see get a tooltip, so hidden silos stay hidden.
+- **Hover a build button** to see what the building does, its cost, and whether you can afford it.
+- **The build menu is always visible** in one row in every mode, so you can see what you can afford. Clicking a building switches to Build mode.
 
 ---
 
