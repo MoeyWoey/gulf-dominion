@@ -275,6 +275,13 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
 .lbywait{text-align:center;color:var(--muted);margin:0;padding:8px}
 .netbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(84px + env(safe-area-inset-top,0px));z-index:25;display:flex;align-items:center;gap:10px;background:#2a1712;border:1px solid #c0583e;color:#ffd2c4;border-radius:10px;padding:7px 8px 7px 12px;font-size:.82rem;font-weight:600;width:max-content;max-width:calc(100% - 32px)}
 .lb .tr.hu{color:#b9adff}
+.guide{display:flex;flex-direction:column;gap:10px}
+.gitem{display:flex;gap:12px;align-items:flex-start;font-size:.86rem;line-height:1.4;color:var(--pearl)}
+.gitem b{color:var(--sand)}
+.gimg{width:100px;height:70px;flex:none;border-radius:8px;border:1px solid var(--line-2);background:#132226}
+.mbox:has(.guide){max-width:620px}
+@media (min-width:640px){.gimg{width:128px;height:90px}}
+@media (max-width:420px){.gimg{width:84px;height:59px}.gitem{font-size:.82rem;gap:10px}}
 .tip{position:fixed;z-index:8;pointer-events:none;max-width:270px;background:rgba(10,22,26,.96);border:1px solid var(--line-2);border-radius:10px;padding:8px 10px;font-size:.78rem;line-height:1.35;box-shadow:0 6px 18px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:3px}
 .tip b{font-family:var(--f-display);font-size:.95rem;color:var(--sand)}
 .tip .own{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.72rem}
@@ -2291,30 +2298,88 @@ $('#go').onclick=()=>startRun();
 $('#realTog').onclick=()=>{S.realistic=!S.realistic;save();renderHome();};
 let resetArmed=false;
 $('#resetBtn').onclick=e=>{if(!resetArmed){resetArmed=true;e.target.textContent='Tap again to erase all pearls and upgrades';setTimeout(()=>{resetArmed=false;e.target.textContent='Reset progress';},4000);return;}S=defSave();if(ACCOUNT)applyEnt(ENT_LIST);save();resetArmed=false;e.target.textContent='Reset progress';renderHome();};
-$('#howBtn').onclick=()=>{openModal(`<h3>How to play</h3>
-  <div class="kv" style="grid-template-columns:1fr"><span style="color:var(--pearl)"><b>Expand.</b> Tap sand next to your border to send troops. The slider sets how many go. Deserts and mountains cost more.</span>
-  <span style="color:var(--pearl)"><b>Conquer.</b> Tap a rival you border to attack. Taking their capital star costs them troops and gold and forces them to move it; take every tile to finish them.</span>
-  <span style="color:var(--pearl)"><b>Sail.</b> Tap a coast you don't border, or use Boat mode, and dhows carry troops across the water, land, and push inland. Up to 3 fleets at once.</span>
-  <span style="color:var(--pearl)"><b>Build.</b> Place anything anywhere on your land: cities, forts, oil rigs (best on dark oil fields), ports near water, missile silos, drone hangars and air defense.</span>
-  <span style="color:var(--pearl)"><b>Strike.</b> Drones are cheap and slow; missiles are fast and costly. Bigger drone types and higher missile tiers blast a wider area but cost more, and tier II and III silos reload slower. Each nation has its own arsenal (see the nation cards). Iraqi, Iranian and Yemeni drones stay hidden until they near your border. Strikes destroy buildings and kill troops; only ground troops and landings take land.</span>
-  <span style="color:var(--pearl)"><b>Defend.</b> Air defense batteries shoot down incoming drones (most of the time) and missiles (sometimes). Layer them around your capital and silos. Tap a battery (or hover it with a mouse) to see its range and ammo; rivals can't see your ranges unless they fly a UAV.</span>
-  <span style="color:var(--pearl)"><b>Hidden silos.</b> Rivals cannot see your silos, and you cannot see theirs, until a silo fires (it stays visible for 10 seconds). GCC states can fly a UAV recon flight (Strike mode) that reveals every hidden silo, drone and air defense range for 15 seconds.</span>
-  <span style="color:var(--pearl)"><b>Drone rush.</b> Iran can launch every ready drone at once at random enemy buildings in range, at half price. It then needs 90 seconds to regroup.</span>
-  <span style="color:var(--pearl)"><b>Cruise missiles.</b> Every nation can fire them from silos. They fly low: radar cannot track them, you only see them a few tiles out, and air defense can only engage them at close range. Iraq, Iran and Yemen pay more, reload slower and use two silo slots per cruise missile.</span>
-  <span style="color:var(--pearl)"><b>Counter-battery radar.</b> When an enemy silo inside its range fires, the silo stays revealed to you for 30 seconds, so you can hit it back.</span>
-  <span style="color:var(--pearl)"><b>Radar.</b> A radar tracks incoming strikes in its range: red impact zones, a countdown and arrows at the screen edge. It also reveals hidden drones early, and air defense inside its coverage hits more often.</span>
-  <span style="color:var(--pearl)"><b>Reload.</b> Silos hold 1 missile (30s reload), hangars 4 drones (35s rearm), air defense 3 interceptors (18s reload). Blue pips show what is ready; a red ring shows reloading.</span>
-  <span style="color:var(--pearl)"><b>Counter.</b> Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.</span>
-  <span style="color:var(--pearl)"><b>Navy.</b> Launch warships from a port. They patrol nearby waters and sink enemy dhows and warships.</span>
-  <span style="color:var(--pearl)"><b>Realistic mode.</b> The switch beside Begin campaign halves gold income and doubles the cost of taking land, for every nation, and weakens bloc loyalty: GCC states fight each other far more often, and so do Iraq, Iran and Yemen. Deals are 25% cheaper and campaigns pay 1.5× pearls. It doesn't apply to the daily challenge.</span>
-  <span style="color:var(--pearl)"><b>Diplomacy.</b> Tap a nation in the list at the top right to offer gold for a ceasefire (60s) or an alliance (3 min, and they turn on your rivals). Stronger, angrier nations charge more and refuse more often. Attacking a partner breaks the deal: they want revenge and everyone trusts you less.</span>
-  <span style="color:var(--pearl)"><b>Play online.</b> Sign in, create a game and share the code or invite link. Up to 9 players each pick a nation; the AI runs the rest. Everyone starts equal: no upgrades, every weapon unlocked, speed 1×. The host's device runs the game, so the host should keep the tab open. If a player drops out, the AI holds their nation until they rejoin. Win with ${WIN_PCT}% of the land or by being the last player standing.</span>
-  <span style="color:var(--pearl)"><b>Daily challenge.</b> Every day everyone plays the same nation, heat and twist with the same random seed and no Majlis upgrades. Your score counts land held, rivals eliminated, capitals taken and a fast win. Signed-in players appear on the leaderboard.</span>
-  <span style="color:var(--pearl)"><b>Achievements.</b> Missile II and III, Strike and Heavy drones, UAV recon and Drone rush start locked for everyone, including the AI. Earn their achievements to unlock them in every campaign.</span>
-  <span style="color:var(--pearl)"><b>World news.</b> Now and then a headline shifts the whole region for a minute: rate cuts lift oil prices, gas shortages slow silo reloads, embargoes raise missile costs.</span>
-  <span style="color:var(--pearl)"><b>Decrees.</b> Each land milestone and each fallen rival lets you pick a power for this campaign.</span>
-  <span style="color:var(--pearl)"><b>Grow.</b> Every campaign pays pearls for permanent upgrades, new nations and higher heat. Hold ${WIN_PCT}% of the land to win.</span></div>
-  <button class="go" id="okHow">Got it</button>`);$('#okHow').onclick=closeModal;};
+/* ================= How to play: each section has a small picture drawn with the game's own colours and icons ================= */
+const GUIDE=[
+ ['expand','Expand',()=>`Tap sand next to your border to send troops. The slider sets how many go. Deserts and mountains cost more. Small gaps you leave behind fill in automatically.`],
+ ['conquer','Conquer',()=>`Tap a rival you border to attack. Taking their capital star costs them troops and gold and forces them to move it; take every tile to finish them.`],
+ ['counter','Counter',()=>`Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.`],
+ ['sail','Sail',()=>`Tap a coast you don't border, or use Boat mode, and dhows carry troops across the water, land, and push inland. Up to 3 fleets at once.`],
+ ['build','Build',()=>`Place anything anywhere on your land: cities, forts, oil rigs (best on dark oil fields), ports near water, missile silos, drone hangars, air defense and radars.`],
+ ['strike','Strike',()=>`Drones are cheap and slow; missiles are fast and costly. Bigger drone types and higher missile tiers blast a wider area. Strikes destroy buildings and kill troops; only ground troops and landings take land. Iraqi, Iranian and Yemeni drones stay hidden until they near your border.`],
+ ['crater','Craters',()=>`A missile empties the core of its blast: those tiles go back to empty land and their buildings are gone. Craters stay empty for ${BAL.combat.craterTime}s, so anyone bordering one can grab it. Drones never crater.`],
+ ['defend','Defend',()=>`Air defense batteries shoot down incoming drones (most of the time) and missiles (sometimes). Layer them around your capital and silos. Tap or hover a battery to see its range and ammo; rivals can't see your ranges unless they fly a UAV.`],
+ ['radar','Radar',()=>`A radar tracks incoming strikes in its range: red impact zones, a countdown and arrows at the screen edge. It reveals hidden drones early and sharpens air defense inside its coverage. A new radar also shows strikes that were already on the way.`],
+ ['hidden','Hidden silos',()=>`Rivals cannot see your silos, and you cannot see theirs, until a silo fires (then it shows for ${BAL.silo.reveal}s). GCC states can fly a UAV recon flight that reveals every hidden silo, drone and air defense range for ${BAL.uav.duration}s.`],
+ ['cb','Counter-battery radar',()=>`When an enemy silo inside its range fires, the silo stays revealed to you for ${BAL.counterBattery.reveal}s, so you can hit it back.`],
+ ['cruise','Cruise missiles',()=>`They fly low: radar cannot track them, you only see them a few tiles out, and air defense can only engage them at close range. Iraq, Iran and Yemen pay more, reload slower and use two silo slots each.`],
+ ['rush','Drone rush',()=>`Iran can launch every ready drone at once at random enemy buildings in range, at half price. It then needs ${BAL.droneRush.cooldown}s to regroup.`],
+ ['reload','Reload',()=>`Silos hold 1 missile, hangars 4 drones, air defense 3 interceptors. Blue pips show what is ready; a red ring shows reloading.`],
+ ['navy','Navy',()=>`Launch warships from a port. They patrol nearby waters and sink enemy dhows and warships.`],
+ ['keys','Keyboard and mouse',()=>`On a PC, press 1, 2, 3 or 4 for Attack, Boat, Strike and Build. Hover any building to see what it does, and the build menu stays on screen so you always know what you can afford.`],
+ ['realistic','Realistic mode',()=>`The switch beside Begin campaign halves gold income and doubles the cost of taking land for every nation, and weakens bloc loyalty so neighbours fight each other more. Deals are cheaper and campaigns pay ${BAL.realistic.pearls}× pearls. Not used in the daily challenge.`],
+ ['diplomacy','Diplomacy',()=>`Tap a nation in the list at the top right to offer gold for a ceasefire or an alliance. Stronger, angrier nations charge more and refuse more often. Attacking a partner breaks the deal and everyone trusts you less.`],
+ ['online','Play online',()=>`Sign in, create a game and share the code or invite link. Up to 9 players each pick a nation; the AI runs the rest. Everyone starts equal. The host's device runs the game, so the host keeps the tab open. Win with ${WIN_PCT}% of the land or as the last player standing.`],
+ ['daily','Daily challenge',()=>`Every day everyone plays the same nation, heat and twist with the same random seed and no upgrades. Your score counts land, rivals eliminated, capitals taken and a fast win. Signed-in players appear on the leaderboard.`],
+ ['news','World news',()=>`Now and then a headline shifts the whole region for a minute: rate cuts lift oil prices, gas shortages slow silo reloads, embargoes raise missile costs.`],
+ ['decrees','Decrees and achievements',()=>`Each land milestone and each fallen rival lets you pick a power for this campaign. Achievements unlock Missile II and III, bigger drones, UAV recon and Drone rush, for you and the AI alike.`],
+ ['grow','Win and grow',()=>`Hold ${WIN_PCT}% of the land to win. Every campaign, won or lost, pays pearls for permanent upgrades, new nations and higher heat.`],
+];
+const G_ME='#ffe7a8',G_RIV=[168,96,220],G_RIV2=[240,86,60],G_SAND='#c9a66b',G_SEA='#0f3a44';
+const gc=(c,a=1)=>Array.isArray(c)?rgb(c,a):c;
+function gBg(c,w,h,sea){c.fillStyle=G_SAND;c.fillRect(0,0,w,h);c.fillStyle='rgba(120,90,50,.18)';for(let k=0;k<40;k++){const x=(k*53)%w,y=(k*37)%h;c.fillRect(x,y,6,3);}
+  if(sea){c.fillStyle=G_SEA;c.beginPath();sea(c);c.fill();}}
+function gTiles(c,cells,col,cell=10,ox=0,oy=0){c.fillStyle=gc(col);for(const [x,y] of cells)c.fillRect(ox+x*cell,oy+y*cell,cell,cell);}
+function gStar(c,x,y,r,fill){c.beginPath();for(let k=0;k<10;k++){const a=-Math.PI/2+k*Math.PI/5,rr=k%2?r*.45:r;c.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr);}c.closePath();c.fillStyle=gc(fill);c.fill();c.lineWidth=1.5;c.strokeStyle='#1a1408';c.stroke();}
+function gArrow(c,x1,y1,x2,y2,col,wd=4){const a=Math.atan2(y2-y1,x2-x1);c.strokeStyle=gc(col);c.lineWidth=wd;c.lineCap='round';c.beginPath();c.moveTo(x1,y1);c.lineTo(x2-Math.cos(a)*8,y2-Math.sin(a)*8);c.stroke();
+  c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-Math.cos(a-.5)*14,y2-Math.sin(a-.5)*14);c.lineTo(x2-Math.cos(a+.5)*14,y2-Math.sin(a+.5)*14);c.closePath();c.fillStyle=gc(col);c.fill();}
+function gDhow(c,x,y,r,col){c.lineWidth=1.4;c.strokeStyle='#0b1416';c.beginPath();c.moveTo(x-r,y);c.lineTo(x+r*1.05,y-r*.1);c.lineTo(x+r*.6,y+r*.5);c.lineTo(x-r*.7,y+r*.5);c.closePath();c.fillStyle='#5a3d22';c.fill();c.stroke();
+  c.beginPath();c.moveTo(x-r*.15,y-r*1.4);c.lineTo(x+r*.85,y-r*.15);c.lineTo(x-r*.15,y-r*.15);c.closePath();c.fillStyle=gc(col);c.fill();c.strokeStyle='#f6efe0';c.stroke();}
+function gDrone(c,x,y,r,a,col){c.save();c.translate(x,y);c.rotate(a);c.beginPath();c.moveTo(r,0);c.lineTo(-r*.7,-r*.8);c.lineTo(-r*.35,0);c.lineTo(-r*.7,r*.8);c.closePath();c.fillStyle=gc(col);c.fill();c.strokeStyle='#0b1416';c.lineWidth=1.2;c.stroke();c.restore();}
+function gMissile(c,x,y,r,a,col){c.save();c.translate(x,y);c.rotate(a);const g=c.createLinearGradient(-r*4,0,0,0);g.addColorStop(0,'rgba(255,190,90,0)');g.addColorStop(1,'rgba(255,220,150,.95)');c.fillStyle=g;c.fillRect(-r*4,-2,r*4,4);
+  c.beginPath();c.moveTo(r,0);c.lineTo(-r*.4,-r*.32);c.lineTo(-r*.4,r*.32);c.closePath();c.fillStyle='#f6efe0';c.fill();c.strokeStyle=gc(col);c.lineWidth=2;c.stroke();c.restore();}
+function gCruise(c,x,y,r,a,col){c.save();c.translate(x,y);c.rotate(a);c.fillStyle='rgba(220,220,220,.4)';c.fillRect(-r*2.4,-1,r*2.4,2);c.beginPath();c.moveTo(r,0);c.lineTo(r*.4,-r*.22);c.lineTo(-r*.6,-r*.22);c.lineTo(-r*.6,r*.22);c.lineTo(r*.4,r*.22);c.closePath();c.fillStyle='#3b4246';c.fill();c.strokeStyle=gc(col);c.lineWidth=1.6;c.stroke();
+  c.beginPath();c.moveTo(-r*.1,-r*.22);c.lineTo(-r*.35,-r*.65);c.lineTo(-r*.5,-r*.22);c.moveTo(-r*.1,r*.22);c.lineTo(-r*.35,r*.65);c.lineTo(-r*.5,r*.22);c.fill();c.stroke();c.restore();}
+function gShip(c,x,y,r,col){c.beginPath();c.moveTo(x-r*1.2,y-r*.35);c.lineTo(x+r*.9,y-r*.35);c.lineTo(x+r*1.35,y);c.lineTo(x+r*.9,y+r*.35);c.lineTo(x-r*1.2,y+r*.35);c.closePath();c.fillStyle='#a7b2b5';c.fill();c.lineWidth=1.4;c.strokeStyle='#0b1416';c.stroke();c.fillStyle=gc(col);c.fillRect(x-r*.55,y-r*.7,r*.8,r*.55);c.strokeRect(x-r*.55,y-r*.7,r*.8,r*.55);}
+function gRing(c,x,y,R,col,fill,dash){c.beginPath();c.arc(x,y,R,0,7);if(fill){c.fillStyle=fill;c.fill();}c.setLineDash(dash||[]);c.strokeStyle=col;c.lineWidth=2;c.stroke();c.setLineDash([]);}
+function gBoom(c,x,y,r){c.beginPath();c.arc(x,y,r,0,7);c.fillStyle='rgba(255,150,60,.55)';c.fill();c.strokeStyle='rgba(255,230,160,.95)';c.lineWidth=2.5;c.stroke();}
+function gText(c,t,x,y,size=14,col='#fff8ea',align='center'){c.font=`700 ${size}px 'IBM Plex Sans Arabic',sans-serif`;c.textAlign=align;c.textBaseline='middle';c.lineWidth=3;c.strokeStyle='rgba(8,14,16,.85)';c.strokeText(t,x,y);c.fillStyle=col;c.fillText(t,x,y);}
+function gPips(c,x,y,n,k){for(let q=0;q<n;q++){c.fillStyle=q<k?'#8ce6ff':'rgba(140,230,255,.25)';c.fillRect(x-(n*9)/2+q*9,y,6,6);}}
+const blob=(cx,cy,r)=>{const o=[];for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++)if(x*x+y*y<=r*r+r*.6)o.push([cx+x,cy+y]);return o;};
+const GUIDE_ART={
+ expand(c,w,h){gBg(c,w,h);gTiles(c,blob(5,7,4),G_ME);gTiles(c,[[10,5],[10,6],[10,7],[10,8],[11,6],[11,7]],'rgba(255,231,168,.55)');gStar(c,55,75,9,G_ME);gArrow(c,118,70,180,70,'#fff8ea');},
+ conquer(c,w,h){gBg(c,w,h);const L=[],R=[];for(let y=0;y<14;y++)for(let x=0;x<20;x++)(x<9+(y%3===0?1:0)?L:R).push([x,y]);gTiles(c,L,G_ME);gTiles(c,R,G_RIV);gTiles(c,[[9,5],[10,5],[10,6],[9,7],[10,7],[11,6]],G_ME);gStar(c,150,70,11,G_RIV);gArrow(c,70,70,132,70,'#fff8ea');},
+ counter(c,w,h){gBg(c,w,h);const L=[],R=[];for(let y=0;y<14;y++)for(let x=0;x<20;x++)(x<10?L:R).push([x,y]);gTiles(c,L,G_ME);gTiles(c,R,G_RIV);gArrow(c,30,70,88,70,'#fff3c4',5);gArrow(c,170,70,112,70,gc(G_RIV2),5);gBoom(c,100,70,14);},
+ sail(c,w,h){gBg(c,w,h,c=>{c.moveTo(0,40);c.bezierCurveTo(60,30,140,110,200,90);c.lineTo(200,140);c.lineTo(0,140);c.closePath();});
+  gTiles(c,blob(3,1,3),G_ME);c.fillStyle=G_SEA;c.beginPath();c.moveTo(0,48);c.bezierCurveTo(60,38,140,118,200,98);c.lineTo(200,140);c.lineTo(0,140);c.fill();
+  gTiles(c,[[15,12],[16,12],[17,12],[18,12],[19,12],[16,13],[17,13],[18,13],[19,13]],G_RIV);c.setLineDash([5,5]);c.strokeStyle='rgba(255,240,200,.75)';c.lineWidth=2;c.beginPath();c.moveTo(40,62);c.quadraticCurveTo(90,120,160,118);c.stroke();c.setLineDash([]);gDhow(c,96,104,11,G_ME);},
+ build(c,w,h){gBg(c,w,h);const codes=[1,2,3,4,5,6,7,8];codes.forEach((b,k)=>drawGlyph(c,b,28+(k%4)*48,40+Math.floor(k/4)*58,18,'#dcb46a'));},
+ strike(c,w,h){gBg(c,w,h);gTiles(c,blob(16,4,4),G_RIV);gRing(c,160,42,14,'rgba(255,111,94,.9)','rgba(255,80,60,.18)');c.strokeStyle='rgba(255,111,94,.9)';c.lineWidth=2;c.beginPath();c.moveTo(152,42);c.lineTo(168,42);c.moveTo(160,34);c.lineTo(160,50);c.stroke();
+  gMissile(c,92,82,11,-.62,G_ME);gDrone(c,56,112,10,-.5,G_ME);drawGlyph(c,5,22,122,12,'#dcb46a');},
+ crater(c,w,h){gBg(c,w,h);const T=[];for(let y=0;y<14;y++)for(let x=0;x<20;x++)T.push([x,y]);gTiles(c,T,G_RIV);c.fillStyle=G_SAND;for(const [x,y] of blob(10,7,2))c.fillRect(x*10,y*10,10,10);gRing(c,105,75,38,'rgba(255,230,160,.8)','rgba(255,150,60,.15)',[5,4]);gBoom(c,105,75,10);gText(c,'empty',105,112,13);},
+ defend(c,w,h){gBg(c,w,h);gTiles(c,blob(10,9,5),G_ME);gRing(c,100,90,52,'rgba(120,210,255,.9)','rgba(120,210,255,.13)');drawGlyph(c,7,100,90,15,'#dcb46a');c.strokeStyle='rgba(140,230,255,1)';c.lineWidth=2.5;c.beginPath();c.moveTo(100,90);c.lineTo(150,46);c.stroke();gBoom(c,152,44,9);gDrone(c,40,30,9,.6,G_RIV);},
+ radar(c,w,h){gBg(c,w,h);gTiles(c,blob(6,9,5),G_ME);drawGlyph(c,8,60,92,14,'#dcb46a');const g=c.createRadialGradient(60,92,0,60,92,80);g.addColorStop(0,'rgba(140,230,180,.45)');g.addColorStop(1,'rgba(140,230,180,0)');c.beginPath();c.moveTo(60,92);c.arc(60,92,80,-1.2,-.5);c.closePath();c.fillStyle=g;c.fill();
+  gRing(c,60,92,80,'rgba(140,230,180,.6)',null,[6,5]);gRing(c,80,70,13,'rgba(255,111,94,.95)','rgba(255,80,60,.25)');c.setLineDash([5,5]);c.strokeStyle='rgba(255,111,94,.7)';c.beginPath();c.moveTo(80,70);c.lineTo(178,16);c.stroke();c.setLineDash([]);gMissile(c,170,20,9,2.64,G_RIV);gText(c,'6s',80,48,15,'#ffd2cb');},
+ hidden(c,w,h){gBg(c,w,h);gTiles(c,blob(13,7,6),G_RIV);drawGlyph(c,5,130,70,14,gc(G_RIV));gRing(c,130,70,24,'rgba(255,111,94,.9)',null,[4,4]);c.fillStyle='rgba(140,230,180,.12)';c.fillRect(0,0,w,h);c.fillStyle='rgba(140,230,180,.45)';c.fillRect(0,96,w,3);gText(c,'UAV',40,30,14,'#c9f2de');},
+ cb(c,w,h){gBg(c,w,h);gTiles(c,blob(4,8,4),G_ME);gTiles(c,blob(16,5,4),G_RIV);drawGlyph(c,9,42,82,14,'#dcb46a');drawGlyph(c,5,160,50,13,gc(G_RIV));gRing(c,160,50,22,'rgba(255,111,94,.95)',null,[4,4]);c.setLineDash([6,5]);c.strokeStyle='rgba(240,180,76,.85)';c.lineWidth=2;c.beginPath();c.moveTo(56,74);c.lineTo(140,56);c.stroke();c.setLineDash([]);gText(c,'30s',160,88,13,'#ffd2cb');},
+ cruise(c,w,h){gBg(c,w,h);gTiles(c,blob(16,8,5),G_ME);gRing(c,160,80,58,'rgba(140,230,180,.35)',null,[6,5]);gCruise(c,70,96,13,0,G_RIV);c.setLineDash([2,6]);c.strokeStyle='rgba(255,255,255,.5)';c.beginPath();c.moveTo(10,96);c.lineTo(50,96);c.stroke();c.setLineDash([]);gText(c,'no radar lock',100,26,13,'#c9f2de');},
+ rush(c,w,h){gBg(c,w,h);gTiles(c,blob(3,10,3),[236,236,226]);drawGlyph(c,6,34,104,14,'#dcb46a');for(let k=0;k<6;k++){const a=-1.25+k*.22;gDrone(c,34+Math.cos(a)*(70+k*12),104+Math.sin(a)*(70+k*12),9,a,[236,236,226]);}},
+ reload(c,w,h){gBg(c,w,h);drawGlyph(c,5,36,62,17,'#dcb46a');c.strokeStyle='rgba(255,111,94,.95)';c.lineWidth=3;c.beginPath();c.arc(36,62,23,-Math.PI/2,Math.PI*.7);c.stroke();drawGlyph(c,6,100,62,17,'#dcb46a');gPips(c,100,88,4,4);drawGlyph(c,7,164,62,17,'#dcb46a');gPips(c,164,88,3,2);},
+ navy(c,w,h){gBg(c,w,h,c=>{c.rect(0,0,w,h);});gShip(c,70,76,16,G_ME);gDhow(c,150,58,11,G_RIV);c.strokeStyle='rgba(255,210,122,1)';c.lineWidth=2.5;c.beginPath();c.moveTo(80,68);c.lineTo(146,58);c.stroke();gBoom(c,150,56,8);},
+ keys(c,w,h){c.fillStyle='#132226';c.fillRect(0,0,w,h);['1','2','3','4'].forEach((k,i)=>{const x=18+i*44,y=34;c.fillStyle='#24414a';c.fillRect(x,y+4,38,40);c.fillStyle='#34575f';c.fillRect(x,y,38,38);gText(c,k,x+19,y+19,18);});gText(c,'Attack · Boat · Strike · Build',100,106,12,'#c9b48a');},
+ realistic(c,w,h){c.fillStyle='#2a1712';c.fillRect(0,0,w,h);c.fillStyle='#c0583e';c.beginPath();c.roundRect?c.roundRect(60,22,80,40,20):c.rect(60,22,80,40);c.fill();c.beginPath();c.arc(120,42,15,0,7);c.fillStyle='#fff3ea';c.fill();gText(c,'gold ×½   land ×2',100,96,14,'#ffd2c4');},
+ diplomacy(c,w,h){gBg(c,w,h);c.fillStyle=G_ME;c.fillRect(30,30,46,32);c.fillStyle=gc(G_RIV);c.fillRect(124,30,46,32);c.fillStyle='#5a3d22';c.fillRect(28,30,3,70);c.fillRect(122,30,3,70);gArrow(c,84,56,116,56,'#fff8ea',3);gArrow(c,116,74,84,74,'#fff8ea',3);gText(c,'ALLY',100,112,15,'#9ef0c4');},
+ online(c,w,h){c.fillStyle='#29243f';c.fillRect(0,0,w,h);[[255,231,168],[168,96,220],[31,192,200],[240,86,60]].forEach((col,i)=>{const x=40+i*40;c.beginPath();c.arc(x,52,12,0,7);c.fillStyle=gc(col);c.fill();c.beginPath();c.arc(x,84,19,Math.PI,0);c.fill();});gText(c,'CODE 5UDRZ',100,118,14,'#d9d2ff');},
+ daily(c,w,h){c.fillStyle='#123a37';c.fillRect(0,0,w,h);c.fillStyle='#e9e2d2';c.fillRect(24,30,64,70);c.fillStyle='#2aa198';c.fillRect(24,30,64,16);gText(c,'17',56,74,24,'#123a37');[60,44,32].forEach((v,i)=>{c.fillStyle=i?'#7fb8b2':'#ffd36a';c.fillRect(110,40+i*24,v,16);});},
+ news(c,w,h){c.fillStyle='rgba(16,10,10,1)';c.fillRect(0,0,w,h);c.fillStyle='#e74c3c';c.fillRect(0,0,8,h);gText(c,'BREAKING',20,30,13,'#ff8a7a','left');gText(c,'Oil prices jump',20,64,17,'#fff6ef','left');gText(c,'Oil income ×1.4',20,100,13,'#e9d7cf','left');},
+ decrees(c,w,h){c.fillStyle='#132226';c.fillRect(0,0,w,h);[['#8ce6ff',-.25,64],['#c69cff',0,100],['#ffd36a',.25,136]].forEach(([col,a,x])=>{c.save();c.translate(x,82);c.rotate(a);c.fillStyle='#132a30';c.fillRect(-24,-36,48,70);c.strokeStyle=col;c.lineWidth=2.5;c.strokeRect(-24,-36,48,70);c.fillStyle=col;c.fillRect(-14,-24,28,4);c.restore();});},
+ grow(c,w,h){c.fillStyle='#132226';c.fillRect(0,0,w,h);c.fillStyle='#24414a';c.fillRect(20,96,160,16);c.fillStyle='#e6c27c';c.fillRect(20,96,160*WIN_PCT/100,16);gText(c,`${WIN_PCT}% to win`,100,82,13,'#e6c27c');const g=c.createRadialGradient(94,36,3,100,42,22);g.addColorStop(0,'#ffffff');g.addColorStop(1,'#bfb7a8');c.beginPath();c.arc(100,42,20,0,7);c.fillStyle=g;c.fill();},
+};
+function openGuide(){
+  openModal(`<h3>How to play</h3><div class="guide">${GUIDE.map(([k,t,txt])=>`<div class="gitem"><canvas class="gimg" data-g="${k}" width="200" height="140" aria-hidden="true"></canvas><span><b>${t}.</b> ${txt()}</span></div>`).join('')}</div><button class="go" id="okHow">Got it</button>`);
+  document.querySelectorAll('#mbox canvas.gimg').forEach(cv2=>{const c=cv2.getContext('2d'),f=GUIDE_ART[cv2.dataset.g];try{if(f)f(c,cv2.width,cv2.height);}catch(e){}});
+  $('#okHow').onclick=closeModal;
+}
+$('#howBtn').onclick=openGuide;
 
 function drawHero(){
   const hc=$('#heroCv'),hx=hc.getContext('2d');
