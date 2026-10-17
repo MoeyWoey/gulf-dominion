@@ -73,6 +73,22 @@ CREATE TABLE IF NOT EXISTS logs (
 CREATE INDEX IF NOT EXISTS logs_ts ON logs(ts);
 CREATE INDEX IF NOT EXISTS logs_event ON logs(event, ts);
 
+-- Daily challenge: best score per player per UTC day
+CREATE TABLE IF NOT EXISTS daily_scores (
+  date TEXT NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  score INTEGER NOT NULL,
+  peak REAL NOT NULL DEFAULT 0,
+  win INTEGER NOT NULL DEFAULT 0,
+  minutes REAL NOT NULL DEFAULT 0,
+  kills INTEGER NOT NULL DEFAULT 0,
+  nation TEXT,
+  attempts INTEGER NOT NULL DEFAULT 1,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (date, user_id)
+);
+CREATE INDEX IF NOT EXISTS daily_rank ON daily_scores(date, score DESC);
+
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL

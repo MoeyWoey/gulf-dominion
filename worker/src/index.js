@@ -6,6 +6,14 @@ const dec = new TextDecoder();
 const SESSION_DAYS = 30;
 const MAX_SAVE_BYTES = 100 * 1024;
 const CLIENT_EVENTS = new Set(['run_start', 'run_end', 'store_open', 'client_error', 'session', 'achievement']);
+const MAX_DAILY_SCORE = 25000;
+const utcDay = (offsetDays = 0) => new Date(Date.now() + offsetDays * 86400000).toISOString().slice(0, 10);
+// Leaderboard names: first name plus last initial, never the email
+function shortName(name) {
+  const parts = String(name || 'Player').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'Player';
+  return (parts[0].slice(0, 16) + (parts.length > 1 ? ' ' + parts[parts.length - 1][0].toUpperCase() + '.' : ''));
+}
 const MF_BASES = {
   test: 'https://apitest.myfatoorah.com',
   kw: 'https://api.myfatoorah.com', // Kuwait, UAE, Bahrain, Jordan, Oman
@@ -304,8 +312,57 @@ async function api(req, env, url, path) {
     return json({ config });
   }
 
+  if (path === '/api/daily' && method === 'GET') {
+    const q = url.searchParams.get('date') || '';
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(q) ? q : utcDay();
+    const viewer = await currentUser(req, env);
+    const top = await env.DB.prepare(
+      `SELECT d.user_id, d.score, d.peak, d.win, d.minutes, d.kills, d.nation, u.name FROM daily_scores d JOIN users u ON u.id = d.user_id
+       WHERE d.date = ? AND u.banned = 0 ORDER BY d.score DESC, d.updated_at ASC LIMIT 50`
+    ).bind(date).all();
+    const total = (await env.DB.prepare('SELECT COUNT(*) AS n FROM daily_scores d JOIN users u ON u.id = d.user_id WHERE d.date = ? AND u.banned = 0').bind(date).first()).n;
+    let me = null;
+    if (viewer) {
+      const mine = await env.DB.prepare('SELECT score FROM daily_scores WHERE date = ? AND user_id = ?').bind(date, viewer.id).first();
+      if (mine) {
+        const above = await env.DB.prepare('SELECT COUNT(*) AS n FROM daily_scores d JOIN users u ON u.id = d.user_id WHERE d.date = ? AND d.score > ? AND u.banned = 0').bind(date, mine.score).first();
+        me = { score: mine.score, rank: above.n + 1 };
+      }
+    }
+    return json({
+      date, total, me,
+      top: top.results.map((t, i) => ({ rank: i + 1, name: shortName(t.name), score: t.score, peak: t.peak, win: !!t.win, minutes: t.minutes, kills: t.kills, nation: t.nation, you: !!viewer && t.user_id === viewer.id })),
+    });
+  }
+
   const user = await currentUser(req, env);
   if (!user) return json({ error: 'auth' }, 401);
+
+  if (path === '/api/daily/score' && method === 'POST') {
+    const date = String(body.date || '');
+    if (date !== utcDay() && date !== utcDay(-1)) return json({ error: 'date' }, 400);
+    const score = Math.floor(Number(body.score));
+    const peak = Number(body.peak), minutes = Number(body.minutes), kills = Math.floor(Number(body.kills) || 0);
+    if (!(score >= 0 && score <= MAX_DAILY_SCORE) || !(peak >= 0 && peak <= 100) || !(minutes >= 0 && minutes <= 600) || kills < 0 || kills > 8)
+      return json({ error: 'invalid' }, 400);
+    const nation = String(body.nation || '').slice(0, 3).toUpperCase();
+    await env.DB.prepare(
+      `INSERT INTO daily_scores (date, user_id, score, peak, win, minutes, kills, nation, attempts, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+       ON CONFLICT(date, user_id) DO UPDATE SET attempts = attempts + 1,
+         peak = CASE WHEN excluded.score > score THEN excluded.peak ELSE peak END,
+         win = CASE WHEN excluded.score > score THEN excluded.win ELSE win END,
+         minutes = CASE WHEN excluded.score > score THEN excluded.minutes ELSE minutes END,
+         kills = CASE WHEN excluded.score > score THEN excluded.kills ELSE kills END,
+         nation = CASE WHEN excluded.score > score THEN excluded.nation ELSE nation END,
+         updated_at = CASE WHEN excluded.score > score THEN excluded.updated_at ELSE updated_at END,
+         score = CASE WHEN excluded.score > score THEN excluded.score ELSE score END`
+    ).bind(date, user.id, score, peak, body.win ? 1 : 0, minutes, kills, nation, now()).run();
+    const best = (await env.DB.prepare('SELECT score FROM daily_scores WHERE date = ? AND user_id = ?').bind(date, user.id).first()).score;
+    const above = await env.DB.prepare('SELECT COUNT(*) AS n FROM daily_scores d JOIN users u ON u.id = d.user_id WHERE d.date = ? AND d.score > ? AND u.banned = 0').bind(date, best).first();
+    const total = (await env.DB.prepare('SELECT COUNT(*) AS n FROM daily_scores d JOIN users u ON u.id = d.user_id WHERE d.date = ? AND u.banned = 0').bind(date).first()).n;
+    await log(env, user.id, 'info', 'daily_score', { date, score, best, win: !!body.win, peak, nation });
+    return json({ ok: true, best, rank: above.n + 1, total });
+  }
 
   if (path === '/api/me' && method === 'GET') {
     await env.DB.prepare('UPDATE users SET last_seen = ? WHERE id = ?').bind(now(), user.id).run();
@@ -495,6 +552,19 @@ async function admin(req, env, url, path, method, body, me) {
       }
     }
     await log(env, me.id, 'info', 'admin_settings_saved', { mode: body.mode, region: body.region, currency: body.currency, testKey: body.testKey !== undefined, liveKey: body.liveKey !== undefined });
+    return json({ ok: true });
+  }
+  if (path === '/daily' && method === 'GET') {
+    const q = url.searchParams.get('date') || '';
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(q) ? q : utcDay();
+    const r = await env.DB.prepare(
+      'SELECT d.*, u.email, u.name, u.banned FROM daily_scores d JOIN users u ON u.id = d.user_id WHERE d.date = ? ORDER BY d.score DESC LIMIT 300'
+    ).bind(date).all();
+    return json({ date, scores: r.results });
+  }
+  if (path === '/daily/delete' && method === 'POST') {
+    await env.DB.prepare('DELETE FROM daily_scores WHERE date = ? AND user_id = ?').bind(String(body.date || ''), Number(body.user_id)).run();
+    await log(env, me.id, 'warn', 'admin_daily_removed', { date: body.date, user: body.user_id });
     return json({ ok: true });
   }
   if (path === '/config' && method === 'GET') {

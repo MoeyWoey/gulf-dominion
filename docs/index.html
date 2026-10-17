@@ -84,6 +84,32 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-o
 .news span:last-child{font-size:.8rem;color:#e9d7cf}
 @keyframes newsIn{from{transform:translate(-50%,-14px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
 @media (prefers-reduced-motion:reduce){.news{animation:none}}
+.daily{display:flex;flex-direction:column;gap:10px;background:linear-gradient(135deg,#123a37,#102024 70%);border:1.5px solid var(--teal);border-radius:14px;padding:14px}
+.daily .dtop{display:flex;align-items:center;gap:10px}
+.daily .dtop svg{width:30px;height:30px;flex:none;fill:var(--teal)}
+.daily .dtop b{font-family:var(--f-display);font-size:1.15rem}
+.daily .dtop small{display:block;color:var(--muted);font-size:.78rem}
+.daily .drule{display:flex;flex-wrap:wrap;gap:6px}
+.daily .pill{font-size:.76rem;font-weight:600;padding:3px 9px;border-radius:999px;background:#0e2a2a;border:1px solid var(--line-2);display:inline-flex;align-items:center;gap:6px}
+.daily .pill i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.daily .twist{font-size:.84rem;color:#bff3ee}
+.daily .drow{display:flex;gap:8px}
+.daily .drow .btn{flex:1;padding:11px}
+.daily .btn.teal{background:var(--teal);border-color:var(--teal);color:#06201d}
+.dscore{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px;border-radius:10px;background:#0f2a2a;border:1px solid var(--teal)}
+.dscore span{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.dscore b{font-family:var(--f-display);font-size:1.8rem;color:#bff3ee}
+.dscore small{font-size:.8rem;color:var(--muted);text-align:center}
+.lbtab{display:flex;gap:6px}
+.lbtab .btn{flex:1}
+.lbtab .btn.on{background:var(--teal);border-color:var(--teal);color:#06201d}
+.lbrows{display:flex;flex-direction:column;gap:4px}
+.lbrow{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:7px 10px;border-radius:8px;background:#132a30;font-size:.86rem}
+.lbrow.you{outline:1.5px solid var(--sand)}
+.lbrow .rk{font-weight:700;color:var(--muted)}
+.lbrow .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lbrow .nm small{color:var(--muted);margin-left:6px}
+.lbrow .sc{font-weight:700;font-variant-numeric:tabular-nums}
 .builds button.locked{opacity:.55;border-style:dashed}
 .builds button.locked small{color:var(--sand)}
 .builds button.rush{border-color:#f0b44c;color:#ffe2ad}
@@ -213,6 +239,8 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
     <div class="hero"><canvas id="heroCv" width="528" height="440"></canvas><div class="cap">Nine capitals, from Baghdad to Sana'a. Drones, missiles, and the air defense that stops them.</div></div>
 
     <div class="dhow" id="dhow"></div>
+
+    <div class="daily" id="daily"></div>
 
     <div class="heat">
       <button class="step" id="heatDn" aria-label="Lower heat">−</button>
@@ -437,7 +465,7 @@ function arsenalOf(id){return BAL.arsenal[codeOf(id)]||{drones:['light'],missile
 const REQ={'drone:strike':'tier2','missile:t2':'tier2','drone:heavy':'tier3','missile:t3':'tier3',uav:'uav',droneRush:'rush'};
 const LOCK_ACH={tier2:'Arms development',tier3:'Strategic deterrent',uav:'Eyes in the sky',rush:'Swarm doctrine'};
 const unlockedFlag=f=>!!(S.unl&&S.unl[f]);
-const isUnlocked=key=>!REQ[key]||unlockedFlag(REQ[key]);
+const isUnlocked=key=>!REQ[key]||(DAILY?!!(DAILY.twist.unl&&DAILY.twist.unl[REQ[key]]):unlockedFlag(REQ[key]));
 function arsenalAll(id){const a=arsenalOf(id),out=[];for(const d of DRONE_KEYS)if(a.drones.includes(d))out.push('drone:'+d);for(let t=1;t<=Math.min(3,a.missileTier|0);t++)out.push('missile:t'+t);return out;}
 function weaponsOf(id){return arsenalAll(id).filter(isUnlocked);}
 function weapon(id,wid){
@@ -633,7 +661,8 @@ function applyCosmetics(){
   GOLD=!!(owns('border_gold')&&S.cos&&S.cos.border_gold);
   fullPaint=true;
 }
-const lvl=k=>S.upg[k]||0;
+let DAILY=null; // the daily challenge spec while a daily run is active
+const lvl=k=>DAILY?0:(S.upg[k]||0); // Majlis upgrades don't apply in the daily challenge
 const upgCost=u=>Math.round(u.base*Math.pow(u.grow,lvl(u.k)));
 const fmt=n=>{n=Math.max(0,n);return n<1000?String(Math.floor(n)):n<1e6?(n/1000).toFixed(n<1e4?1:0)+'k':(n/1e6).toFixed(1)+'M';};
 const rgb=(c,a=1)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
@@ -662,11 +691,33 @@ function newNation(id,isPlayer,diff){
     tiles:0,cap:300,cities:0,rigs:0,oilT:0,coastT:0,cx:0,cy:0,citiesBuilt:0,fortsBuilt:0,rigsBuilt:0,portsBuilt:0,shipsBuilt:0,silosBuilt:0,hangarsBuilt:0,samsBuilt:0,radarsBuilt:0,ports:0,rigsDry:0,nextAI:2+Math.random()*3,regenNow:0,goldNow:0};
 }
 
-function startRun(){
+/* ---- Daily challenge: one shared setup per UTC day (nation, heat, twist) and a seeded random stream ---- */
+const ORIG_RANDOM=Math.random;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+const TWISTS=[
+ {id:'standard',name:'Standard rules',desc:'No twist today.'},
+ {id:'oilshock',name:'Oil shock',desc:'Oil income ×1.6 all game.',fx:{oil:1.6}},
+ {id:'ration',name:'Fuel rationing',desc:'Silos reload 50% slower all game.',fx:{mreload:1.5}},
+ {id:'armsrace',name:'Arms race',desc:'Missile II and Strike drones unlocked for everyone.',unl:{tier2:1}},
+ {id:'arsenal',name:'Full arsenal',desc:'Every weapon and ability unlocked for everyone.',unl:{tier2:1,tier3:1,uav:1,rush:1}},
+ {id:'storms',name:'Storm season',desc:'Desert land costs double to cross.',fx:{desert:2}},
+ {id:'calm',name:'Calm seas',desc:'Dhows sail 50% faster.',fx:{boat:1.5}},
+ {id:'ironsky',name:'Iron sky',desc:'Air defense hits 25% more often.',fx:{sam:1.25}}
+];
+const dayKey=(d=new Date())=>d.toISOString().slice(0,10);
+function dailySpec(key=dayKey()){
+  const seed=parseInt(key.replace(/-/g,''),10),r=mulberry32(Math.imul(seed,2654435761)>>>0);
+  return {key,seed,nation:1+Math.floor(r()*NNAT),heat:1+Math.floor(r()*3),twist:TWISTS[Math.floor(r()*TWISTS.length)]};
+}
+function endDaily(){DAILY=null;Math.random=ORIG_RANDOM;}
+function dailyScore(win){const min=G.t/60;return Math.round(G.peak*100+G.kills*400+(G.caps||0)*250+(win?3000+Math.max(0,45-min)*60:0));}
+function startDaily(){const spec=dailySpec();DAILY=spec;Math.random=mulberry32(spec.seed);startRun(spec);}
+function startRun(spec){
+  if(!spec)endDaily();
   closeSheet();
-  const pid=S.nation,diff=S.diff;
+  const pid=spec?spec.nation:S.nation,diff=spec?spec.heat:S.diff;
   owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);siloSeen.fill(0);
-  G={pid,diff,t:0,speed:1,paused:false,over:false,acc:0,econAcc:0,
+  G={pid,diff,daily:spec||null,caps:0,t:0,speed:1,paused:false,over:false,acc:0,econAcc:0,
      aiRegen:.8+.12*diff,aiCap:.9+.1*diff,aiThresh:Math.max(.3,.62-.06*diff),aiFrac:Math.min(.65,.3+.07*diff),
      sand:1,kills:0,peak:0,ms:0,drafts:0,rerolls:lvl('reroll'),cards:[],nextNews:BAL.news.first,news:null,newsEnd:0,fx:fxBase(),ssel:'',rushReady:0,aiRushReady:{},focus:-1,focusUntil:0,hover:-1,uavUntil:0,uavReady:0,aiUav:{},aiUavReady:{},evt:null,evtEnd:0,oilBoost:1,sandstorm:1,
      mode:'attack',bsel:'city',ratio:+$('#ratio').value/100,pings:[]};
@@ -676,14 +727,14 @@ function startRun(){
   for(let id=1;id<=NNAT;id++)if(id!==pid)claimBlob(id,NATS[id].capIdx,2+(diff>=3?1:0)+(id===9?1:0));
   for(let id=1;id<=NNAT;id++){const n=NATS[id];
     if(n.m.startSilo)placeNear(n,n.capIdx,'silo',3,true);
-    if(n.isPlayer)for(let k=0;k<lvl('sam')+(owns('founder')?1:0);k++)placeNear(n,n.capIdx,'sam',3,true);}
+    if(n.isPlayer)for(let k=0;k<lvl('sam')+(owns('founder')&&!DAILY?1:0);k++)placeNear(n,n.capIdx,'sam',3,true);}
   econ(true);
   fullPaint=true;
   showScreen('game');
   resize();
   centerOn(NATS[pid].capIdx,Math.max(4,Math.min(7,innerWidth/80)));
   renderStrikeRow();setMode('attack');
-  toast(S.tut?`Heat ${diff}. Expand from ${NATS[pid].name} and hold ${WIN_PCT}% of the region.`:'Tap sand next to your land to expand. Drag to pan, pinch to zoom.',5000);
+  if(spec)toast(`Daily challenge: ${NAT[pid].name}, Heat ${diff}. ${spec.twist.name}: ${spec.twist.desc}`,6000);else toast(S.tut?`Heat ${diff}. Expand from ${NATS[pid].name} and hold ${WIN_PCT}% of the region.`:'Tap sand next to your land to expand. Drag to pan, pinch to zoom.',5000);
   S.tut=1;save();
   logEvent('run_start',{nation:NAT[pid].name,heat:diff});
 }
@@ -781,7 +832,7 @@ function collapse(d,att){
   for(let i=0;i<N;i++){if(owner[i]!==d.id)continue;const dx=i%W-ox,dy=((i/W)|0)-oy,dd=dx*dx+dy*dy;if(dd>bd){bd=dd;best=i;}}
   if(best<0){eliminate(d,att);return;}
   d.capIdx=best;
-  if(att.isPlayer){if(att.m.lion)att.troops=Math.max(att.troops,att.cap);if(!d.capLost){G.drafts++;}bump('capitals');toast(`You took ${d.name}'s capital. They regroup at a new one.`,3500);}
+  if(att.isPlayer){if(att.m.lion)att.troops=Math.max(att.troops,att.cap);if(!d.capLost){G.drafts++;}bump('capitals');G.caps=(G.caps||0)+1;toast(`You took ${d.name}'s capital. They regroup at a new one.`,3500);}
   else if(d.isPlayer)toast(`${att.name} took your capital. Your government moved. Hold your land.`,4000);
   else toast(`${att.name} took ${d.name}'s capital.`,3000);
   d.capLost=true;
@@ -1126,7 +1177,7 @@ function aiStrike(n){
 }
 
 // World news: rare headlines that shift the whole region for a while (all nations are affected)
-const fxBase=()=>({oil:1,mreload:1,mcost:1,boat:1,sam:1,desert:1});
+const fxBase=()=>Object.assign({oil:1,mreload:1,mcost:1,boat:1,sam:1,desert:1},DAILY&&DAILY.twist.fx||{});
 const NEWS=[
  {id:'fedcut',tag:'Markets',head:'US Federal Reserve cuts interest rates',body:'A weaker dollar pushes oil prices up.',fx:{oil:1.5},chip:'Oil income ×1.5'},
  {id:'fedhike',tag:'Markets',head:'US Federal Reserve raises interest rates',body:'A stronger dollar drags oil prices down.',fx:{oil:.6},chip:'Oil income ×0.6'},
@@ -1583,7 +1634,7 @@ let modalOpen=false;
 function openModal(html){$('#mbox').innerHTML=html;$('#modal').hidden=false;modalOpen=true;}
 function closeModal(){$('#modal').hidden=true;modalOpen=false;}
 function draftOptions(){
-  const pool=CARDS.filter(c=>!(c.once&&G.cards.includes(c.id)));const k=3+lvl('choice')+(owns('founder')?1:0),out=[];
+  const pool=CARDS.filter(c=>!(c.once&&G.cards.includes(c.id)));const k=3+lvl('choice')+(owns('founder')&&!DAILY?1:0),out=[];
   while(out.length<k&&pool.length){const w=pool.map(c=>[6,3,1][c.r]),tot=w.reduce((a,b)=>a+b,0);let r=Math.random()*tot,j=0;while(r>w[j]){r-=w[j];j++;}out.push(pool.splice(j,1)[0]);}
   return out;
 }
@@ -1619,17 +1670,25 @@ function endRun(win,retreat){
   const earned=pearlsFor(win);
   bump('campaigns');bumpMax('peak',Math.floor(G.peak*10)/10);if(win){bump('wins');bumpMax('heatWin',G.diff);}
   (win?SFX.win:SFX.lose)();
-  S.pearls+=earned;S.runs++;if(win){S.wins++;if(S.diff===S.maxDiff)S.maxDiff++;}S.best=Math.max(S.best,Math.round(G.peak*10)/10);save();
+  const daily=G.daily,dscore=daily?dailyScore(win):0;let dailyBonus=0;
+  if(daily){S.dailyBest=S.dailyBest||{};S.dailyBest[daily.key]=Math.max(S.dailyBest[daily.key]||0,dscore);
+    S.dailyDone=S.dailyDone||{};if(!S.dailyDone[daily.key]){S.dailyDone[daily.key]=1;dailyBonus=50;bump('dailies');}}
+  S.pearls+=earned+dailyBonus;S.runs++;if(win){S.wins++;if(!daily&&S.diff===S.maxDiff)S.maxDiff++;}S.best=Math.max(S.best,Math.round(G.peak*10)/10);save();
   logEvent('run_end',{nation:NAT[G.pid].name,heat:G.diff,win:!!win,retreat:!!retreat,peak:Math.round(G.peak*10)/10,minutes:Math.round(G.t/6)/10,kills:G.kills,pearls:earned});
   setTimeout(()=>{
     openModal(`<h3>${win?'The Gulf is yours':retreat?'You withdraw':'Your nation has fallen'}</h3>
      <p class="sub">${NATS[G.pid].name} · Heat ${G.diff} · ${Math.floor(G.t/60)}m ${Math.floor(G.t%60)}s</p>
      <div class="kv"><span>Peak land</span><span class="num">${G.peak.toFixed(1)}%</span><span>Rivals defeated</span><span class="num">${G.kills}</span><span>Decrees issued</span><span class="num">${G.cards.length}</span></div>
-     <div class="big"><i class="pearl" style="width:22px;height:22px"></i>+${earned} pearls</div>
-     ${win&&S.diff+1===S.maxDiff?`<p class="sub" style="margin:0">Heat ${S.maxDiff} unlocked.</p>`:''}
+     ${daily?`<div class="dscore"><span>Daily score</span><b class="num">${dscore.toLocaleString()}</b><small id="dailyRes">${ACCOUNT?'Posting to the leaderboard…':'Sign in with Google to post daily scores.'}</small></div>`:''}
+     <div class="big"><i class="pearl" style="width:22px;height:22px"></i>+${earned+dailyBonus} pearls${dailyBonus?' <small style="font-size:.8rem;color:var(--muted)">(includes +50 first daily)</small>':''}</div>
+     ${!daily&&win&&S.diff+1===S.maxDiff?`<p class="sub" style="margin:0">Heat ${S.maxDiff} unlocked.</p>`:''}
      <button class="go" id="toMajlis">Return to the Majlis</button>`);
-    $('#toMajlis').onclick=()=>{closeModal();if(win&&S.diff<S.maxDiff){S.diff=S.maxDiff;save();}showScreen('home');};
+    $('#toMajlis').onclick=()=>{closeModal();if(!daily&&win&&S.diff<S.maxDiff){S.diff=S.maxDiff;save();}showScreen('home');};
+    if(daily&&ACCOUNT)api('/api/daily/score',{method:'POST',body:{date:daily.key,score:dscore,peak:Math.round(G.peak*10)/10,win:!!win,minutes:Math.round(G.t/6)/10,kills:G.kills,nation:NAT[G.pid].short}})
+      .then(r=>{const el=$('#dailyRes');if(el)el.textContent=`Rank #${r.rank} of ${r.total} today · your best ${r.best.toLocaleString()}`;})
+      .catch(()=>{const el=$('#dailyRes');if(el)el.textContent='Could not post your score. It is saved on this device.';});
   },win?600:900);
+  if(daily)endDaily();
 }
 
 /* ================= Achievements ================= */
@@ -1645,6 +1704,7 @@ const ACH=[
  {id:'kills',name:'Conqueror',desc:'Eliminate a rival nation',stat:'kills',goal:1,reward:{pearls:40}},
  {id:'expand30',name:'Regional power',desc:'Hold 30% of the region in one campaign',stat:'peak',goal:30,reward:{pearls:60}},
  {id:'win',name:'Dominion',desc:'Win a campaign',stat:'wins',goal:1,reward:{pearls:100}},
+ {id:'dailies',name:'Daily devotion',desc:'Finish daily challenges on 5 different days',stat:'dailies',goal:5,reward:{pearls:100}},
  {id:'heat3',name:'Under fire',desc:'Win a campaign at Heat 3 or higher',stat:'heatWin',goal:3,reward:{pearls:150}}
 ];
 const stats=()=>S.st||(S.st={});
@@ -1798,8 +1858,32 @@ function renderTabBadges(){
   $('#sheetPearls').textContent=fmt(S.pearls);
   const fresh=Object.keys(S.ach||{}).length-(S.achSeen||0),abd=$('#achBadge');abd.hidden=fresh<=0;abd.textContent=fresh+' new';
 }
+function renderDaily(){
+  const el=$('#daily');if(!el)return;const d=dailySpec(),n=NAT[d.nation],best=(S.dailyBest||{})[d.key];
+  const label=new Date(d.key+'T00:00:00Z').toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'});
+  el.innerHTML=`<div class="dtop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3zm-1 8v10h12V10zm2 2h3v3H8z"/></svg><div><b>Daily challenge</b><small>${label} · same setup for every player · resets at 00:00 UTC</small></div></div>
+    <div class="drule"><span class="pill"><i style="background:${rgb(n.color)}"></i>${esc(n.name)}</span><span class="pill">Heat ${d.heat}</span><span class="pill">${esc(d.twist.name)}</span><span class="pill">No upgrades</span></div>
+    <div class="twist">${esc(d.twist.desc)}${best?` Your best today: <b class="num">${best.toLocaleString()}</b>.`:` First finish today: +50 pearls.`}</div>
+    <div class="drow"><button class="btn teal" id="dailyGo">Play daily</button><button class="btn" id="dailyLb">Leaderboard</button></div>`;
+  $('#dailyGo').onclick=()=>{closeSheet();startDaily();};
+  $('#dailyLb').onclick=()=>openLeaderboard(d.key);
+}
+async function openLeaderboard(key){
+  const today=dayKey(),yest=dayKey(new Date(Date.now()-86400000));
+  openModal(`<h3>Daily leaderboard</h3><div class="lbtab"><button class="btn ${key===today?'on':''}" data-k="${today}">Today</button><button class="btn ${key===yest?'on':''}" data-k="${yest}">Yesterday</button></div><div id="lbBody"><p class="sub">Loading…</p></div><button class="go" id="lbClose">Close</button>`);
+  $('#lbClose').onclick=closeModal;document.querySelectorAll('.lbtab .btn').forEach(b=>b.onclick=()=>openLeaderboard(b.dataset.k));
+  const body=$('#lbBody');
+  if(!API){body.innerHTML='<p class="sub">The leaderboard works in the online version of the game.</p>';return;}
+  try{
+    const r=await api('/api/daily?date='+key);const spec=dailySpec(key);
+    body.innerHTML=`<p class="sub">${esc(NAT[spec.nation].name)} · Heat ${spec.heat} · ${esc(spec.twist.name)} · ${r.total} player${r.total===1?'':'s'}</p>`+
+      (r.top.length?`<div class="lbrows">${r.top.map(t=>`<div class="lbrow ${t.you?'you':''}"><span class="rk">#${t.rank}</span><span class="nm">${esc(t.name)}<small>${t.win?'won':t.peak+'%'}</small></span><span class="sc">${t.score.toLocaleString()}</span></div>`).join('')}</div>`:'<p class="sub">No scores yet. Be the first.</p>')+
+      (r.me&&!r.top.some(t=>t.you)?`<p class="sub">You: #${r.me.rank} · ${r.me.score.toLocaleString()}</p>`:'')+
+      (!ACCOUNT?'<p class="sub">Sign in with Google to appear here.</p>':'');
+  }catch(e){body.innerHTML='<p class="sub">Could not load the leaderboard. Try again in a moment.</p>';}
+}
 function renderHome(){
-  renderSound();renderAccount();renderStore();renderCosmetics();renderAch();
+  renderSound();renderDaily();renderAccount();renderStore();renderCosmetics();renderAch();
   if(HASH_NOTE){showNote(HASH_NOTE[0],HASH_NOTE[1]);HASH_NOTE=null;}
   $('#pearls').textContent=fmt(S.pearls);
   const st=idleStored(),dl=lvl('dhow');
@@ -1844,6 +1928,7 @@ $('#howBtn').onclick=()=>{openModal(`<h3>How to play</h3>
   <span style="color:var(--pearl)"><b>Reload.</b> Silos hold 1 missile (30s reload), hangars 4 drones (35s rearm), air defense 3 interceptors (18s reload). Blue pips show what is ready; a red ring shows reloading.</span>
   <span style="color:var(--pearl)"><b>Counter.</b> Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.</span>
   <span style="color:var(--pearl)"><b>Navy.</b> Launch warships from a port. They patrol nearby waters and sink enemy dhows and warships.</span>
+  <span style="color:var(--pearl)"><b>Daily challenge.</b> Every day everyone plays the same nation, heat and twist with the same random seed and no Majlis upgrades. Your score counts land held, rivals eliminated, capitals taken and a fast win. Signed-in players appear on the leaderboard.</span>
   <span style="color:var(--pearl)"><b>Achievements.</b> Missile II and III, Strike and Heavy drones, UAV recon and Drone rush start locked for everyone, including the AI. Earn their achievements to unlock them in every campaign.</span>
   <span style="color:var(--pearl)"><b>World news.</b> Now and then a headline shifts the whole region for a minute: rate cuts lift oil prices, gas shortages slow silo reloads, embargoes raise missile costs.</span>
   <span style="color:var(--pearl)"><b>Decrees.</b> Each land milestone and each fallen rival lets you pick a power for this campaign.</span>
@@ -1874,7 +1959,7 @@ function drawHero(){
 
 /* ================= Screens & loop ================= */
 let screen='home';
-function showScreen(s){screen=s;$('#home').hidden=s!=='home';$('#game').hidden=s!=='game';if(s==='home')renderHome();}
+function showScreen(s){if(s==='home')endDaily();screen=s;$('#home').hidden=s!=='home';$('#game').hidden=s!=='game';if(s==='home')renderHome();}
 window.addEventListener('resize',()=>{if(screen==='game'){resize();clampView();}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&screen==='game'&&G&&!G.over&&!modalOpen)openPause();});
 let last=performance.now();

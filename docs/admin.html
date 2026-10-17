@@ -91,6 +91,7 @@ td.mono,.mono{font-family:var(--f-mono);font-size:.78rem;overflow-wrap:anywhere}
       <button data-t="orders">Orders</button>
       <button data-t="store">Store</button>
       <button data-t="balance">Balance</button>
+      <button data-t="daily">Daily</button>
       <button data-t="pay">Payments API</button>
     </nav>
     <span class="who" id="who"></span>
@@ -137,6 +138,12 @@ td.mono,.mono{font-family:var(--f-mono);font-size:.78rem;overflow-wrap:anywhere}
       <div id="balForm" class="grid2" style="grid-template-columns:1fr"></div>
       <div class="row"><button class="btn gold" id="balSave">Save balance</button><button class="btn danger" id="balReset">Reset to defaults</button></div>
       <div id="balMsg"></div>
+    </section>
+
+    <section data-p="daily" hidden>
+      <div class="row"><label class="row"><span class="hint">Day (UTC)</span><input type="date" id="dyDate"></label><button class="btn" id="dyGo">Show</button></div>
+      <p class="hint" id="dyInfo"></p>
+      <div class="tablewrap"><table><thead><tr><th>#</th><th>Player</th><th>Score</th><th>Peak</th><th>Result</th><th>Minutes</th><th>Kills</th><th>Nation</th><th>Attempts</th><th></th></tr></thead><tbody id="dyRows"></tbody></table></div>
     </section>
 
     <section data-p="pay" hidden>
@@ -204,7 +211,7 @@ const loaded={};
 function show(t){
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
   document.querySelectorAll('main section').forEach(s=>s.hidden=s.dataset.p!==t);
-  Promise.resolve().then(({overview:loadOverview,logs:()=>loadLogs(false),users:loadUsers,orders:loadOrders,store:loadProducts,balance:loadBal,pay:loadPay})[t]).catch(e=>{const sec=document.querySelector(`main section[data-p="${t}"]`);sec.insertAdjacentHTML('afterbegin',`<div class="msg bad">Could not load: ${esc(e.message)}</div>`);});
+  Promise.resolve().then(({overview:loadOverview,logs:()=>loadLogs(false),users:loadUsers,orders:loadOrders,store:loadProducts,balance:loadBal,daily:loadDaily,pay:loadPay})[t]).catch(e=>{const sec=document.querySelector(`main section[data-p="${t}"]`);sec.insertAdjacentHTML('afterbegin',`<div class="msg bad">Could not load: ${esc(e.message)}</div>`);});
   try{history.replaceState(null,'','#'+t);}catch(e){}
 }
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>show(b.dataset.t));
@@ -359,6 +366,16 @@ $('#balReset').onclick=async()=>{
   try{await api('/api/admin/config',{method:'PUT',body:{config:{}}});await loadBal();$('#balMsg').innerHTML='<div class="msg ok">Back to the default balance.</div>';}catch(e){$('#balMsg').innerHTML=`<div class="msg bad">${esc(e.message)}</div>`;}
 };
 
+/* ---------- daily challenge ---------- */
+async function loadDaily(){
+  const el=$('#dyDate');if(!el.value)el.value=new Date().toISOString().slice(0,10);
+  const r=await api('/api/admin/daily?date='+el.value);
+  $('#dyInfo').textContent=`${r.scores.length} player${r.scores.length===1?'':'s'} on ${r.date}. Remove a score if it looks impossible; the player can still post a new one.`;
+  $('#dyRows').innerHTML=r.scores.map((d,i)=>`<tr><td class="num">${i+1}</td><td><b>${esc(d.name||'—')}</b>${d.banned?' <span class="pill failed">blocked</span>':''}<div class="hint">${esc(d.email)}</div></td><td class="num">${Number(d.score).toLocaleString()}</td><td class="num">${d.peak}%</td><td>${d.win?'<span class="pill ok">won</span>':'—'}</td><td class="num">${d.minutes}</td><td class="num">${d.kills}</td><td>${esc(d.nation||'')}</td><td class="num">${d.attempts}</td><td><button class="btn danger" data-u="${d.user_id}">Remove</button></td></tr>`).join('')||'<tr><td colspan="10" class="hint">No scores for this day.</td></tr>';
+  document.querySelectorAll('#dyRows button[data-u]').forEach(b=>b.onclick=async()=>{b.disabled=true;await api('/api/admin/daily/delete',{method:'POST',body:{date:r.date,user_id:+b.dataset.u}});loadDaily();});
+}
+$('#dyGo').onclick=()=>loadDaily();
+
 /* ---------- payments API ---------- */
 let pay=null,payMode='test';
 async function loadPay(){
@@ -388,7 +405,7 @@ $('#pyLiveClear').onclick=()=>saveKeys({liveKey:''},'Live key removed.');
     const me=await api('/api/me');
     if(!me.user.is_admin){gate('Not an admin',`${me.user.email} is not on the admin list. Add it to ADMIN_EMAILS in the Worker settings.`,'Use another account');return;}
     $('#who').textContent=me.user.email;$('#gate').hidden=true;$('#app').hidden=false;
-    const t=location.hash.slice(1);show(['overview','logs','users','orders','store','balance','pay'].includes(t)?t:'overview');
+    const t=location.hash.slice(1);show(['overview','logs','users','orders','store','balance','daily','pay'].includes(t)?t:'overview');
   }catch(e){
     if(e.status===401){try{localStorage.removeItem('gd_token');}catch(_){}TOKEN=null;gate('Admin sign-in','Your session ended. Sign in again.','Sign in with Google');}
     else gate('Cannot reach the server',`The Worker did not answer (${e.message}). Check the gd-api address and that the Worker is deployed.`);
