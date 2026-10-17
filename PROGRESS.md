@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `304792c`)_
+_Last updated: 2026-10-17 (after commit `9d6ba71`)_
 
 ---
 
@@ -213,6 +213,17 @@ Safety rules we keep:
 - New achievement **Peacemaker**: 5 treaties, +40 pearls.
 - The Balance tab has the ceasefire length, alliance length and a price multiplier.
 
+### 11. Cruise missiles and counter-battery radar — `9d6ba71`
+
+- **Cruise missile** for every nation, fired from silos. It costs 300 gold and has a small, precise 1.5-tile blast.
+  - It flies low: radar never tracks it, and the target only sees it within 5 tiles.
+  - Air defense can engage it only at half its range, with a lower hit chance (×0.6).
+- **Handicap for Iraq, Iran and Yemen:** 1.5× cost, 1.4× reload, and 2 silo slots per launch. A silo too small for that fires from a full magazine and reloads proportionally longer (2 slots on a 1-slot silo means twice the reload).
+- **Counter-battery radar** (new building, 160 gold): when an enemy silo inside its 55-tile range fires, that silo stays revealed to you for 30 s instead of 10, with a map ping and an alert. AI nations build and use them too.
+- There's a "Cruise missile inbound" warning when one is spotted close in. The AI picks a cruise missile about a third of the time it fires a missile.
+- New achievement **Under the radar**: 10 cruise hits, +40 pearls.
+- The Balance tab has cruise stats, visibility, how far air defense reaches, a per-nation handicap checkbox, and the counter-battery range and reveal time.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -225,6 +236,7 @@ Safety rules we keep:
 | Missile I | 200 | 2 | 6 | All; Iran pays 30% less |
 | Missile II | 420 | 3 | 7 | GCC; silo reload ×1.5 |
 | Missile III | 750 | 4 | 8 | GCC; silo reload ×2.2 |
+| Cruise missile | 300 | 1.5 | 5 | All; untracked by radar, seen within 5 tiles, air defense at half range; Iraq/Iran/Yemen ×1.5 cost, ×1.4 reload, 2 silo slots |
 
 | Rule | Default |
 |---|---|
@@ -238,6 +250,7 @@ Safety rules we keep:
 | Unlock goals | Tier II: 15 strikes · Tier III: 40 buildings destroyed · UAV: 3 radars · Drone rush: 60 drones |
 | World news | First at 200 s, then every 280–420 s, effects last 60 s |
 | Diplomacy | Ceasefire 60 s, alliance 180 s, price ×1 |
+| Counter-battery | 55-tile range, silos revealed 30 s |
 | Win condition | 60% of the land, or every rival eliminated |
 
 Every value above can be changed live from the dashboard's **Balance** tab.
