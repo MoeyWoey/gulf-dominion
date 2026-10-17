@@ -284,6 +284,8 @@ body.pc .dockin{max-width:960px}
 body.pc #buildRow{grid-template-columns:repeat(10,1fr)}
 body.pc #buildRow button:last-child:nth-child(3n+1){grid-column:auto}
 body.pc #buildRow.idle button.on{border-color:var(--line-2);box-shadow:none}
+body.pc .seg button[data-key]{position:relative}
+body.pc .seg button[data-key]::after{content:attr(data-key);position:absolute;top:3px;left:6px;font-size:.6rem;font-weight:700;opacity:.55}
 body.pc .toast{bottom:calc(196px + env(safe-area-inset-bottom,0px))}
 </style>
 
@@ -404,10 +406,10 @@ body.pc .toast{bottom:calc(196px + env(safe-area-inset-bottom,0px))}
   <div class="dock">
     <div class="dockin">
       <div class="seg">
-        <button id="mAtk" class="on">Attack</button>
-        <button id="mBoat">Boat</button>
-        <button id="mStk">Strike</button>
-        <button id="mBld">Build</button>
+        <button id="mAtk" class="on" data-key="1" title="Attack (1)">Attack</button>
+        <button id="mBoat" data-key="2" title="Boat (2)">Boat</button>
+        <button id="mStk" data-key="3" title="Strike (3)">Strike</button>
+        <button id="mBld" data-key="4" title="Build (4)">Build</button>
         <button id="spd" class="spd num">1×</button>
       </div>
       <div class="sendrow" id="sendRow">
@@ -1667,6 +1669,13 @@ function setMode(m){G.mode=m;$('#mAtk').classList.toggle('on',m==='attack');$('#
 $('#mAtk').onclick=()=>setMode('attack');
 $('#mBoat').onclick=()=>{setMode('boat');toast('Tap any coast across the water. Dhows sail from your nearest shore.');};
 $('#mBld').onclick=()=>{setMode('build');toast('Tap anywhere on your land to build. Rigs pay most on dark oil fields; ports need water within 3 tiles.');};
+// Keyboard: 1 Attack, 2 Boat, 3 Strike, 4 Build
+document.addEventListener('keydown',e=>{
+  if(screen!=='game'||!G||G.over||modalOpen||e.ctrlKey||e.metaKey||e.altKey||e.repeat)return;
+  const t=e.target;if(t&&((t.tagName==='INPUT'&&t.type!=='range')||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable))return;
+  const b={'1':'#mAtk','2':'#mBoat','3':'#mStk','4':'#mBld'}[e.key];if(!b)return;
+  e.preventDefault();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();$(b).click();
+});
 $('#mStk').onclick=()=>{setMode('strike');toast('Tap enemy territory. Drones fly from your hangars, missiles from your silos.');};
 function renderStrikeRow(){
   const all=arsenalAll(G.pid),ws=weaponsOf(G.pid),row=$('#strikeRow');if(!ws.includes(G.ssel))G.ssel=ws[0]||'';
