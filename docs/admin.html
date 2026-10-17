@@ -326,6 +326,15 @@ function renderBal(B){
     wtable('Missiles','missiles',MKEYS,['cost','radius','speed','troops','intercept','reload'])+
     `<div class="card"><h2>Arsenals</h2><p class="hint">Which drones each nation can fly, its highest missile tier, and its special abilities. Hidden drones only appear when they come near the player's border. The drone handicap applies the multipliers below.</p>
      <div class="tablewrap"><table><thead><tr><th>Nation</th>${DKEYS.map(d=>`<th>${esc(B.drones[d].name)}</th>`).join('')}<th>Max missile tier</th><th>Hidden drones</th><th>Drone handicap</th><th>UAV recon</th><th>Cruise handicap</th><th>Drone rush</th></tr></thead><tbody>${nrows}</tbody></table></div></div>
+     <div class="card"><h2>Heat difficulty</h2><p class="hint">What each heat level above 1 adds for AI rivals. Heat 1 is the baseline: regen ×0.92, troop cap ×1, 300 starting troops, attack once 56% of their cap is ready, send 37% of their troops, first strikes at 150 s.</p><div class="kv" style="align-items:center">
+      <span>Regen per level</span><span>+${numIn('heat.regen',B.heat.regen,'0.01')} <span class="hint">e.g. 0.2: Heat 3 regen ×1.32</span></span>
+      <span>Troop cap per level</span><span>+${numIn('heat.cap',B.heat.cap,'0.01')}</span>
+      <span>Starting troops per level</span><span>+${numIn('heat.troops',B.heat.troops,'0.01')} <span class="hint">share of 300</span></span>
+      <span>Aggression per level</span><span>${numIn('heat.aggression',B.heat.aggression,'0.01')} <span class="hint">lowers the share of cap they wait for before attacking</span></span>
+      <span>Bigger attacks per level</span><span>+${numIn('heat.sendMore',B.heat.sendMore,'0.01')} <span class="hint">share of troops sent per attack</span></span>
+      <span>Focus on the player per level</span><span>${numIn('heat.playerFocus',B.heat.playerFocus,'0.01')} <span class="hint">higher = AIs pick on you more</span></span>
+      <span>Strikes start earlier per level</span><span>${numIn('heat.strikesEarlier',B.heat.strikesEarlier,'1')} seconds</span>
+     </div></div>
      <div class="card"><h2>Combat</h2><p class="hint">Ground attacks, defence and troop growth for every nation. Taking a tile costs <b>base + density × (defender troops per tile)</b>, times terrain, forts and capital.</p><div class="kv" style="align-items:center">
       <span>Attack speed ×</span><span>${numIn('combat.attackSpeed',B.combat.attackSpeed,'0.05')} <span class="hint">1 = original pace, 0.5 = wars take twice as long</span></span>
       <span>Tile cost base</span><span>${numIn('combat.tileBase',B.combat.tileBase,'0.5')} troops <span class="hint">also the cost of empty land</span></span>
