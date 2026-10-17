@@ -669,14 +669,14 @@ const BLOC=EXT?[0,1,1,1,1,1,1,2,2,2,1,1,2,2,3,3]:[0,1,1,1,1,1,1,2,2,2]; // Middl
 const sameBloc=(a,b)=>a>0&&b>0&&BLOC[a]===BLOC[b];
 // Bloc loyalty between two nations: 0 for rival blocs; 1 for the same bloc, or BAL.realistic.blocLoyalty in Realistic mode (0 = everyone treats everyone the same)
 const blocL=(a,b)=>sameBloc(a,b)?(G&&G.real?BAL.realistic.blocLoyalty:1):0;
-function baseMods(){return {neutral:1,desert:1,mount:1,cap:1,regen:1,atk:1,def:1,mountDef:1,oil:1,gold:1,coast:0,speed:1,cityCost:1,cityCap:400,fortR:4,fortPow:0,plunder:0,lion:false,pearl:1,falaj:false,boatSpeed:1,boatPow:1,boats:3,navy:1,patrol:9,reload:1,magD:0,magS:0,magM:0,droneCost:1,missileCost:1,artyCost:1,droneN:1,evade:1,samR:7,samPow:1,bunker:0,blast:2,startSilo:false};}
+function baseMods(){return {respect:1,neutral:1,desert:1,mount:1,cap:1,regen:1,atk:1,def:1,mountDef:1,oil:1,gold:1,coast:0,speed:1,cityCost:1,cityCap:400,fortR:4,fortPow:0,plunder:0,lion:false,pearl:1,falaj:false,boatSpeed:1,boatPow:1,boats:3,navy:1,patrol:9,reload:1,magD:0,magS:0,magM:0,droneCost:1,missileCost:1,artyCost:1,droneN:1,evade:1,samR:7,samPow:1,bunker:0,blast:2,startSilo:false};}
 // Nation perks come from BAL.perks (editable in the dashboard): coast and cityCap add, startSilo switches on, the rest multiply
 const PERK_ADD={coast:1,cityCap:1,samR:1};
 function applyPerk(id,m){
   const p=BAL.perks[codeOf(id)]||{};
   for(const [k,v] of Object.entries(p)){if(k==='startSilo')m.startSilo=v>0;else if(PERK_ADD[k])m[k]+=v;else if(k in m)m[k]*=v;}
 }
-const PERK_TITLE={1:'Burgan oil',2:'Royal Guard',3:'Pearl coast',4:'LNG wealth',5:'Megaprojects',6:'Hajar highlanders',7:'Mesopotamia',8:'Missile arsenal',9:'Highland warriors',10:'Nile and Suez',11:'Desert patrol',12:'Missile stockpile',13:'Mountain fortress',14:'Layered defense',15:'Drone industry'};
+const PERK_TITLE={1:'Diplomacy and Burgan oil',2:'Royal Guard',3:'Pearl coast',4:'LNG wealth',5:'Megaprojects',6:'Hajar highlanders',7:'Mesopotamia',8:'Missile arsenal',9:'Highland warriors',10:'Nile and Suez',11:'Desert patrol',12:'Missile stockpile',13:'Mountain fortress',14:'Layered defense',15:'Drone industry'};
 const PERK_EXTRA={3:'Island start: cross the causeway.',9:'Bigger start.',10:'Dhows can sail the Suez Canal.',13:'Bigger start.'};
 function perkText(id){
   const p=BAL.perks[codeOf(id)]||{},pc=v=>Math.round(Math.abs(v-1)*100),up=(v,what)=>`${what} ${v>=1?'+':'−'}${pc(v)}%`,cheap=(v,what)=>v<1?`${what} ${pc(v)}% cheaper`:`${what} ${pc(v)}% dearer`;
@@ -686,7 +686,7 @@ function perkText(id){
     if(!PERK_ADD[k]&&v===1)continue;
     parts.push(({oil:()=>up(v,'oil income'),cap:()=>up(v,'troop cap'),regen:()=>up(v,'regen'),gold:()=>up(v,'gold'),def:()=>up(v,'defense'),
       cityCost:()=>cheap(v,'cities'),missileCost:()=>cheap(v,'missiles'),atk:()=>cheap(v,'land attacks'),neutral:()=>cheap(v,'expansion'),
-      mount:()=>v===.5?'mountains half cost':cheap(v,'mountains'),mountDef:()=>up(v,'mountain defense'),desert:()=>v===.5?'deserts half cost':cheap(v,'deserts'),samPow:()=>up(v,'air defense accuracy'),samR:()=>`air defense range +${v}`,droneCost:()=>cheap(v,'drones'),artyCost:()=>cheap(v,'rocket artillery'),coast:()=>v?'coastal gold':'',cityCap:()=>`cities +${v} troop cap`}[k]||(()=>`${k} ×${v}`))());
+      mount:()=>v===.5?'mountains half cost':cheap(v,'mountains'),mountDef:()=>up(v,'mountain defense'),respect:()=>`rivals ${Math.round((1-1/v)*100)}% less likely to attack or strike it`,desert:()=>v===.5?'deserts half cost':cheap(v,'deserts'),samPow:()=>up(v,'air defense accuracy'),samR:()=>`air defense range +${v}`,droneCost:()=>cheap(v,'drones'),artyCost:()=>cheap(v,'rocket artillery'),coast:()=>v?'coastal gold':'',cityCap:()=>`cities +${v} troop cap`}[k]||(()=>`${k} ×${v}`))());
   }
   const t=parts.filter(Boolean).join(', ');
   return `${PERK_TITLE[id]}: ${t||'no bonus'}${PERK_EXTRA[id]?'. '+PERK_EXTRA[id]:''}`;
@@ -1192,7 +1192,7 @@ function stepShips(dt){
 function aiBoat(n,cnt){
   if(G.t<180||!n.coastT||boats.filter(b=>b.att===n.id).length>=2)return false;
   for(let k=0;k<40;k++){
-    const j=coastCells[(Math.random()*coastCells.length)|0],o=owner[j];if(o===n.id||cnt.has(o)||(o===G.pid&&treaty(n.id))||Math.random()<.9*blocL(n.id,o))continue;
+    const j=coastCells[(Math.random()*coastCells.length)|0],o=owner[j];if(o===n.id||cnt.has(o)||(o===G.pid&&treaty(n.id))||Math.random()<.9*blocL(n.id,o)||(o&&Math.random()>1/(NATS[o].m.respect||1)))continue;
     const dx=j%W-n.cx,dy=((j/W)|0)-n.cy;if(dx*dx+dy*dy>70*70)continue;
     if(o&&(NATS[o].troops>n.troops*.6||piled(o)))continue;
     return launchBoat(n.id,j,n.troops*(o?G.aiFrac:.35))==='ok';
@@ -1251,9 +1251,9 @@ function aiThink(n){
   else if(nations.length){
     let best=-1,bs=1e12;
     for(const o of nations){const d=NATS[o];let sc=d.troops/Math.max(1,cnt.get(o))*(.7+Math.random()*.6);
-      if(d.isPlayer)sc*=G.aiFocus;sc*=1+(BAL.ai.bloc-1)*blocL(n.id,o);if(pact==='alliance'&&!d.isPlayer&&!treaty(o))sc*=.55;if(d.isPlayer&&dipOf(n.id).hostileUntil>G.t)sc*=.5;if(sc<bs){bs=sc;best=o;}}
+      if(d.isPlayer)sc*=G.aiFocus;sc*=1+(BAL.ai.bloc-1)*blocL(n.id,o);sc*=d.m.respect||1;if(pact==='alliance'&&!d.isPlayer&&!treaty(o))sc*=.55;if(d.isPlayer&&dipOf(n.id).hostileUntil>G.t)sc*=.5;if(sc<bs){bs=sc;best=o;}}
     const d=NATS[best];
-    if((n.troops*G.aiFrac>d.troops*.35||n.troops>n.cap*.92)&&Math.random()>=blocL(n.id,best)*(1-BAL.ai.blocChance)&&!piled(best))target=best;
+    if((n.troops*G.aiFrac>d.troops*.35||n.troops>n.cap*.92)&&Math.random()>=blocL(n.id,best)*(1-BAL.ai.blocChance)&&Math.random()<1/(d.m.respect||1)&&!piled(best))target=best;
     else if(cnt.has(0))target=0;
   }
   if(target<0)return;
@@ -1492,10 +1492,10 @@ function aiStrike(n){
   const kind=wid.split(':')[0];
   const code=LAUNCHER[kind],cands=[];let tot=0;
   for(const j of blist){const o=owner[j];if(!bld[j]||!o||o===n.id||!bldVisibleTo(n.id,j)||(o===G.pid&&treaty(n.id)))continue;if(nearestLauncher(n,code,j,RANGE[kind])<0)continue;
-    let w=bld[j]===7?3:bld[j]===5||bld[j]===6?2.5:1;if(NATS[o].isPlayer)w*=1+.15*G.diff;w*=1-.94*blocL(n.id,o);cands.push([j,w]);tot+=w;}
+    let w=bld[j]===7?3:bld[j]===5||bld[j]===6?2.5:1;if(NATS[o].isPlayer)w*=1+.15*G.diff;w*=1-.94*blocL(n.id,o);w/=NATS[o].m.respect||1;cands.push([j,w]);tot+=w;}
   let tgt=-1;
   if(cands.length){let r=Math.random()*tot;for(const [j,w] of cands){r-=w;if(r<=0){tgt=j;break;}}if(tgt<0)tgt=cands[0][0];}
-  else for(let k=0;k<40;k++){const j=(Math.random()*N)|0,o=owner[j];if(!o||o===n.id||terr[j]<2||(o===G.pid&&treaty(n.id))||Math.random()<.92*blocL(n.id,o))continue;if(nearestLauncher(n,code,j,RANGE[kind])>=0){tgt=j;break;}}
+  else for(let k=0;k<40;k++){const j=(Math.random()*N)|0,o=owner[j];if(!o||o===n.id||terr[j]<2||(o===G.pid&&treaty(n.id))||Math.random()<.92*blocL(n.id,o)||Math.random()>1/(NATS[o].m.respect||1))continue;if(nearestLauncher(n,code,j,RANGE[kind])>=0){tgt=j;break;}}
   if(tgt>=0&&launchStrike(n.id,wid,tgt)==='cooldown'&&kind==='missile'&&dr.length)launchStrike(n.id,dr[0],tgt);
 }
 

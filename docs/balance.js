@@ -87,7 +87,7 @@ window.GD_BALANCE_DEFAULTS = {
   // cross mountains), def (defense of all its land), mountDef (extra defense of its mountain tiles), missileCost, atk (cost of taking enemy land), neutral (cost of empty land).
   // Added amounts: coast (gold per coastal tile), cityCap (troop cap per city). startSilo: 1 = starts with a missile silo.
   perks: {
-    KW: { oil: 1.6, def: 1.6, cap: 1.25, regen: 1.08 },
+    KW: { respect: 2, oil: 1.6, def: 1.6, cap: 1.25, regen: 1.08 }, // respect (Diplomacy): rivals see it as a 2× less attractive target
     SA: { cap: 1.25, neutral: 0.8, def: 1.15, regen: 1.05 },
     BH: { regen: 1.12, coast: 0.1 },
     QA: { gold: 1.4 },
