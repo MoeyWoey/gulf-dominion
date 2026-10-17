@@ -803,7 +803,7 @@ function startRun(spec){
   if(!spec||mp)endDaily();
   closeSheet();
   const pid=mp?mp.nation:spec?spec.nation:S.nation,diff=mp?mp.room.heat:spec?spec.heat:S.diff,isH=id=>mp?!!mp.humans[id]:id===pid;
-  owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);siloSeen.fill(0);
+  owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);siloSeen.fill(0);crater.fill(0);
   G={pid,diff,daily:mp?null:spec||null,mp:mp?1:0,spec:mp?!!mp.spec:false,names:mp?mp.names:{},real:mp?!!mp.room.realistic:!spec&&!!S.realistic,caps:0,t:0,speed:1,paused:false,over:false,acc:0,econAcc:0,
      aiRegen:.8+.12*diff,aiCap:.9+.1*diff,aiThresh:Math.max(.3,.62-.06*diff),aiFrac:Math.min(.65,.3+.07*diff),
      sand:1,kills:0,peak:0,ms:0,drafts:0,rerolls:lvl('reroll'),cards:[],nextNews:BAL.news.first,news:null,newsEnd:0,fx:fxBase(),ssel:'',cbSeen:{},dip:{},trustUntil:0,breakArm:0,breakArmUntil:0,rushReady:0,aiRushReady:{},focus:-1,focusUntil:0,hover:-1,uavUntil:0,uavReady:0,aiUav:{},aiUavReady:{},evt:null,evtEnd:0,oilBoost:1,sandstorm:1,
@@ -848,12 +848,13 @@ function tileCost(att,defId,i){
 function sidesOf(i,id){const x=i%W;return (x>0&&owner[i-1]===id)+(x<W-1&&owner[i+1]===id)+(i>=W&&owner[i-W]===id)+(i<N-W&&owner[i+W]===id);}
 // Empty pockets of up to BAL.combat.fillPocket tiles touching only one nation's land join that nation for free
 const pkSeen=new Uint32Array(N);let pkStamp=0;const pkQ=[];
+const crater=new Float32Array(N); // game time until which a missile crater stays out of the auto-claim
 function fillPockets(){
   const T=BAL.combat.fillPocket;if(!T)return;pkStamp++;
   for(let s=0;s<N;s++){
     if(owner[s]||terr[s]<2||pkSeen[s]===pkStamp)continue;
     pkQ.length=0;pkQ.push(s);pkSeen[s]=pkStamp;let own=0,mixed=false;
-    for(let h=0;h<pkQ.length;h++){const i=pkQ[h],x=i%W;
+    for(let h=0;h<pkQ.length;h++){const i=pkQ[h],x=i%W;if(crater[i]>G.t)mixed=true;
       for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W]){if(j<0||j>=N||terr[j]<2)continue;const o=owner[j];
         if(o){if(!own)own=o;else if(o!==own)mixed=true;continue;}
         if(pkSeen[j]!==pkStamp){pkSeen[j]=pkStamp;pkQ.push(j);}}}
@@ -1237,6 +1238,13 @@ function impact(m){
     if(bld[j]&&destroyBld(j)&&m.own===G.pid)wrecked++;
     victims.set(o,(victims.get(o)||0)+1);}
   for(const [o,k] of victims){const d=NATS[o];d.troops-=Math.min(d.troops,d.troops*m.tp*BAL.combat.strikeTroops+k*(m.kind==='drone'?4:6));hit.add(o);}
+  // Missiles crater the core of the blast: those tiles go back to empty land (never a capital's own tile)
+  const cf=BAL.combat.crater;
+  if(m.kind==='missile'&&cf>0){const rc=Math.max(.5,m.r*cf),rc2=rc*rc+.5,rci=Math.ceil(rc),hitN=new Set();
+    for(let dy=-rci;dy<=rci;dy++)for(let dx=-rci;dx<=rci;dx++){if(dx*dx+dy*dy>rc2)continue;const x=cx+dx,y=cy+dy;if(x<0||y<0||x>=W||y>=H)continue;
+      const j=y*W+x,o=owner[j];if(terr[j]<2||!o||o===m.own||j===NATS[o].capIdx)continue;
+      owner[j]=0;bld[j]=0;crater[j]=G.t+BAL.combat.craterTime;NATS[o].tiles--;markAround(j);hitN.add(o);}
+    for(const o of hitN){const d=NATS[o];if(d.alive&&d.tiles<=0){eliminate(d,att);if(G.over)return;}}}
   if(wrecked)bump('destroyed',wrecked);
   if(m.cruise&&m.own===G.pid&&hit.size)bump('cruiseHits');
   const what=m.name;

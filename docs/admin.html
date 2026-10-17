@@ -337,6 +337,8 @@ function renderBal(B){
       <span>Troop regen per tile</span><span>${numIn('combat.regenPerTile',B.combat.regenPerTile,'0.01')} per second <span class="hint">lower = less snowballing for big nations</span></span>
       <span>Troop cap per tile</span><span>${numIn('combat.capPerTile',B.combat.capPerTile,'1')}</span>
       <span>Auto-claim empty pockets up to</span><span>${numIn('combat.fillPocket',B.combat.fillPocket,'1')} tiles <span class="hint">empty land enclosed by one nation joins it for free; 0 = off</span></span>
+      <span>Missile crater size</span><span>${numIn('combat.crater',B.combat.crater,'0.05')} × blast radius <span class="hint">tiles there become empty land; 0 = off. Drones never crater</span></span>
+      <span>Crater stays empty for</span><span>${numIn('combat.craterTime',B.combat.craterTime,'5')} seconds <span class="hint">before the auto-claim can refill it</span></span>
       <span>Strike troop damage ×</span><span>${numIn('combat.strikeTroops',B.combat.strikeTroops,'0.05')} <span class="hint">scales the % of a nation's army each drone or missile kills</span></span>
      </div></div>
      <div class="card"><h2>Rules</h2><div class="kv" style="align-items:center">
