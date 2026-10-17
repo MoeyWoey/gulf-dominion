@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `0fbfc0e`)_
+_Last updated: 2026-10-17 (after commit `715686f`)_
 
 ---
 
@@ -419,6 +419,11 @@ Safety rules we keep:
 - Text fields keep the menu so game codes can be pasted.
 - The admin dashboard is unchanged.
 
+### 26. Win at 80% — `715686f`
+
+- A campaign (and an online game) is now won at **80%** of the land, up from 60%. Every in-game text uses the new number.
+- Decree milestones were extended with 60% and 70%.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -450,7 +455,7 @@ Safety rules we keep:
 | Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 · empty pockets up to 30 tiles auto-claimed · missile craters 0.5 × blast radius, empty for 30 s |
 | Nation perks | KW oil ×1.6 · SA troop cap ×1.2 · BH regen ×1.12, coastal gold · QA gold ×1.4 · AE cities ×0.65 cost · OM mountains ×0.5, defense ×1.15 · IQ regen ×1.1, +100 cap per city · IR missiles ×0.7, starts with a silo · YE attacks ×0.75, expansion ×0.85, mountains ×0.5, cap ×1.2, defense ×1.25, mountain defense ×1.6, regen ×1.2 |
 | AI targeting | Same-bloc target ×6, attacked 5% of the time · breather: no new AI attacks or landings on a nation that lost over 4% of its land recently (fades over 60 s); never shields the player |
-| Win condition | 60% of the land, or every rival eliminated |
+| Win condition | 80% of the land, or every rival eliminated (online: or last player standing) |
 
 Every value above can be changed live from the dashboard's **Balance** tab.
 
