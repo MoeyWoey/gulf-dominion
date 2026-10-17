@@ -275,6 +275,15 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
 .lbywait{text-align:center;color:var(--muted);margin:0;padding:8px}
 .netbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(84px + env(safe-area-inset-top,0px));z-index:25;display:flex;align-items:center;gap:10px;background:#2a1712;border:1px solid #c0583e;color:#ffd2c4;border-radius:10px;padding:7px 8px 7px 12px;font-size:.82rem;font-weight:600;width:max-content;max-width:calc(100% - 32px)}
 .lb .tr.hu{color:#b9adff}
+.mapswitch{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:radial-gradient(120% 60% at 50% 0%,#12343b 0%,var(--night) 60%);transition:opacity .25s}
+.mapswitch>div{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:16px}
+.mapswitch b{font-family:var(--f-display);font-size:1.3rem;color:var(--sand)}
+.mapswitch small{color:var(--muted);font-size:.82rem}
+.mapswitch .msring{width:34px;height:34px;border-radius:50%;border:3px solid var(--line-2);border-top-color:var(--sand);animation:msspin .8s linear infinite}
+@keyframes msspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.mapswitch .msring{animation:none}}
+.switching .mapswitch,.mapswitch.show{display:flex}
+.mapswitch.fade{opacity:0}
 .mapsel{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .mapsel button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line-2);background:var(--panel)}
 .mapsel button b{font-family:var(--f-display);font-size:1rem}
@@ -303,6 +312,8 @@ body.pc .seg button[data-key]::after{content:attr(data-key);position:absolute;to
 body.pc .toast{left:50%;transform:translateX(-50%);text-align:center;max-width:min(60vw,520px)}
 </style>
 
+<div class="mapswitch" id="mapSwitch" aria-live="polite"><div><span class="msring"></span><b id="mapSwitchT">Loading the map…</b><small>Your sign-in and progress stay as they are.</small></div></div>
+<script>try{var gs=sessionStorage.getItem('gd_switch');if(gs){document.documentElement.classList.add('switching');var t=document.getElementById('mapSwitchT');if(t)t.textContent=JSON.parse(gs).label||'Loading the map…';}}catch(e){}</script>
 <div id="home">
   <div class="wrap">
     <div class="brand">
@@ -767,7 +778,7 @@ async function api(path,opt={}){
   return j;
 }
 function signIn(){location.href=API+'/auth/google/start?return='+encodeURIComponent(location.origin+location.pathname);}
-function signOut(silent){TOKEN=null;ACCOUNT=null;ENT={items:new Set(),pearls:0};ENT_LIST=[];try{localStorage.removeItem('gd_token');}catch(e){}if(silent)renderAccount();else renderHome();}
+function signOut(silent){SC.del('me');TOKEN=null;ACCOUNT=null;ENT={items:new Set(),pearls:0};ENT_LIST=[];try{localStorage.removeItem('gd_token');}catch(e){}if(silent)renderAccount();else renderHome();}
 function applyEnt(list){
   ENT_LIST=list||[];ENT={items:new Set(),pearls:0};
   for(const e of ENT_LIST){if(e.item==='pearls')ENT.pearls+=Number(e.qty)||0;else if(Number(e.qty)>0)ENT.items.add(e.item);}
@@ -784,10 +795,15 @@ function pushSave(immediate){
 }
 function logEvent(event,data){if(ACCOUNT)api('/api/log',{method:'POST',body:{event,data}}).catch(()=>{});}
 window.addEventListener('error',e=>{if(errLogged++<5)logEvent('client_error',{msg:String(e.message||'').slice(0,200),line:e.lineno||0});});
+// Session cache: the last account, store and balance replies, shown at once after a reload (e.g. a map switch) while fresh copies load
+const SC={get(k){try{return JSON.parse(sessionStorage.getItem('gd_c_'+k)||'null');}catch(e){return null;}},set(k,v){try{sessionStorage.setItem('gd_c_'+k,JSON.stringify(v));}catch(e){}},del(k){try{sessionStorage.removeItem('gd_c_'+k);}catch(e){}}};
 async function loadAccount(){
   if(!API||!TOKEN){renderAccount();setTimeout(mpPendingJoin,0);return;}
+  const cached=SC.get('me');
+  if(cached&&cached.tail===TOKEN.slice(-16)&&!ACCOUNT){ACCOUNT=cached.user;applyEnt(cached.ents);if(screen==='home')renderHome();}
   try{
     const me=await api('/api/me');ACCOUNT=me.user;setTimeout(mpPendingJoin,0);
+    SC.set('me',{tail:TOKEN.slice(-16),user:me.user,ents:me.entitlements});
     if(me.save&&me.save.updated_at>(S.updatedAt||0))S=Object.assign(defSave(),me.save.data);
     applyEnt(me.entitlements);
     S.updatedAt=Math.max(S.updatedAt||0,me.save?me.save.updated_at:0)||Date.now();
@@ -804,9 +820,10 @@ function renderAccount(){
 }
 async function loadBalance(){
   if(!API)return;
-  try{const j=await api('/api/config');BAL=GD_mergeBalance(GD_BALANCE_DEFAULTS,j.config||{});applyOil();fullPaint=true;if(screen==='home')renderHome();}catch(e){}
+  const cached=SC.get('cfg');if(cached){BAL=GD_mergeBalance(GD_BALANCE_DEFAULTS,cached);applyOil();fullPaint=true;if(screen==='home')renderHome();}
+  try{const j=await api('/api/config');SC.set('cfg',j.config||{});BAL=GD_mergeBalance(GD_BALANCE_DEFAULTS,j.config||{});applyOil();fullPaint=true;if(screen==='home')renderHome();}catch(e){}
 }
-async function loadStore(){if(!API)return;try{STORE=await api('/api/store');}catch(e){STORE={products:[],enabled:false};}if(screen==='home'){renderStore();renderTabBadges();}}
+async function loadStore(){if(!API)return;const cached=SC.get('store');if(cached&&!STORE){STORE=cached;if(screen==='home'){renderStore();renderTabBadges();}}try{STORE=await api('/api/store');SC.set('store',STORE);}catch(e){STORE={products:[],enabled:false};}if(screen==='home'){renderStore();renderTabBadges();}}
 const fmtPrice=(v,c)=>`${Number(v).toFixed(['KWD','BHD','OMR','JOD'].includes(c)?3:2)} ${esc(c)}`;
 function renderStore(){
   const sec=$('#storeSec');if(!sec)return;
@@ -2407,7 +2424,19 @@ function renderTabBadges(){
   $('#sheetPearls').textContent=fmt(S.pearls);
   const fresh=Object.keys(S.ach||{}).length-(S.achSeen||0),abd=$('#achBadge');abd.hidden=fresh<=0;abd.textContent=fresh+' new';
 }
-function switchMap(id,after){try{localStorage.setItem('gd_map',id);if(after)sessionStorage.setItem(after[0],after[1]);}catch(e){}location.reload();}
+function switchMap(id,after){
+  const label=after&&after[0]==='gd_room'?'Joining the game…':`Loading the ${id==='ext'?'Middle East':'Gulf'} map…`;
+  try{localStorage.setItem('gd_map',id);if(after)sessionStorage.setItem(after[0],after[1]);sessionStorage.setItem('gd_switch',JSON.stringify({label,anchor:$('#mapSel').getBoundingClientRect().top}));}catch(e){}
+  const ms=$('#mapSwitch');$('#mapSwitchT').textContent=label;ms.classList.remove('fade');ms.classList.add('show');
+  setTimeout(()=>location.reload(),60);
+}
+// After a map switch: restore the scroll position, then fade the loading screen out
+function finishSwitch(){
+  let st=null;try{st=JSON.parse(sessionStorage.getItem('gd_switch')||'null');sessionStorage.removeItem('gd_switch');}catch(e){}
+  if(!st)return;if(screen==='home'&&typeof st.anchor==='number')$('#home').scrollTop+=$('#mapSel').getBoundingClientRect().top-st.anchor; // keep the map picker where it was on screen
+  const ms=$('#mapSwitch');ms.classList.add('show');document.documentElement.classList.remove('switching');
+  requestAnimationFrame(()=>setTimeout(()=>{ms.classList.add('fade');setTimeout(()=>ms.classList.remove('show','fade'),300);},150));
+}
 document.querySelectorAll('#mapSel button').forEach(b=>b.onclick=()=>{if(b.dataset.map!==MAP_ID&&!MP)switchMap(b.dataset.map);});
 function renderDaily(){
   const el=$('#daily');if(!el)return;
@@ -2919,6 +2948,7 @@ document.addEventListener('dragstart',e=>{if(e.target.tagName==='IMG'||e.target.
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(screen==='home')drawHero();});
 showScreen('home');
 loadAccount();loadStore();loadBalance();
+finishSwitch();
 requestAnimationFrame(frame);
 })();
 </script>
