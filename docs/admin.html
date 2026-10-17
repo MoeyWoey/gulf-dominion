@@ -306,7 +306,7 @@ function editProduct(p){
 /* ---------- balance ---------- */
 const DKEYS=['light','strike','heavy'],MKEYS=['t1','t2','t3','cruise'];
 const COLS={cost:['Cost','gold','1'],radius:['Blast radius','tiles','0.1'],speed:['Speed','tiles/s','0.1'],troops:['Troops hit','%','0.5'],intercept:['Intercept ×','higher = easier to shoot down','0.05'],reload:['Reload ×','silo reload after firing','0.1']};
-const PERK_LABEL={oil:'Oil income ×',cap:'Troop cap ×',regen:'Troop regen ×',coast:'Coastal gold +',gold:'Gold ×',cityCost:'City cost ×',mount:'Mountain cost ×',def:'Defense ×',cityCap:'Troop cap per city +',missileCost:'Missile cost ×',startSilo:'Starts with a silo (1/0)',atk:'Attack cost ×',neutral:'Expansion cost ×',mountDef:'Mountain defense ×',desert:'Desert cost ×',samPow:'Air defense accuracy ×',samR:'Air defense range +',droneCost:'Drone cost ×'};
+const PERK_LABEL={oil:'Oil income ×',cap:'Troop cap ×',regen:'Troop regen ×',coast:'Coastal gold +',gold:'Gold ×',cityCost:'City cost ×',mount:'Mountain cost ×',def:'Defense ×',cityCap:'Troop cap per city +',missileCost:'Missile cost ×',startSilo:'Starts with a silo (1/0)',atk:'Attack cost ×',neutral:'Expansion cost ×',mountDef:'Mountain defense ×',desert:'Desert cost ×',samPow:'Air defense accuracy ×',samR:'Air defense range +',droneCost:'Drone cost ×',artyCost:'Rocket artillery cost ×'};
 const numIn=(k,v,step)=>`<input type="number" min="0" step="${step}" data-k="${k}" value="${esc(v)}" style="width:86px">`;
 async function loadBal(){const r=await api('/api/admin/config');renderBal(GD_mergeBalance(GD_BALANCE_DEFAULTS,r.config||{}));$('#balMsg').innerHTML='';}
 function renderBal(B){
@@ -319,13 +319,39 @@ function renderBal(B){
     <td><input type="checkbox" data-hcap="${c}" ${B.droneHandicap.nations.includes(c)?'checked':''} aria-label="${esc(name)} drone handicap"></td>
     <td><input type="checkbox" data-abuav="${c}" ${B.abilities.uav.includes(c)?'checked':''} aria-label="${esc(name)} UAV recon"></td>
     <td><input type="checkbox" data-crh="${c}" ${B.cruiseHandicap.nations.includes(c)?'checked':''} aria-label="${esc(name)} cruise handicap"></td>
-    <td><input type="checkbox" data-abrush="${c}" ${B.abilities.droneRush.includes(c)?'checked':''} aria-label="${esc(name)} drone rush"></td></tr>`;}).join('');
+    <td><input type="checkbox" data-abrush="${c}" ${B.abilities.droneRush.includes(c)?'checked':''} aria-label="${esc(name)} drone rush"></td>
+    <td><input type="checkbox" data-arty="${c}" ${a.artillery>0?'checked':''} aria-label="${esc(name)} rocket artillery"></td>
+    <td><input type="checkbox" data-ash="${c}" ${a.antiShip>0?'checked':''} aria-label="${esc(name)} coastal battery"></td></tr>`;}).join('');
   const h=B.droneHandicap;
   $('#balForm').innerHTML=
     wtable('Drones','drones',DKEYS,['cost','radius','speed','troops','intercept'])+
     wtable('Missiles','missiles',MKEYS,['cost','radius','speed','troops','intercept','reload'])+
-    `<div class="card"><h2>Arsenals</h2><p class="hint">Which drones each nation can fly, its highest missile tier, and its special abilities. Hidden drones only appear when they come near the player's border. The drone handicap applies the multipliers below.</p>
-     <div class="tablewrap"><table><thead><tr><th>Nation</th>${DKEYS.map(d=>`<th>${esc(B.drones[d].name)}</th>`).join('')}<th>Max missile tier</th><th>Hidden drones</th><th>Drone handicap</th><th>UAV recon</th><th>Cruise handicap</th><th>Drone rush</th></tr></thead><tbody>${nrows}</tbody></table></div></div>
+    `<div class="card"><h2>Arsenals</h2><p class="hint">Which drones each nation can fly, its highest missile tier, its special abilities, and whether it can build rocket artillery and coastal batteries. Hidden drones only appear when they come near the player's border. The drone handicap applies the multipliers below.</p>
+     <div class="tablewrap"><table><thead><tr><th>Nation</th>${DKEYS.map(d=>`<th>${esc(B.drones[d].name)}</th>`).join('')}<th>Max missile tier</th><th>Hidden drones</th><th>Drone handicap</th><th>UAV recon</th><th>Cruise handicap</th><th>Drone rush</th><th>Rocket artillery</th><th>Coastal battery</th></tr></thead><tbody>${nrows}</tbody></table></div></div>
+     <div class="card"><h2>Rocket artillery</h2><p class="hint">The Artillery building fires salvos from Strike mode at land within range. Rockets scatter, kill troops, seldom wreck buildings and never crater. Nations get it with the Rocket artillery column above.</p><div class="kv" style="align-items:center">
+      <span>Name</span><span><input data-k="artillery.name" value="${esc(B.artillery.name)}" maxlength="40" style="width:160px"></span>
+      <span>Salvo cost</span><span>${numIn('artillery.cost',B.artillery.cost,'1')} gold</span>
+      <span>Building cost</span><span>${numIn('artillery.bldCost',B.artillery.bldCost,'5')} gold <span class="hint">each extra one costs 30% more</span></span>
+      <span>Range</span><span>${numIn('artillery.range',B.artillery.range,'1')} tiles</span>
+      <span>Rockets per salvo</span><span>${numIn('artillery.rockets',B.artillery.rockets,'1')}</span>
+      <span>Scatter</span><span>${numIn('artillery.spread',B.artillery.spread,'0.5')} tiles <span class="hint">how far rockets land from the aim point</span></span>
+      <span>Blast radius per rocket</span><span>${numIn('artillery.radius',B.artillery.radius,'0.1')} tiles</span>
+      <span>Troops hit per rocket</span><span>${numIn('artillery.troops',B.artillery.troops,'0.1')} % <span class="hint">of the target nation's troops, before the strike troop damage ×</span></span>
+      <span>Building wreck chance</span><span>${numIn('artillery.bld',B.artillery.bld,'0.01')} <span class="hint">per rocket that lands on a building (0–1)</span></span>
+      <span>Reload after a salvo</span><span>${numIn('artillery.reload',B.artillery.reload,'1')} seconds</span>
+      <span>Rocket speed</span><span>${numIn('artillery.speed',B.artillery.speed,'0.1')} tiles/s</span>
+      <span>Intercept ×</span><span>${numIn('artillery.intercept',B.artillery.intercept,'0.05')} <span class="hint">higher = easier to shoot down</span></span>
+     </div></div>
+     <div class="card"><h2>Coastal anti-ship battery</h2><p class="hint">Fires by itself at hostile warships and dhows in range, and at ports when no ship is near. Never at partners; same-bloc ships only when they land on its shore. Nations get it with the Coastal battery column above.</p><div class="kv" style="align-items:center">
+      <span>Missile name</span><span><input data-k="antiShip.name" value="${esc(B.antiShip.name)}" maxlength="40" style="width:160px"></span>
+      <span>Building cost</span><span>${numIn('antiShip.bldCost',B.antiShip.bldCost,'5')} gold <span class="hint">each extra one costs 30% more</span></span>
+      <span>Range</span><span>${numIn('antiShip.range',B.antiShip.range,'1')} tiles</span>
+      <span>Missiles per battery</span><span>${numIn('antiShip.mag',B.antiShip.mag,'1')}</span>
+      <span>Reload when empty</span><span>${numIn('antiShip.reload',B.antiShip.reload,'1')} seconds</span>
+      <span>Missile speed</span><span>${numIn('antiShip.speed',B.antiShip.speed,'0.1')} tiles/s</span>
+      <span>Intercept ×</span><span>${numIn('antiShip.intercept',B.antiShip.intercept,'0.05')} <span class="hint">warships and air defense; higher = easier to shoot down</span></span>
+      <span>Port wreck chance</span><span>${numIn('antiShip.portHit',B.antiShip.portHit,'0.05')} <span class="hint">per hit on a port (0–1)</span></span>
+     </div></div>
      <div class="card"><h2>Heat difficulty</h2><p class="hint">What each heat level above 1 adds for AI rivals. Heat 1 is the baseline: regen ×0.92, troop cap ×1, 300 starting troops, attack once 56% of their cap is ready, send 37% of their troops, first strikes at 150 s.</p><div class="kv" style="align-items:center">
       <span>Regen per level</span><span>+${numIn('heat.regen',B.heat.regen,'0.01')} <span class="hint">e.g. 0.2: Heat 3 regen ×1.32</span></span>
       <span>Troop cap per level</span><span>+${numIn('heat.cap',B.heat.cap,'0.01')}</span>
@@ -401,7 +427,7 @@ function renderBal(B){
 function collectBal(){
   const B=GD_mergeBalance(GD_BALANCE_DEFAULTS,{});
   document.querySelectorAll('#balForm [data-k]').forEach(el=>{const path=el.dataset.k.split('.');let o=B;for(let i=0;i<path.length-1;i++)o=o[path[i]];o[path[path.length-1]]=el.type==='number'?Number(el.value):el.value;});
-  for(const [c] of GD_NATION_CODES)B.arsenal[c]={drones:DKEYS.filter(d=>document.querySelector(`[data-ars="${c}"][data-d="${d}"]`).checked),missileTier:+document.querySelector(`[data-tier="${c}"]`).value};
+  for(const [c] of GD_NATION_CODES)B.arsenal[c]={drones:DKEYS.filter(d=>document.querySelector(`[data-ars="${c}"][data-d="${d}"]`).checked),missileTier:+document.querySelector(`[data-tier="${c}"]`).value,artillery:document.querySelector(`[data-arty="${c}"]`).checked?1:0,antiShip:document.querySelector(`[data-ash="${c}"]`).checked?1:0};
   B.stealth.nations=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-stealth="${c}"]`).checked);
   B.droneHandicap.nations=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-hcap="${c}"]`).checked);
   B.abilities.uav=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-abuav="${c}"]`).checked);

@@ -21,24 +21,32 @@ window.GD_BALANCE_DEFAULTS = {
     t3: { name: 'Missile III', cost: 750, radius: 4, speed: 8, troops: 15, intercept: 0.8, reload: 2.2 },
     cruise: { name: 'Cruise missile', cost: 300, radius: 1.5, speed: 5, troops: 6, intercept: 0.6, reload: 1.3 },
   },
-  // Which drone types each nation can fly, and the highest missile tier it can fire (0 = none)
+  // Which drone types each nation can fly, the highest missile tier it can fire (0 = none), and whether it can build
+  // rocket artillery and coastal anti-ship batteries (1 = yes, 0 = no)
   arsenal: {
-    KW: { drones: ['light'], missileTier: 3 },
-    SA: { drones: ['light'], missileTier: 3 },
-    BH: { drones: ['light'], missileTier: 3 },
-    QA: { drones: ['light'], missileTier: 3 },
-    AE: { drones: ['light'], missileTier: 3 },
-    OM: { drones: ['light'], missileTier: 3 },
-    IQ: { drones: ['light'], missileTier: 1 },
-    IR: { drones: ['light', 'strike', 'heavy'], missileTier: 1 },
-    YE: { drones: ['light'], missileTier: 1 },
-    EG: { drones: ['light'], missileTier: 2 },
-    JO: { drones: ['light'], missileTier: 1 },
-    SY: { drones: ['light'], missileTier: 1 },
-    LB: { drones: ['light'], missileTier: 1 },
-    IL: { drones: ['light'], missileTier: 3 },
-    TR: { drones: ['light', 'strike', 'heavy'], missileTier: 2 },
+    KW: { drones: ['light'], missileTier: 3, artillery: 0, antiShip: 0 },
+    SA: { drones: ['light'], missileTier: 3, artillery: 0, antiShip: 0 },
+    BH: { drones: ['light'], missileTier: 3, artillery: 0, antiShip: 0 },
+    QA: { drones: ['light'], missileTier: 3, artillery: 0, antiShip: 0 },
+    AE: { drones: ['light'], missileTier: 3, artillery: 0, antiShip: 0 },
+    OM: { drones: ['light'], missileTier: 3, artillery: 0, antiShip: 0 },
+    IQ: { drones: ['light'], missileTier: 1, artillery: 0, antiShip: 0 },
+    IR: { drones: ['light', 'strike', 'heavy'], missileTier: 1, artillery: 0, antiShip: 1 },
+    YE: { drones: ['light'], missileTier: 1, artillery: 0, antiShip: 1 },
+    EG: { drones: ['light'], missileTier: 2, artillery: 0, antiShip: 1 },
+    JO: { drones: ['light'], missileTier: 1, artillery: 0, antiShip: 0 },
+    SY: { drones: ['light'], missileTier: 1, artillery: 1, antiShip: 0 },
+    LB: { drones: ['light'], missileTier: 1, artillery: 1, antiShip: 0 },
+    IL: { drones: ['light'], missileTier: 3, artillery: 1, antiShip: 0 },
+    TR: { drones: ['light', 'strike', 'heavy'], missileTier: 2, artillery: 1, antiShip: 0 },
   },
+  // Rocket artillery (Artillery building): cost per salvo, reach in tiles, rockets per salvo, blast radius of each rocket,
+  // troops = % of the target nation's troops each rocket kills, reload seconds after a salvo, spread = how far rockets scatter
+  // (tiles), bld = chance a rocket wrecks a building it lands on, intercept = multiplier on air defense hit chance, bldCost = building price
+  artillery: { name: 'Rocket artillery', cost: 40, range: 18, rockets: 6, radius: 0.9, troops: 0.7, reload: 12, spread: 3, speed: 4, bld: 0.12, intercept: 0.5, bldCost: 140 },
+  // Coastal anti-ship battery: fires by itself at enemy warships, dhows and ports within `range` tiles. mag missiles, then
+  // `reload` seconds. A hit sinks a ship or dhow; a port is wrecked with chance `portHit`. intercept as above; bldCost = building price
+  antiShip: { name: 'Anti-ship missile', range: 22, mag: 2, reload: 20, speed: 6, intercept: 0.8, portHit: 0.35, bldCost: 170 },
   // Drones from these nations stay hidden until they come within `reveal` tiles of the player's land
   stealth: { nations: ['IQ', 'IR', 'YE', 'SY', 'LB'], reveal: 8 },
   // Drone disadvantage for these nations: multipliers on cost, interceptability, blast radius and speed
@@ -88,11 +96,11 @@ window.GD_BALANCE_DEFAULTS = {
     IQ: { regen: 1.1, cityCap: 100 },
     IR: { missileCost: 0.7, startSilo: 1 },
     YE: { atk: 0.75, neutral: 0.85, mount: 0.5, cap: 1.2, def: 1.25, mountDef: 1.6, regen: 1.2 },
-    // Middle East map only. Extra keys: desert (cost to cross deserts), samPow (air defense accuracy), samR (added air defense range), droneCost
+    // Middle East map only. Extra keys: desert (cost to cross deserts), samPow (air defense accuracy), samR (added air defense range), droneCost, artyCost (rocket artillery salvos)
     EG: { coast: 0.1, def: 1.1, neutral: 1.15 },
     JO: { desert: 0.5, def: 1.2, neutral: 0.85 },
     SY: { missileCost: 0.75, mountDef: 1.4, regen: 1.08 },
-    LB: { mountDef: 1.6, def: 1.1 },
+    LB: { mountDef: 1.6, def: 1.1, artyCost: 0.7 },
     IL: { samPow: 1.25, samR: 1, def: 1.2, atk: 0.85, regen: 1.1 },
     TR: { droneCost: 0.75, cap: 1.2, mount: 0.6, regen: 1.08 },
   },
