@@ -118,7 +118,7 @@ td.mono,.mono{font-family:var(--f-mono);font-size:.78rem;overflow-wrap:anywhere}
 
     <section data-p="users" hidden>
       <div class="row"><input id="usQ" class="grow" placeholder="Search by email or name" type="search"><button class="btn" id="usGo">Search</button></div>
-      <div class="tablewrap"><table><thead><tr><th>Player</th><th>Joined</th><th>Last seen</th><th>Unlocks</th><th>Spent (live)</th><th></th></tr></thead><tbody id="usRows"></tbody></table></div>
+      <div class="tablewrap"><table><thead><tr><th>Player</th><th>Joined</th><th>Last seen</th><th>Unlocks</th><th>Spent (live)</th><th>Progress</th><th></th></tr></thead><tbody id="usRows"></tbody></table></div>
       <div class="card" id="usEdit" hidden></div>
     </section>
 
@@ -252,7 +252,15 @@ $('#lgMore').onclick=()=>loadLogs(true);
 let users=[];
 async function loadUsers(){
   const r=await api('/api/admin/users?q='+encodeURIComponent($('#usQ').value.trim()));users=r.users;
-  $('#usRows').innerHTML=users.map(u=>`<tr><td><b>${esc(u.name||'—')}</b>${u.is_admin?' <span class="pill ok">admin</span>':''}${u.banned?' <span class="pill failed">blocked</span>':''}<div class="hint">${esc(u.email)}</div></td><td class="num">${when(u.created_at)}</td><td class="num">${when(u.last_seen)}</td><td>${esc((u.items||'').split(',').filter(Boolean).join(', ')||'—')}</td><td class="num">${Number(u.spent||0).toFixed(3)}</td><td><button class="btn" data-u="${u.id}">Manage</button></td></tr>`).join('')||'<tr><td colspan="6" class="hint">No players yet.</td></tr>';
+  $('#usRows').innerHTML=users.map(u=>`<tr><td><b>${esc(u.name||'—')}</b>${u.is_admin?' <span class="pill ok">admin</span>':''}${u.banned?' <span class="pill failed">blocked</span>':''}<div class="hint">${esc(u.email)}</div></td><td class="num">${when(u.created_at)}</td><td class="num">${when(u.last_seen)}</td><td>${esc((u.items||'').split(',').filter(Boolean).join(', ')||'—')}</td><td class="num">${Number(u.spent||0).toFixed(3)}</td><td><div class="hint">${Number(u.upg_levels||0)} upgrade levels · ${Number(u.ach_count||0)} achievements</div><div class="row" style="gap:6px;margin-top:4px"><button class="btn" data-reset="upgrades" data-uid="${u.id}">Reset upgrades</button><button class="btn" data-reset="achievements" data-uid="${u.id}">Reset achievements</button></div></td><td><button class="btn" data-u="${u.id}">Manage</button></td></tr>`).join('')||'<tr><td colspan="7" class="hint">No players yet.</td></tr>';
+  // Reset buttons: tap twice to confirm
+  document.querySelectorAll('#usRows button[data-reset]').forEach(b=>b.onclick=async()=>{
+    const what=b.dataset.reset,label=what==='upgrades'?'Reset upgrades':'Reset achievements';
+    if(!b.dataset.armed){b.dataset.armed='1';b.textContent='Tap again to confirm';b.classList.add('danger');setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent=label;b.classList.remove('danger');}},4000);return;}
+    b.disabled=true;b.textContent='Resetting…';
+    try{await api(`/api/admin/users/${b.dataset.uid}/reset`,{method:'POST',body:{what}});b.textContent='Done';setTimeout(loadUsers,700);}
+    catch(e){b.textContent=e.status===404?'No cloud save':'Failed';b.disabled=false;}
+  });
   document.querySelectorAll('#usRows button[data-u]').forEach(b=>b.onclick=()=>editUser(+b.dataset.u));
 }
 function editUser(id){
@@ -391,6 +399,10 @@ function renderBal(B){
           <button class="btn danger" data-bdel type="button">Remove bloc</button></div>
         <div style="display:flex;flex-wrap:wrap;gap:4px 14px">${GD_NATION_CODES.map(([c,name])=>`<label style="display:inline-flex;align-items:center;gap:5px"><input type="checkbox" data-bnat="${c}" ${g.nations.includes(c)?'checked':''}>${esc(name)}</label>`).join('')}</div></div>`).join('')}</div>
       <button class="btn" id="blocAdd" type="button">Add a bloc</button></div>
+     <div class="card"><h2>Majlis upgrades</h2><p class="hint">Price of the first level, × growth for each further level, and how many levels exist. Lowering the levels caps players who already own more.</p>
+      <div class="tablewrap"><table><thead><tr><th>Upgrade</th><th>First level</th><th>Growth ×</th><th>Levels</th><th>Total to max</th></tr></thead><tbody>${Object.keys(B.upgrades).map(k=>{const u=B.upgrades[k];let t=0;for(let i=0;i<u.max;i++)t+=Math.round(u.base*Math.pow(u.grow,i));return `<tr><td>${esc(u.name)}</td><td>${numIn(`upgrades.${k}.base`,u.base,'5')}</td><td>${numIn(`upgrades.${k}.grow`,u.grow,'0.05')}</td><td>${numIn(`upgrades.${k}.max`,u.max,'1')}</td><td class="num">${t.toLocaleString()} pearls</td></tr>`;}).join('')}</tbody></table></div></div>
+     <div class="card"><h2>Achievements</h2><p class="hint">Goals count across all campaigns (land % achievements use the best single campaign). The weapon-unlock achievements use the unlock goals in Rules.</p>
+      <div class="tablewrap"><table><thead><tr><th>Achievement</th><th>Goal</th><th>Pearls</th></tr></thead><tbody>${Object.keys(B.achievements).map(k=>{const a=B.achievements[k];return `<tr><td>${esc(a.name)}</td><td>${numIn(`achievements.${k}.goal`,a.goal,'1')}</td><td>${numIn(`achievements.${k}.pearls`,a.pearls,'5')}</td></tr>`;}).join('')}</tbody></table></div></div>
      <div class="card"><h2>Nation perks</h2><p class="hint">Each nation's bonus. Multipliers: 1 = no effect; above 1 means more (gold, regen, defense), below 1 means cheaper (cities, missiles, attacks, mountains). The nation cards in the game describe these numbers automatically.</p>
       <div class="kv" style="align-items:center">${GD_NATION_CODES.map(([c,name])=>`<span><b>${esc(name)}</b></span><span>${Object.keys(B.perks[c]).map(k=>`<label style="display:inline-flex;align-items:center;gap:4px;margin:2px 10px 2px 0">${esc(PERK_LABEL[k]||k)} ${numIn(`perks.${c}.${k}`,B.perks[c][k],k==='cityCap'?'10':k==='startSilo'?'1':'0.01')}</label>`).join('')}</span>`).join('')}</div></div>
      <div class="card"><h2>Rules</h2><div class="kv" style="align-items:center">

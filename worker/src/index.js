@@ -402,6 +402,10 @@ async function api(req, env, url, path) {
   }
 
   if (path === '/api/save' && method === 'PUT') {
+    // After an admin reset, refuse saves made before it, so an open game can't write the old progress back
+    const cur = await env.DB.prepare('SELECT data FROM saves WHERE user_id = ?').bind(user.id).first();
+    if (cur) { let ra = 0; try { ra = Number(JSON.parse(cur.data)._resetAt) || 0; } catch {}
+      if (ra && (Number(body.data && body.data._resetAt) || 0) < ra) return json({ error: 'reset' }, 409); }
     const data = JSON.stringify(body.data || {});
     if (data.length > MAX_SAVE_BYTES) return json({ error: 'too_large' }, 413);
     const updated = Math.max(Number(body.updatedAt) || 0, 0) || Date.now();
@@ -495,12 +499,29 @@ async function admin(req, env, url, path, method, body, me) {
     const r = await env.DB.prepare(
       `SELECT u.id, u.email, u.name, u.created_at, u.last_seen, u.banned, u.is_admin,
         (SELECT GROUP_CONCAT(item) FROM (SELECT DISTINCT item FROM entitlements e WHERE e.user_id = u.id AND e.revoked = 0)) AS items,
-        (SELECT COALESCE(SUM(amount),0) FROM orders o WHERE o.user_id = u.id AND o.status = 'paid' AND o.mode = 'live') AS spent
+        (SELECT COALESCE(SUM(amount),0) FROM orders o WHERE o.user_id = u.id AND o.status = 'paid' AND o.mode = 'live') AS spent,
+        (SELECT COALESCE(SUM(j.value),0) FROM saves s, json_each(s.data, '$.upg') j WHERE s.user_id = u.id AND json_valid(s.data)) AS upg_levels,
+        (SELECT COUNT(*) FROM saves s, json_each(s.data, '$.ach') j WHERE s.user_id = u.id AND json_valid(s.data)) AS ach_count
        FROM users u WHERE u.email LIKE ? OR u.name LIKE ? ORDER BY u.last_seen DESC LIMIT 200`
     ).bind(like, like).all();
     return json({ users: r.results.map((u) => ({ ...u, is_admin: u.is_admin || isAdminEmail(env, u.email) ? 1 : 0 })) });
   }
-  let m = path.match(/^\/users\/(\d+)\/(grant|revoke|ban)$/);
+  let m = path.match(/^\/users\/(\d+)\/reset$/);
+  if (m && method === 'POST') {
+    // Reset a player's Majlis upgrades or achievements (with their stats and weapon unlocks) in the cloud save
+    const uid = Number(m[1]), what = body.what === 'achievements' ? 'achievements' : body.what === 'upgrades' ? 'upgrades' : '';
+    if (!what) return json({ error: 'what' }, 400);
+    const row = await env.DB.prepare('SELECT data FROM saves WHERE user_id = ?').bind(uid).first();
+    if (!row) return json({ error: 'no_save' }, 404);
+    let data = {}; try { data = JSON.parse(row.data) || {}; } catch {}
+    if (what === 'upgrades') data.upg = {};
+    else { data.ach = {}; data.st = {}; data.unl = {}; data.achSeen = 0; }
+    const t = Date.now(); data._resetAt = t; data.updatedAt = t;
+    await env.DB.prepare('UPDATE saves SET data = ?, updated_at = ? WHERE user_id = ?').bind(JSON.stringify(data), t, uid).run();
+    await log(env, me.id, 'info', 'admin_reset_' + what, { user: uid });
+    return json({ ok: true });
+  }
+  m = path.match(/^\/users\/(\d+)\/(grant|revoke|ban)$/);
   if (m && method === 'POST') {
     const uid = Number(m[1]);
     if (m[2] === 'grant') {

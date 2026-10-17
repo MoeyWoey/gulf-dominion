@@ -793,7 +793,7 @@ function saveLocal(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch
 function save(){S.updatedAt=Date.now();saveLocal();pushSave(false);}
 function pushSave(immediate){
   if(!ACCOUNT)return;clearTimeout(syncT);
-  syncT=setTimeout(async()=>{try{await api('/api/save',{method:'PUT',body:{data:S,updatedAt:S.updatedAt||Date.now()}});syncState='synced';}catch(e){syncState='offline';}renderAccount();},immediate?0:1500);
+  syncT=setTimeout(async()=>{try{await api('/api/save',{method:'PUT',body:{data:S,updatedAt:S.updatedAt||Date.now()}});syncState='synced';}catch(e){if(e.status===409){S.updatedAt=0;await loadAccount();showNote('ok','An admin reset part of your progress. Your account has been updated.');return;}syncState='offline';}renderAccount();},immediate?0:1500);
 }
 function logEvent(event,data){if(ACCOUNT)api('/api/log',{method:'POST',body:{event,data}}).catch(()=>{});}
 window.addEventListener('error',e=>{if(errLogged++<5)logEvent('client_error',{msg:String(e.message||'').slice(0,200),line:e.lineno||0});});
@@ -822,7 +822,7 @@ function renderAccount(){
 }
 async function loadBalance(){
   if(!API)return;
-  const use=cfg=>{const oilWas=BAL.oil.gccExtra;BAL=GD_mergeBalance(GD_BALANCE_DEFAULTS,cfg||{});if(BAL.oil.gccExtra!==oilWas){applyOil();basePaint=true;heroKey=null;}if(screen==='home')renderHome();};
+  const use=cfg=>{const oilWas=BAL.oil.gccExtra;BAL=GD_mergeBalance(GD_BALANCE_DEFAULTS,cfg||{});syncProgressBal();if(BAL.oil.gccExtra!==oilWas){applyOil();basePaint=true;heroKey=null;}if(screen==='home')renderHome();};
   const cached=SC.get('cfg');if(cached)use(cached);
   try{const j=await api('/api/config');SC.set('cfg',j.config||{});use(j.config);}catch(e){}
 }
@@ -858,7 +858,7 @@ function applyCosmetics(){
 }
 let DAILY=null; // the daily challenge spec while a daily run is active
 let MP=null; // online game session (lobby or live game)
-const lvl=k=>DAILY||(MP&&MP.live)?0:(S.upg[k]||0); // Majlis upgrades don't apply in the daily challenge or online
+const lvl=k=>{if(DAILY||(MP&&MP.live))return 0;const u=UPG.find(x=>x.k===k);return Math.min(S.upg[k]||0,u?u.max:99);}; // Majlis upgrades don't apply in the daily challenge or online; levels above the current max don't count
 const upgCost=u=>Math.round(u.base*Math.pow(u.grow,lvl(u.k)));
 const fmt=n=>{n=Math.max(0,n);return n<1000?String(Math.floor(n)):n<1e6?(n/1000).toFixed(n<1e4?1:0)+'k':(n/1e6).toFixed(1)+'M';};
 const rgb=(c,a=1)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
@@ -2265,22 +2265,28 @@ function openDiplomacy(id,note){
 /* ================= Achievements ================= */
 const ACH=[
  {id:'first_run',name:'First campaign',desc:'Finish a campaign, won or lost',stat:'campaigns',goal:1,reward:{pearls:20}},
- {id:'expand10',name:'Expansionist',desc:'Hold 10% of the region in one campaign',stat:'peak',goal:10,reward:{pearls:30}},
+ {id:'expand10',name:'Expansionist',desc:'Hold {g}% of the region in one campaign',stat:'peak',goal:10,reward:{pearls:30}},
  {id:'strikes',name:'Arms development',desc:'Launch drone or missile strikes',stat:'strikes',goal:()=>BAL.unlocks.tier2Strikes,reward:{unlock:'tier2'},unlockText:'Unlocks Missile II and Strike drones'},
- {id:'capital',name:'Kingmaker',desc:"Take a rival's capital",stat:'capitals',goal:1,reward:{pearls:40}},
+ {id:'capital',name:'Kingmaker',desc:"Take rivals' capitals",stat:'capitals',goal:1,reward:{pearls:40}},
  {id:'radars',name:'Eyes in the sky',desc:'Build radars',stat:'radars',goal:()=>BAL.unlocks.uavRadars,reward:{unlock:'uav'},unlockText:'Unlocks UAV recon for GCC states'},
  {id:'intercepts',name:'Iron wall',desc:'Shoot down incoming drones or missiles',stat:'intercepts',goal:50,reward:{pearls:50}},
  {id:'destroyed',name:'Strategic deterrent',desc:'Destroy enemy buildings with strikes',stat:'destroyed',goal:()=>BAL.unlocks.tier3Buildings,reward:{unlock:'tier3'},unlockText:'Unlocks Missile III and Heavy drones'},
  {id:'drones',name:'Swarm doctrine',desc:'Launch drones',stat:'drones',goal:()=>BAL.unlocks.rushDrones,reward:{unlock:'rush'},unlockText:'Unlocks Drone rush for Iran Militias'},
- {id:'kills',name:'Conqueror',desc:'Eliminate a rival nation',stat:'kills',goal:1,reward:{pearls:40}},
- {id:'expand30',name:'Regional power',desc:'Hold 30% of the region in one campaign',stat:'peak',goal:30,reward:{pearls:60}},
+ {id:'kills',name:'Conqueror',desc:'Eliminate rival nations',stat:'kills',goal:1,reward:{pearls:40}},
+ {id:'expand30',name:'Regional power',desc:'Hold {g}% of the region in one campaign',stat:'peak',goal:30,reward:{pearls:60}},
  {id:'win',name:'Dominion',desc:'Win a campaign',stat:'wins',goal:1,reward:{pearls:100}},
  {id:'cruise',name:'Under the radar',desc:'Land cruise missile hits',stat:'cruiseHits',goal:10,reward:{pearls:40}},
  {id:'treaties',name:'Peacemaker',desc:'Sign ceasefires or alliances',stat:'treaties',goal:5,reward:{pearls:40}},
- {id:'dailies',name:'Daily devotion',desc:'Finish daily challenges on 5 different days',stat:'dailies',goal:5,reward:{pearls:100}},
+ {id:'dailies',name:'Daily devotion',desc:'Finish daily challenges on {g} different days',stat:'dailies',goal:5,reward:{pearls:100}},
  {id:'realwin',name:'Hard truths',desc:'Win a campaign on Realistic',stat:'realWins',goal:1,reward:{pearls:120}},
- {id:'heat3',name:'Under fire',desc:'Win a campaign at Heat 3 or higher',stat:'heatWin',goal:3,reward:{pearls:150}}
+ {id:'heat3',name:'Under fire',desc:'Win a campaign at Heat {g} or higher',stat:'heatWin',goal:3,reward:{pearls:150}}
 ];
+// Upgrade prices and pearl-achievement goals/rewards come from BAL (editable in the dashboard)
+function syncProgressBal(){
+  for(const u of UPG){const c=BAL.upgrades&&BAL.upgrades[u.k];if(c){u.base=c.base;u.grow=c.grow;u.max=Math.max(1,Math.round(c.max));}}
+  for(const a of ACH){const c=BAL.achievements&&BAL.achievements[a.id];if(c){a.goal=Math.max(1,c.goal);if(a.reward.pearls!==undefined)a.reward.pearls=Math.round(c.pearls);}}
+}
+syncProgressBal();
 const stats=()=>S.st||(S.st={});
 const achGoal=a=>typeof a.goal==='function'?a.goal():a.goal;
 function bump(k,n=1){if(G&&G.mp)return;const o=stats();o[k]=(o[k]||0)+n;checkAch();}
@@ -2305,7 +2311,7 @@ function renderAch(){
   box.innerHTML=ACH.map(a=>{const g=achGoal(a),v=Math.min(g,Math.floor(stats()[a.stat]||0)),ok=!!S.ach[a.id],pct=Math.round(v/g*100);
     const rw=a.reward.unlock?a.unlockText:`+${a.reward.pearls} pearls`;
     return `<div class="ach ${ok?'done':''}"><span class="medal" aria-hidden="true">${ok?'<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>':a.reward.unlock?'<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>':'<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="6"/><path d="M8 15l-2 7 6-3 6 3-2-7"/></svg>'}</span>
-      <div class="t"><b>${esc(a.name)}</b><small>${esc(a.desc)}</small><div class="abar"><i style="width:${ok?100:pct}%"></i></div><small class="num">${ok?'Unlocked '+new Date(S.ach[a.id]).toLocaleDateString():`${v} / ${g}${a.stat==='peak'?'%':''}`}</small></div>
+      <div class="t"><b>${esc(a.name)}</b><small>${esc(a.desc.replace('{g}',g))}</small><div class="abar"><i style="width:${ok?100:pct}%"></i></div><small class="num">${ok?'Unlocked '+new Date(S.ach[a.id]).toLocaleDateString():`${v} / ${g}${a.stat==='peak'?'%':''}`}</small></div>
       <span class="rw ${a.reward.unlock?'unl':''}">${esc(rw)}</span></div>`;}).join('');
 }
 

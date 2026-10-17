@@ -64,7 +64,37 @@ window.GD_BALANCE_DEFAULTS = {
   // Drone rush: each drone costs `discount` × its normal price; then the ability needs `cooldown` seconds
   droneRush: { discount: 0.5, cooldown: 90 },
   // Achievement goals that unlock content for you and every AI: strikes for tier II, buildings destroyed for tier III, radars for UAV, drones for Drone rush
-  unlocks: { tier2Strikes: 15, tier3Buildings: 40, uavRadars: 3, rushDrones: 60 },
+  unlocks: { tier2Strikes: 60, tier3Buildings: 150, uavRadars: 8, rushDrones: 250 },
+  // Majlis upgrades: price of the first level, × growth for each further level, and the number of levels
+  upgrades: {
+    troops: { name: 'Majlis levies', base: 40, grow: 1.6, max: 10 },
+    regen: { name: 'Recruitment halls', base: 50, grow: 1.65, max: 10 },
+    home: { name: 'Ancestral lands', base: 75, grow: 2.05, max: 4 },
+    gold: { name: 'Treasury', base: 30, grow: 1.55, max: 10 },
+    cost: { name: 'Bedouin pathfinders', base: 65, grow: 1.7, max: 8 },
+    choice: { name: 'Wise council', base: 200, grow: 2.55, max: 2 },
+    reroll: { name: 'Second opinion', base: 100, grow: 2.05, max: 3 },
+    fortune: { name: 'Pearl merchants', base: 65, grow: 1.75, max: 6 },
+    siloMag: { name: 'Deep silos', base: 1000, grow: 3.55, max: 3 },
+    sam: { name: 'Air defense network', base: 150, grow: 2.25, max: 2 },
+    dhow: { name: 'Dhow fleet', base: 50, grow: 1.65, max: 15 },
+  },
+  // Pearl achievements: the goal (cumulative across campaigns, or the best single campaign for land %) and the pearls it pays.
+  // The four weapon-unlock achievements use the unlocks goals above.
+  achievements: {
+    first_run: { name: 'First campaign', goal: 1, pearls: 20 },
+    expand10: { name: 'Expansionist (land %)', goal: 15, pearls: 30 },
+    capital: { name: 'Kingmaker (capitals)', goal: 3, pearls: 40 },
+    intercepts: { name: 'Iron wall (interceptions)', goal: 200, pearls: 60 },
+    kills: { name: 'Conqueror (rivals eliminated)', goal: 3, pearls: 50 },
+    expand30: { name: 'Regional power (land %)', goal: 40, pearls: 80 },
+    win: { name: 'Dominion (wins)', goal: 1, pearls: 100 },
+    cruise: { name: 'Under the radar (cruise hits)', goal: 30, pearls: 50 },
+    treaties: { name: 'Peacemaker (treaties)', goal: 10, pearls: 50 },
+    dailies: { name: 'Daily devotion (days)', goal: 7, pearls: 120 },
+    realwin: { name: 'Hard truths (Realistic wins)', goal: 1, pearls: 150 },
+    heat3: { name: 'Under fire (heat level won)', goal: 3, pearls: 200 },
+  },
   // World news: first headline after `first` seconds, then one every `min`–`max` seconds; effects last `duration` seconds
   news: { first: 200, min: 280, max: 420, duration: 60 },
   // Diplomacy: ceasefire and alliance length in seconds, and a multiplier on what AI nations charge
