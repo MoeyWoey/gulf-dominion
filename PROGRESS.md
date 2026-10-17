@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `0320a3f`)_
+_Last updated: 2026-10-17 (after commit `7d6c012`)_
 
 ---
 
@@ -461,6 +461,13 @@ Safety rules we keep:
   - The curve is steep near 1 because most nations only border their own bloc.
   - 0.8 splits wars about half and half and gave the most even land spread.
 - **Dashboard:** Balance → Rules → "Realistic: bloc loyalty".
+
+### 29. Illustrated guide — `7d6c012`
+
+- **Pictures:** every How to play section (23 of them) has a picture drawn on canvas with the game's own colours and building icons, so there are no image files.
+- **New sections:** craters, and keyboard and mouse.
+- **Live numbers:** the times and percentages in the guide come from the balance settings.
+- **Layout:** a wider window on PC with larger pictures; compact on phones. Checked at both sizes.
 
 ---
 
