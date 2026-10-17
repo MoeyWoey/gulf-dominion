@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `6dafa24`)_
+_Last updated: 2026-10-17 (after commit `0f6438e`)_
 
 ---
 
@@ -674,6 +674,17 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
 - **Sim (one AI fed random decrees at the player milestones, 20 seeds, 15 min):** average land is unchanged at 14.4%, and the best run fell from 29.9% to 26.9%. No fed nation reached 30% in 15 minutes.
 - **Runaway test (double decrees, 30 min):** at the default coalition settings, going from 30% to 50% land took 571 s instead of 98 s. A gentler setting (attacks ×1.3, focus ×2) made no measurable difference.
 
+### 44. Harder Realistic mode — `0f6438e`
+- **Why:** Realistic slowed every nation equally, so it felt slower but not harder.
+- **Overextension:** past 20% of the land, regen and troop cap drop 2% per extra % held, down to 40%. A HUD chip shows the penalty.
+- **Unrest:** land taken from a nation gives no gold or regen for 60 s. A captured capital rises back to its old owner if the taker's troops fall below 35% of its cap in that time, returning land within 5 tiles.
+- **Coalition:** starts at 20% land in Realistic, and the leader's attacks cost 1.8×.
+- **Decrees:** milestones are 1.5× further apart (3%, 6%, 10.5%…) and each draft offers 2 choices.
+- All 10 values are in `BAL.realistic` and editable in the dashboard's Rules card.
+- **Sim (Realistic, 20 seeds, 15 min, one AI fed decrees):** the fed nation averaged 15.1% (was 15.7%) and its best run was 28.2% (was 30.7%). There were 5 capital revolts.
+- **Runaway test (double decrees, 30 min, 3 seeds):** final land fell from 63 / 44 / 47% to 22 / 20 / 19%. Other AI nations still reached 24–30%.
+- **Watch:** this may make an 80% Realistic win very hard. It needs a playtest; ease `overPer`, `overMin` or `realistic.leaderPct` if so.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -703,7 +714,7 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
 | World news | First at 200 s, then every 280–420 s, effects last 60 s |
 | Diplomacy | Ceasefire 60 s, alliance 180 s, price ×1 |
 | Counter-battery | 55-tile range, silos revealed 30 s |
-| Realistic mode | Gold ×0.5, land ×2 (everyone), per-bloc Realistic loyalty (default 0.6), pearls ×1.5, diplomacy ×0.75 |
+| Realistic mode | Gold ×0.5, land ×2 (everyone), per-bloc Realistic loyalty (default 0.6), pearls ×1.5, diplomacy ×0.75 · overextension from 20% (−2% regen/cap per %, floor 0.4) · unrest 60 s, capital revolt below 35% cap (5 tiles) · coalition from 20%, attacks ×1.8 · decree milestones ×1.5, 2 choices |
 | Heat (per level above 1) | AI regen +0.2, cap +0.2, starting troops +20%, attack threshold −0.1, send share +0.12, player focus +0.12, strikes 20 s earlier |
 | Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 · empty pockets up to 30 tiles auto-claimed · missile craters 0.5 × blast radius, empty for 30 s |
 | Nation perks | KW Diplomacy ×2, oil ×1.6, defense ×1.6, cap ×1.25, regen ×1.08 · SA cap ×1.25, expansion ×0.8, defense ×1.15, regen ×1.05 · BH regen ×1.12, coastal gold · QA gold ×1.4 · AE cities ×0.65 cost · OM mountains ×0.5, defense ×1.15 · IQ regen ×1.1, +100 cap per city · IR missiles ×0.7, starts with a silo · YE attacks ×0.75, expansion ×0.85, mountains ×0.5, cap ×1.2, defense ×1.25, mountain defense ×1.6, regen ×1.2 |
