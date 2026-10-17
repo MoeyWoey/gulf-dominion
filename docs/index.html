@@ -820,8 +820,9 @@ function renderAccount(){
 }
 async function loadBalance(){
   if(!API)return;
-  const cached=SC.get('cfg');if(cached){BAL=GD_mergeBalance(GD_BALANCE_DEFAULTS,cached);applyOil();fullPaint=true;if(screen==='home')renderHome();}
-  try{const j=await api('/api/config');SC.set('cfg',j.config||{});BAL=GD_mergeBalance(GD_BALANCE_DEFAULTS,j.config||{});applyOil();fullPaint=true;if(screen==='home')renderHome();}catch(e){}
+  const use=cfg=>{const oilWas=BAL.oil.gccExtra;BAL=GD_mergeBalance(GD_BALANCE_DEFAULTS,cfg||{});if(BAL.oil.gccExtra!==oilWas){applyOil();basePaint=true;heroKey=null;}if(screen==='home')renderHome();};
+  const cached=SC.get('cfg');if(cached)use(cached);
+  try{const j=await api('/api/config');SC.set('cfg',j.config||{});use(j.config);}catch(e){}
 }
 async function loadStore(){if(!API)return;const cached=SC.get('store');if(cached&&!STORE){STORE=cached;if(screen==='home'){renderStore();renderTabBadges();}}try{STORE=await api('/api/store');SC.set('store',STORE);}catch(e){STORE={products:[],enabled:false};}if(screen==='home'){renderStore();renderTabBadges();}}
 const fmtPrice=(v,c)=>`${Number(v).toFixed(['KWD','BHD','OMR','JOD'].includes(c)?3:2)} ${esc(c)}`;
@@ -850,9 +851,8 @@ function renderCosmetics(){
 }
 function applyCosmetics(){
   const night=owns('theme_night')&&S.cos&&S.cos.theme_night;
-  THEME=night?[.55,.58,.78,.5,.56,.82]:[1,1,1,1,1,1];
-  GOLD=!!(owns('border_gold')&&S.cos&&S.cos.border_gold);
-  fullPaint=true;
+  const th=night?[.55,.58,.78,.5,.56,.82]:[1,1,1,1,1,1],gold=!!(owns('border_gold')&&S.cos&&S.cos.border_gold);
+  if(th.join()!==THEME.join()||gold!==GOLD){THEME=th;GOLD=gold;basePaint=true;heroKey=null;}
 }
 let DAILY=null; // the daily challenge spec while a daily run is active
 let MP=null; // online game session (lobby or live game)
@@ -864,7 +864,9 @@ const rgb=(c,a=1)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
 /* ================= Run state ================= */
 const owner=new Uint8Array(N), bld=new Uint8Array(N), ammo=new Float32Array(N), bcool=new Float32Array(N), bgap=new Float32Array(N), siloSeen=new Float32Array(N); // bld: 1 city, 2 fort, 3 rig, 4 port, 5 silo, 6 drone hangar, 7 air defense, 8 radar, 9 counter-battery, 10 artillery, 12 coastal battery (11 = warship, tooltips only)
 let blist=[], attacks=[], boats=[], ships=[], shots=[], missiles=[], booms=[], NATS=[null], G=null;
-const dirty=new Uint8Array(N); let dirtyList=[], fullPaint=true;
+const dirty=new Uint8Array(N); let dirtyList=[], fullPaint=true, basePaint=true, heroKey=null;
+// shownOwner = the owners currently painted on the map texture. fullPaint asks to repaint whatever changed since; basePaint (colours changed) forces a full repaint
+const shownOwner=new Uint8Array(N);
 
 function markDirty(i){if(!dirty[i]){dirty[i]=1;dirtyList.push(i);}}
 function markAround(i){const x=i%W,y=(i/W)|0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<W&&yy<H)markDirty(yy*W+xx);}}
@@ -928,7 +930,7 @@ function startRun(spec){
     if(n.m.startSilo)placeNear(n,n.capIdx,'silo',3,true);
     if(n.id===pid&&!mp)for(let k=0;k<lvl('sam')+(owns('founder')&&!DAILY?1:0);k++)placeNear(n,n.capIdx,'sam',3,true);}
   econ(true);
-  fullPaint=true;
+  fullPaint=true;heroKey=null;
   showScreen('game');
   resize();
   centerOn(NATS[pid].capIdx,Math.max(4,Math.min(7,innerWidth/80)));
@@ -1598,11 +1600,12 @@ function paintBlock(i){
   for(let sy=Y;sy<Y+K;sy++)for(let sx=X;sx<X+K;sx++)paintSub(sx,sy);
   if(X<dbx0)dbx0=X;if(Y<dby0)dby0=Y;if(X+K>dbx1)dbx1=X+K;if(Y+K>dby1)dby1=Y+K;
 }
-function paintAll(){for(let sy=0;sy<TH;sy++)for(let sx=0;sx<TW;sx++)paintSub(sx,sy);mctx.putImageData(img,0,0);}
+function paintAll(){for(let sy=0;sy<TH;sy++)for(let sx=0;sx<TW;sx++)paintSub(sx,sy);mctx.putImageData(img,0,0);shownOwner.set(owner);basePaint=false;fullPaint=false;for(const i of dirtyList)dirty[i]=0;dirtyList=[];dbx0=TW;dby0=TH;dbx1=-1;dby1=-1;}
 function flushPaint(){
-  if(fullPaint){paintAll();fullPaint=false;for(const i of dirtyList)dirty[i]=0;dirtyList=[];return;}
+  if(basePaint){paintAll();return;}
+  if(fullPaint){fullPaint=false;let n=0;for(let i=0;i<N;i++)if(owner[i]!==shownOwner[i]){markAround(i);n++;}if(n>N*.3){paintAll();return;}}
   if(!dirtyList.length)return;
-  for(const i of dirtyList){paintBlock(i);dirty[i]=0;}dirtyList=[];
+  for(const i of dirtyList){paintBlock(i);dirty[i]=0;shownOwner[i]=owner[i];}dirtyList=[];
   mctx.putImageData(img,0,0,dbx0,dby0,dbx1-dbx0,dby1-dby0);
   dbx0=TW;dby0=TH;dbx1=-1;dby1=-1;
 }
@@ -2595,13 +2598,14 @@ function openGuide(){
 }
 $('#howBtn').onclick=openGuide;
 
-function drawHero(){
+function drawHero(force){
+  const key=MAP_ID+'|'+S.nation;if(!force&&key===heroKey)return;heroKey=key;
   const hc=$('#heroCv'),hx=hc.getContext('2d');
   const save={own:owner.slice(),G,NATS};
   if(!NAT[S.nation])S.nation=1;
   owner.fill(0);G={pid:S.nation,pings:[]};NATS=[null];
   for(let id=1;id<=NNAT;id++){NATS.push(newNation(id,id===S.nation,1));claimBlob(id,NATS[id].capIdx,id===S.nation?3:2);}
-  paintAll();
+  fullPaint=true;flushPaint(); // repaints only the tiles that changed since the last paint
   // crop lon 37.5-63, lat 15.8-38.5
   const lonA=EXT?24.5:37.5,x0=(lonA-LON0)/STEP,y0=(LAT1-38.5)/STEP,cw=(63-lonA)/STEP,ch=(38.5-12.3)/STEP;
   const s=EXT?2.4:3;hc.width=Math.round(cw*s);hc.height=Math.round(ch*s);
@@ -2639,10 +2643,14 @@ function mpSnap(full){
   const d={t:'state',seq:MP.seq,gt:r1(G.t)};
   if(full){d.full=1;d.own=rle(owner);d.m=NATS.slice(1).map(n=>n.m);}
   else{const od=[];for(let i=0;i<N;i++)if(owner[i]!==OWN_SENT[i]){od.push(i,owner[i]);OWN_SENT[i]=owner[i];}d.od=od;d.ev=MP.evq;MP.evq=[];
-    if(G.t-(MP.mT||0)>=2){MP.mT=G.t;d.m=NATS.slice(1).map(n=>n.m);}}
-  const seen=new Set(),b=[],ss=[];
-  for(const j of blist){if(!bld[j]||seen.has(j))continue;seen.add(j);b.push(j,bld[j],r1(ammo[j]),r1(bcool[j]));if(bld[j]===5&&siloSeen[j]>G.t)ss.push(j,r1(siloSeen[j]));}
-  d.b=b;d.ss=ss;
+    const mj=JSON.stringify(NATS.slice(1).map(n=>n.m));if(mj!==MP.mJson){MP.mJson=mj;d.m=JSON.parse(mj);} /* nation stats: only when they change */}
+  // Buildings: [cell, type, ammo, readyAt]. readyAt is the game time a reload finishes (0 when loaded), so it stays constant while
+  // reloading; broadcasts carry only buildings that changed (bc) or vanished (br), full snapshots carry all of them (b)
+  const seen=new Set(),b=[],ss=[],cur=new Map();
+  for(const j of blist){if(!bld[j]||seen.has(j))continue;seen.add(j);const mag=!!MAG[bld[j]],rec=[j,bld[j],mag?r1(ammo[j]):0,mag&&ammo[j]<1?r1(G.t+bcool[j]):0];cur.set(j,rec);if(bld[j]===5&&siloSeen[j]>G.t)ss.push(j,r1(siloSeen[j]));}
+  if(full){for(const r of cur.values())b.push(...r);d.b=b;}
+  else{const bc=[],br=[];for(const [j,r] of cur){const o=MP.bSent.get(j);if(!o||o[1]!==r[1]||o[2]!==r[2]||o[3]!==r[3])bc.push(...r);}for(const j of MP.bSent.keys())if(!cur.has(j))br.push(j);MP.bSent=cur;d.bc=bc;d.br=br;}
+  d.ss=ss;
   d.n=NATS.slice(1).map(n=>[n.alive?1:0,n.away?1:0,...NET_NF.map(k=>r1(n[k]||0))]);
   d.at=attacks.filter(a=>!a.done).map(a=>[a.att,a.def,Math.round(a.troops)]);
   d.bt=boats.filter(x=>!x.done).map(x=>{if(!x.id)x.id=++MP.oid;const r=[x.id,x.att,Math.round(x.troops),+x.p.toFixed(2),x.land,x.tx,x.ty];if(full||!x.ps){r.push(x.path);if(!full)x.ps=1;}return r;});
@@ -2698,8 +2706,12 @@ function mpApply(d){
   else{if(!M.base||d.seq!==M.lastSeq+1){if(M.base)M.syncAsk=0;M.base=false;const t=performance.now();if(t-(M.syncAsk||0)>3000){M.syncAsk=t;netSend({t:'act',a:{k:'sync'}});}return;}M.lastSeq=d.seq;
     const od=d.od;for(let q=0;q<od.length;q+=2){owner[od[q]]=od[q+1];markAround(od[q]);}}
   G.t=d.gt;
-  for(const j of blist){bld[j]=0;ammo[j]=0;bcool[j]=0;}blist=[];
-  const b=d.b;for(let q=0;q<b.length;q+=4){const j=b[q];bld[j]=b[q+1];ammo[j]=b[q+2];bcool[j]=b[q+3];blist.push(j);}
+  const setB=(j,t,a,rdy)=>{bld[j]=t;ammo[j]=a;if(MAG[t]&&a<1)M.rdy.set(j,rdy);else{M.rdy.delete(j);bcool[j]=0;}};
+  if(d.b){M.rdy.clear();for(const j of blist){bld[j]=0;ammo[j]=0;bcool[j]=0;}blist=[];const b=d.b;for(let q=0;q<b.length;q+=4){setB(b[q],b[q+1],b[q+2],b[q+3]);blist.push(b[q]);}}
+  else if(d.bc){const gone=new Set(d.br);for(const j of gone){bld[j]=0;ammo[j]=0;bcool[j]=0;M.rdy.delete(j);}
+    const add=[];const bc=d.bc;for(let q=0;q<bc.length;q+=4){const j=bc[q];if(!bld[j])add.push(j);setB(j,bc[q+1],bc[q+2],bc[q+3]);}
+    if(gone.size)blist=blist.filter(j=>!gone.has(j));for(const j of add)if(!gone.has(j))blist.push(j);}
+  for(const [j,r] of M.rdy)bcool[j]=Math.max(0,r-d.gt); // every update re-syncs reload timers from their ready time
   for(const j of M.ss)siloSeen[j]=0;M.ss=[];for(let q=0;q<d.ss.length;q+=2){siloSeen[d.ss[q]]=d.ss[q+1];M.ss.push(d.ss[q]);}
   d.n.forEach((a,k)=>{const n=NATS[k+1];if(!n)return;n.alive=!!a[0];n.away=!!a[1];NET_NF.forEach((f,q)=>{n[f]=a[q+2];});if(d.m&&d.m[k])n.m=d.m[k];});
   const me=G.spec?-1:G.pid,atk=new Set();
@@ -2751,13 +2763,14 @@ function mpReplicaStep(dt,now){
   for(const m of missiles){const dx=m.tx-m.x,dy=m.ty-m.y,d=Math.hypot(dx,dy),st=m.sp*dt;if(d>st){m.x+=dx/d*st;m.y+=dy/d*st;}else{m.x=m.tx;m.y=m.ty;}}
   for(const b of boats){const n=NATS[b.att];b.p=Math.min(b.path.length-1,b.p+dt*5*((n&&n.m.boatSpeed)||1)*((G.fx&&G.fx.boat)||1));}
   for(const w of ships)if(w.path.length>1)w.p=Math.min(1,w.p+dt*5);
+  for(const j of blist)if(ammo[j]<1&&bcool[j]>0)bcool[j]=Math.max(0,bcool[j]-dt);
 }
 
 /* ---- connection ---- */
 function netConnect(code){
   if(MP)mpQuit();
   MP={code,uid:Number(ACCOUNT.id),ws:null,room:null,host:false,live:false,nation:0,seq:0,lastSeq:-1,base:false,syncAsk:0,tries:0,opened:false,closing:false,
-      evq:[],needs:new Set(),paths:new Map(),ss:[],atk:new Set(),oid:0,acc:0,lastT:0,lastSend:0,mT:0,timer:0};
+      evq:[],needs:new Set(),bSent:new Map(),rdy:new Map(),paths:new Map(),ss:[],atk:new Set(),oid:0,acc:0,lastT:0,lastSend:0,mT:0,timer:0};
   netOpen();showLobby();
 }
 function netOpen(){
@@ -2802,7 +2815,7 @@ function mpStart(room,rejoin){
   M.live=true;M.nation=nation;hideLobby();netBar(null);if(modalOpen)closeModal();
   startRun({mp:{nation,room,humans,names,spec}});
   if(M.host){OWN_SENT=owner.slice();M.seq=0;M.evq=[];M.oid=0;M.needs=new Set(room.players.filter(p=>Number(p.uid)!==M.uid).map(p=>Number(p.uid)));
-    M.lastT=performance.now();M.acc=0;M.lastSend=0;clearInterval(M.timer);M.timer=setInterval(mpHostLoop,100);}
+    M.bSent=new Map();M.lastT=performance.now();M.acc=0;M.lastSend=0;clearInterval(M.timer);M.timer=setInterval(mpHostLoop,100);}
   else{M.base=false;M.lastSeq=-1;M.syncAsk=performance.now();}
 }
 function mpEnd(res){
@@ -2945,7 +2958,7 @@ document.addEventListener('dragstart',e=>{if(e.target.tagName==='IMG'||e.target.
   document.querySelectorAll('#buildRow button[data-b]').forEach(b=>{const code=codes[b.dataset.b];if(!code)return;c2.clearRect(0,0,48,48);drawGlyph(c2,code,24,24,21,'#dcb46a');
     const img=new Image();img.src=oc.toDataURL();img.className='bico';img.alt='';b.prepend(img);});
 })();
-if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(screen==='home')drawHero();});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(screen==='home')drawHero(true);});
 showScreen('home');
 loadAccount();loadStore();loadBalance();
 finishSwitch();
