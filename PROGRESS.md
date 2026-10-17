@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `99736a9`)_
+_Last updated: 2026-10-17 (after commit `50ae1a3`)_
 
 ---
 
@@ -318,6 +318,12 @@ Safety rules we keep:
 - **Keys 1, 2, 3 and 4** switch to Attack, Boat, Strike and Build during a game.
 - On PC the mode buttons show their key number.
 - Keys are ignored while typing, while a menu is open, or with Ctrl, Alt or Cmd held.
+
+### 18. Notices at the top — `50ae1a3`
+
+- Game notices now sit just under the top bar. Before, they sat above the bottom menu, where the PC build row hid them.
+- On PC they're centred. On phones they're left-aligned so they clear the nation list.
+- World news moves below an active notice.
 
 ---
 
