@@ -1238,7 +1238,8 @@ function aiThink(n){
   // Troops sitting at the cap for a while: build every turn (cities raise the cap, air defense protects them)
   if(n.troops>=n.cap*.88){if(!n.fullSince)n.fullSince=G.t;}else n.fullSince=0;
   n.stuck=!!n.fullSince&&G.t-n.fullSince>=BAL.ai.stuckTime;
-  if(n.stuck||Math.random()<.4)aiBuild(n);
+  // One build per turn, or up to four while gold keeps piling up (rich nations used to bank tens of thousands)
+  if(n.stuck||Math.random()<.4)for(let k=0;k<4;k++){const was=blist.length+ships.length;aiBuild(n);if(blist.length+ships.length===was||n.gold<2000)break;}
   const inc=attacks.find(a=>a.def===n.id&&!a.done);
   if(inc&&n.troops>inc.troops*.5){const t=inc.taken.length?inc.taken[inc.taken.length-1]:-1;
     launchAttack(n.id,inc.att,Math.min(n.troops*.7,inc.troops*1.4+60),t>=0?t%W:inc.tx,t>=0?(t/W)|0:inc.ty);return;}
@@ -1280,19 +1281,26 @@ function aiFortSpot(n){
   }
   return -1;
 }
+// A random free tile of this nation's own land that passes ok(i), or -1 (picks from its own tiles, so small nations find room too)
+function ownFreeCell(n,ok,list){const c=[];for(const i of (list||[]))if(owner[i]===n.id&&!bld[i]&&i!==n.capIdx&&ok(i))c.push(i);
+  if(!list)for(let i=0;i<N;i++)if(owner[i]===n.id&&!bld[i]&&i!==n.capIdx&&ok(i))c.push(i);return c.length?c[(Math.random()*c.length)|0]:-1;}
 function aiBuild(n){
+  // Sitting on a pile of gold: a city first
+  if(n.gold>costOf(n,'city')*6){const i=ownFreeCell(n,i=>!oil[i]);if(i>=0){place(n,i,'city');return;}}
   // Stuck at the troop cap: a city first (raises the cap), then more air defense
   if(n.stuck){
-    if(n.gold>=costOf(n,'city')){for(let k=0;k<300;k++){const i=(Math.random()*N)|0;if(owner[i]===n.id&&!bld[i]&&!oil[i]&&i!==n.capIdx){place(n,i,'city');return;}}}
+    const spot=ownFreeCell(n,i=>!oil[i]);
+    if(spot>=0&&n.gold>=costOf(n,'city')){place(n,spot,'city');return;}
     let s=0;for(const j of blist)if(bld[j]===7&&owner[j]===n.id)s++;
     if(s<2+Math.floor(n.tiles/250)&&n.gold>=costOf(n,'sam')){const anchors=[n.capIdx,...blist.filter(j=>owner[j]===n.id&&(bld[j]===1||bld[j]===5||bld[j]===6))];if(placeNear(n,anchors[(Math.random()*anchors.length)|0],'sam',4))return;}
-    if(n.gold>=costOf(n,'city')*.6)return; // a city is within reach: save up for it instead of spending elsewhere
+    if(spot>=0&&n.gold>=costOf(n,'city')*.6)return; // a city is within reach (and there is room): save up for it instead of spending elsewhere
   }
   // Forts on a threatened border; more willing at higher heat
   if(G.t>45){let f=0;for(const j of blist)if(bld[j]===2&&owner[j]===n.id)f++;
     if(f<1+Math.floor(n.tiles/Math.max(20,BAL.ai.fortTiles))+(G.diff>=3?1:0)&&n.gold>=costOf(n,'fort')*Math.max(1,1.4-.1*(G.diff-1))){const i=aiFortSpot(n);if(i>=0){place(n,i,'fort');return;}}}
   const rc=costOf(n,'rig');
-  if(n.gold>=rc){for(const i of oilCells){if(owner[i]===n.id&&!bld[i]){place(n,i,'rig');return;}}}
+  // Oil rigs first, but in proportion to cities (oil-rich nations used to build nothing but rigs)
+  if(n.gold>=rc&&n.rigs+n.rigsDry<6+3*n.cities){for(const i of oilCells){if(owner[i]===n.id&&!bld[i]){place(n,i,'rig');return;}}}
   let sams=0,hang=0,silo=0;for(const j of blist){if(owner[j]!==n.id)continue;if(bld[j]===7)sams++;else if(bld[j]===6)hang++;else if(bld[j]===5)silo++;}
   if(sams<1+Math.floor(n.tiles/350)&&n.gold>=costOf(n,'sam')&&(G.t>40||sams===0&&G.t>20)){
     const anchors=[n.capIdx,...blist.filter(j=>owner[j]===n.id&&(bld[j]===1||bld[j]===5||bld[j]===6))];
@@ -1303,16 +1311,16 @@ function aiBuild(n){
   if(hasArty(n.id)&&G.t>80&&Math.random()<.5){const k=blist.filter(j=>bld[j]===10&&owner[j]===n.id).length;
     if(k<1+Math.floor(n.tiles/450)&&n.gold>=costOf(n,'arty')*1.2){const f=aiFront(n);if(f>=0&&placeNear(n,f,'arty',2))return;}}
   if(hasAntiShip(n.id)&&n.coastT&&G.t>100&&Math.random()<.4){const k=blist.filter(j=>bld[j]===12&&owner[j]===n.id).length;
-    if(k<1+Math.floor(n.coastT/120)&&n.gold>=costOf(n,'coastal')*1.25){for(let q=0;q<60;q++){const i=coastCells[(Math.random()*coastCells.length)|0];if(owner[i]===n.id&&!bld[i]&&i!==n.capIdx){place(n,i,'coastal');return;}}}}
+    if(k<1+Math.floor(n.coastT/120)&&n.gold>=costOf(n,'coastal')*1.25){const i=ownFreeCell(n,()=>true,coastCells);if(i>=0){place(n,i,'coastal');return;}}}
   if(sams>0&&G.t>90&&!blist.some(j=>bld[j]===8&&owner[j]===n.id)&&n.gold>=costOf(n,'radar')*1.2&&placeNear(n,n.capIdx,'radar',4))return;
   if(n.coastT&&Math.random()<.35){
     const myPorts=blist.filter(i=>bld[i]===4&&owner[i]===n.id);
     const free=myPorts.find(i=>ships.filter(w=>w.port===i).length<2);
     if(free!==undefined&&ships.filter(w=>w.own===n.id).length<myPorts.length&&n.gold>=costOf(n,'ship')){spawnShip(n,free);return;}
-    if(myPorts.length<2&&n.gold>=costOf(n,'port')*1.1){for(let k=0;k<60;k++){const i=coastCells[(Math.random()*coastCells.length)|0];if(owner[i]===n.id&&!bld[i]){place(n,i,'port');return;}}}
+    if(myPorts.length<2&&n.gold>=costOf(n,'port')*1.1){const i=ownFreeCell(n,()=>true,coastCells);if(i>=0){place(n,i,'port');return;}}
   }
   const cc=costOf(n,'city');
-  if(n.gold>=cc*1.15){for(let k=0;k<300;k++){const i=(Math.random()*N)|0;if(owner[i]===n.id&&!bld[i]&&!oil[i]){place(n,i,'city');return;}}}
+  if(n.gold>=cc*1.15){const i=ownFreeCell(n,i=>!oil[i]);if(i>=0){place(n,i,'city');return;}}
 }
 // A tile of this AI's land that borders a rival it is willing to fight (its current war first), or -1
 function aiFront(n){
