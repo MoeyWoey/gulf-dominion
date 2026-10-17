@@ -109,14 +109,20 @@ window.GD_BALANCE_DEFAULTS = {
   // land (losses fade over pileTime seconds), other AIs stop opening new attacks or landings on it until it recovers; 0 = off.
   // Stops the whole GCC taking turns on Yemen. Never shields the player.
   ai: { bloc: 6, blocChance: 0.05, pile: 0.04, pileTime: 60 },
+  // Blocs: nations in the same bloc mostly spare each other. loyalty (normal games) and realistic (Realistic mode) run from
+  // 1 = full loyalty to 0 = they treat each other like anyone else. A nation in no bloc stands alone; a nation listed in two
+  // blocs belongs to the first. Codes not on the current map are ignored. Edit, add or remove blocs in the dashboard.
+  blocs: [
+    { name: 'Gulf and Arab partners', nations: ['KW', 'SA', 'BH', 'QA', 'AE', 'OM', 'EG', 'JO'], loyalty: 1, realistic: 0.6 },
+    { name: 'Militias', nations: ['IQ', 'IR', 'YE', 'SY', 'LB'], loyalty: 1, realistic: 0.6 },
+  ],
   // Heat difficulty: how much each heat level above 1 adds for AI rivals. Heat 1 is the baseline (regen ×0.92, cap ×1,
   // 300 starting troops, attack once 56% of cap is ready and send 37% of troops, strikes from 150 s).
   // regen/cap/troops: added multiplier per level; aggression: lower attack threshold per level; sendMore: bigger share sent
   // per level; playerFocus: how much more they pick on you per level; strikesEarlier: seconds earlier strikes begin per level.
   heat: { regen: 0.2, cap: 0.2, troops: 0.2, aggression: 0.1, sendMore: 0.12, playerFocus: 0.12, strikesEarlier: 20 },
   // Realistic mode (switch beside Begin campaign), applied to every nation: gold income and land-cost multipliers, pearl reward and diplomacy price multipliers,
-  // and blocLoyalty: how much nations still spare their own bloc (1 = as in normal games, 0 = everyone treats everyone the same)
-  realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75, blocLoyalty: 0.6 },
+  realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75 },
 };
 
 // Merge saved overrides over the defaults, keeping only known keys and sane values.
@@ -125,7 +131,14 @@ window.GD_mergeBalance = function merge(def, over) {
   const out = {};
   for (const k of Object.keys(def)) {
     const d = def[k], o = over && typeof over === 'object' ? over[k] : undefined;
-    if (Array.isArray(d)) out[k] = Array.isArray(o) ? o.filter((v) => typeof v === 'string').slice(0, 20) : d.slice();
+    const n01 = (v, dv) => (typeof v === 'number' && isFinite(v) ? Math.max(0, Math.min(1, v)) : dv);
+    if (Array.isArray(d) && d.length && typeof d[0] === 'object') // a list of groups (blocs)
+      out[k] = (Array.isArray(o) ? o : d).filter((x) => x && typeof x === 'object').slice(0, 12).map((x) => ({
+        name: String(x.name || 'Bloc').trim().slice(0, 40) || 'Bloc',
+        nations: Array.isArray(x.nations) ? x.nations.filter((v) => typeof v === 'string').slice(0, 30) : [],
+        loyalty: n01(x.loyalty, 1), realistic: n01(x.realistic, 0.6),
+      }));
+    else if (Array.isArray(d)) out[k] = Array.isArray(o) ? o.filter((v) => typeof v === 'string').slice(0, 20) : d.slice();
     else if (d && typeof d === 'object') out[k] = merge(d, o);
     else if (typeof d === 'number') out[k] = typeof o === 'number' && isFinite(o) ? Math.max(0, Math.min(100000, o)) : d;
     else if (typeof d === 'string') out[k] = typeof o === 'string' && o.trim() ? o.trim().slice(0, 40) : d;

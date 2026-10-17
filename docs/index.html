@@ -665,10 +665,12 @@ function applyOil(){
 }
 applyOil();
 // Blocs: the six GCC states, and Iraq/Iran/Yemen. AI rarely attacks inside its own bloc.
-const BLOC=EXT?[0,1,1,1,1,1,1,2,2,2,1,1,2,2,3,3]:[0,1,1,1,1,1,1,2,2,2]; // Middle East map: Egypt and Jordan join the GCC bloc, Syria and Lebanon the Iran/Iraq/Yemen bloc, Israel and Turkey stand alone
-const sameBloc=(a,b)=>a>0&&b>0&&BLOC[a]===BLOC[b];
-// Bloc loyalty between two nations: 0 for rival blocs; 1 for the same bloc, or BAL.realistic.blocLoyalty in Realistic mode (0 = everyone treats everyone the same)
-const blocL=(a,b)=>sameBloc(a,b)?(G&&G.real?BAL.realistic.blocLoyalty:1):0;
+// Blocs come from BAL.blocs (editable in the dashboard). A nation in no bloc stands alone.
+let _blocMap=null,_blocFor=null;
+function blocOf(id){if(_blocFor!==BAL.blocs){_blocFor=BAL.blocs;_blocMap={};(BAL.blocs||[]).forEach((g,i)=>g.nations.forEach(c=>{if(!(c in _blocMap))_blocMap[c]=i;}));}const i=_blocMap[codeOf(id)];return i===undefined?-1:i;}
+const sameBloc=(a,b)=>{if(!(a>0&&b>0))return false;const i=blocOf(a);return i>=0&&i===blocOf(b);};
+// Bloc loyalty between two nations: 0 for different blocs, otherwise the bloc's loyalty (normal) or realistic value (Realistic mode)
+const blocL=(a,b)=>{if(!sameBloc(a,b))return 0;const g=BAL.blocs[blocOf(a)];return G&&G.real?g.realistic:g.loyalty;};
 function baseMods(){return {respect:1,neutral:1,desert:1,mount:1,cap:1,regen:1,atk:1,def:1,mountDef:1,oil:1,gold:1,coast:0,speed:1,cityCost:1,cityCap:400,fortR:4,fortPow:0,plunder:0,lion:false,pearl:1,falaj:false,boatSpeed:1,boatPow:1,boats:3,navy:1,patrol:9,reload:1,magD:0,magS:0,magM:0,droneCost:1,missileCost:1,artyCost:1,droneN:1,evade:1,samR:7,samPow:1,bunker:0,blast:2,startSilo:false};}
 // Nation perks come from BAL.perks (editable in the dashboard): coast and cityCap add, startSilo switches on, the rest multiply
 const PERK_ADD={coast:1,cityCap:1,samR:1};
@@ -939,7 +941,7 @@ function startRun(spec){
   else if(spec)toast(`Daily challenge: ${NAT[pid].name}, Heat ${diff}. ${spec.twist.name}: ${spec.twist.desc}`,6000);else toast(S.tut?`Heat ${diff}. Expand from ${NATS[pid].name} and hold ${WIN_PCT}% of the region.`:'Tap sand next to your land to expand. Drag to pan, pinch to zoom.',5000);
   S.tut=1;save();
   if(!mp)logEvent('run_start',{nation:NAT[pid].name,heat:diff,realistic:!!G.real});
-  if(G.real)setTimeout(()=>toast(`Realistic rules: gold ×${BAL.realistic.gold}, land ×${BAL.realistic.land} for every nation, bloc loyalty ${Math.round(BAL.realistic.blocLoyalty*100)}%. Pearls ×${BAL.realistic.pearls}.`,4500),5200);
+  if(G.real)setTimeout(()=>toast(`Realistic rules: gold ×${BAL.realistic.gold}, land ×${BAL.realistic.land} for every nation, and weaker bloc loyalty. Pearls ×${BAL.realistic.pearls}.`,4500),5200);
 }
 
 /* ================= Simulation ================= */
@@ -2251,7 +2253,7 @@ function openDiplomacy(id,note){
   const offer=(type,label)=>{const dur=type==='alliance'?BAL.diplomacy.alliance:BAL.diplomacy.ceasefire,c=dipCost(id,type),ch=Math.round(dipChance(id,type)*100);
     return `<button class="card dip" data-t="${type}" ${ch===0?'disabled':''}><span class="rar">${label}</span><b>${type==='alliance'?'Alliance':'Ceasefire'} · ${t?'+':''}${dur}s</b><span>${fmt(c)} gold · ${ch}% likely to accept · ${type==='alliance'?'no attacks on you, and they turn on your rivals':'no attacks on you while it lasts'}</span></button>`;};
   openModal(`<h3><span class="sw" style="display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:8px;background:${rgb(n.color)}"></span>${esc(n.name)}</h3>
-   <p class="sub">${t?`${t==='alliance'?'Alliance':'Ceasefire'} · ${Math.ceil(d.until-G.t)}s left`:d.hostileUntil>G.t?'Hostile after your betrayal':'At war'} · ${sameBloc(id,G.pid)?(G.real?`same bloc · loyalty ${Math.round(BAL.realistic.blocLoyalty*100)}%`:'same bloc'):'rival bloc'}</p>
+   <p class="sub">${t?`${t==='alliance'?'Alliance':'Ceasefire'} · ${Math.ceil(d.until-G.t)}s left`:d.hostileUntil>G.t?'Hostile after your betrayal':'At war'} · ${sameBloc(id,G.pid)?`same bloc (${esc(BAL.blocs[blocOf(id)].name)}) · loyalty ${Math.round(blocL(id,G.pid)*100)}%`:'other bloc'}</p>
    <div class="kv"><span>Their land · troops</span><span class="num">${pct(n)} · ${fmt(n.troops)}</span><span>Your land · troops</span><span class="num">${pct(p)} · ${fmt(p.troops)}</span><span>Your gold</span><span class="num">${fmt(p.gold)}</span></div>
    <div class="cards">${offer('ceasefire','Short truce')}${offer('alliance','Pact')}</div>
    <p class="sub" id="dipMsg">${note?esc(note):'Attacking, striking or landing on a nation you have a deal with breaks it, and every nation will trust you less for a while.'}</p>
@@ -2491,7 +2493,7 @@ function renderHome(){
   $('#heatDn').disabled=S.diff<=1;$('#heatUp').disabled=S.diff>=S.maxDiff;
   $('#go').textContent=`Begin campaign as ${NAT[S.nation].name}`;
   const rl=!!S.realistic;$('#go').classList.toggle('real',rl);$('#realTog').classList.toggle('on',rl);$('#realTog').setAttribute('aria-checked',String(rl));
-  $('#realNote').hidden=!rl;$('#realNote').textContent=`Realistic: gold ×${BAL.realistic.gold} · land ×${BAL.realistic.land} · bloc loyalty ${Math.round(BAL.realistic.blocLoyalty*100)}% · pearls ×${BAL.realistic.pearls}`;
+  $('#realNote').hidden=!rl;$('#realNote').textContent=`Realistic: gold ×${BAL.realistic.gold} · land ×${BAL.realistic.land} · weaker bloc loyalty · pearls ×${BAL.realistic.pearls}`;
   $('#upgs').innerHTML=UPG.map(u=>{const l=lvl(u.k),max=l>=u.max,c=upgCost(u);
     return `<div class="upg"><div class="t"><b>${u.name}</b><small>${u.desc}</small><div class="pips">${Array.from({length:u.max},(_,k)=>`<i class="${k<l?'on':''}"></i>`).join('')}</div></div>
     <button class="btn ${!max&&S.pearls>=c?'gold':''}" data-k="${u.k}" ${max||S.pearls<c?'disabled':''}>${max?'Max':`<span class="num">${c}</span>`}</button></div>`;}).join('');

@@ -383,6 +383,14 @@ function renderBal(B){
       <span>Breather after losing</span><span>${numIn('ai.pile',B.ai.pile,'0.01')} × its land <span class="hint">recent losses above this share stop new AI attacks and landings on it; 0 = off</span></span>
       <span>Losses fade over</span><span>${numIn('ai.pileTime',B.ai.pileTime,'5')} seconds <span class="hint">longer = longer breathers</span></span>
      </div></div>
+     <div class="card"><h2>Blocs</h2><p class="hint">Nations in the same bloc mostly spare each other. Loyalty runs from 1 (full) to 0 (they treat each other like anyone else), with one value for normal games and one for Realistic mode. A nation in no bloc stands alone; a nation ticked in two blocs belongs to the first. Middle East nations only matter on the Middle East map.</p>
+      <div id="blocRows">${(B.blocs||[]).map((g,bi)=>`<div class="blocrow" data-bloc="${bi}" style="border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px"><input data-bname value="${esc(g.name)}" maxlength="40" style="width:200px" aria-label="Bloc name">
+          <label>Normal loyalty <input type="number" min="0" max="1" step="0.05" data-bnorm value="${esc(g.loyalty)}" style="width:76px"></label>
+          <label>Realistic loyalty <input type="number" min="0" max="1" step="0.05" data-breal value="${esc(g.realistic)}" style="width:76px"></label>
+          <button class="btn danger" data-bdel type="button">Remove bloc</button></div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px 14px">${GD_NATION_CODES.map(([c,name])=>`<label style="display:inline-flex;align-items:center;gap:5px"><input type="checkbox" data-bnat="${c}" ${g.nations.includes(c)?'checked':''}>${esc(name)}</label>`).join('')}</div></div>`).join('')}</div>
+      <button class="btn" id="blocAdd" type="button">Add a bloc</button></div>
      <div class="card"><h2>Nation perks</h2><p class="hint">Each nation's bonus. Multipliers: 1 = no effect; above 1 means more (gold, regen, defense), below 1 means cheaper (cities, missiles, attacks, mountains). The nation cards in the game describe these numbers automatically.</p>
       <div class="kv" style="align-items:center">${GD_NATION_CODES.map(([c,name])=>`<span><b>${esc(name)}</b></span><span>${Object.keys(B.perks[c]).map(k=>`<label style="display:inline-flex;align-items:center;gap:4px;margin:2px 10px 2px 0">${esc(PERK_LABEL[k]||k)} ${numIn(`perks.${c}.${k}`,B.perks[c][k],k==='cityCap'?'10':k==='startSilo'?'1':'0.01')}</label>`).join('')}</span>`).join('')}</div></div>
      <div class="card"><h2>Rules</h2><div class="kv" style="align-items:center">
@@ -419,7 +427,6 @@ function renderBal(B){
       <span>Realistic: gold income ×</span><span>${numIn('realistic.gold',B.realistic.gold,'0.05')} <span class="hint">every nation</span></span>
       <span>Realistic: land cost ×</span><span>${numIn('realistic.land',B.realistic.land,'0.1')} <span class="hint">every nation</span></span>
       <span>Realistic: pearls ×</span><span>${numIn('realistic.pearls',B.realistic.pearls,'0.05')}</span>
-      <span>Realistic: bloc loyalty</span><span>${numIn('realistic.blocLoyalty',B.realistic.blocLoyalty,'0.05')} <span class="hint">lower = more wars inside blocs (measured share of attacks: 1 ≈ 15%, 0.8 ≈ 28%, 0.6 ≈ 35%); lower values also strengthen the militias</span></span>
       <span>Realistic: diplomacy price ×</span><span>${numIn('realistic.diplomacy',B.realistic.diplomacy,'0.05')}</span>
       <span>Extra GCC oil fields</span><span>${numIn('oil.gccExtra',B.oil.gccExtra,'0.01')} <span class="hint">0 = real fields only, 0.05 = default, 0.15 = lots</span></span>
      </div></div>`;
@@ -433,8 +440,15 @@ function collectBal(){
   B.abilities.uav=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-abuav="${c}"]`).checked);
   B.cruiseHandicap.nations=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-crh="${c}"]`).checked);
   B.abilities.droneRush=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-abrush="${c}"]`).checked);
+  B.blocs=[...document.querySelectorAll('#blocRows .blocrow')].map(r=>({name:r.querySelector('[data-bname]').value.trim()||'Bloc',loyalty:Math.max(0,Math.min(1,Number(r.querySelector('[data-bnorm]').value)||0)),realistic:Math.max(0,Math.min(1,Number(r.querySelector('[data-breal]').value)||0)),nations:[...r.querySelectorAll('[data-bnat]:checked')].map(x=>x.dataset.bnat)}));
   return B;
 }
+// Blocs card: add or remove a bloc (keeps the rest of the form as typed), and keep each nation in at most one bloc
+document.addEventListener('click',e=>{
+  if(e.target.id==='blocAdd'){const B=collectBal();B.blocs.push({name:'New bloc',nations:[],loyalty:1,realistic:0.6});renderBal(B);}
+  else if(e.target.matches&&e.target.matches('[data-bdel]')){const B=collectBal();B.blocs.splice(+e.target.closest('.blocrow').dataset.bloc,1);renderBal(B);}
+});
+document.addEventListener('change',e=>{if(e.target.matches&&e.target.matches('[data-bnat]')&&e.target.checked)document.querySelectorAll(`[data-bnat="${e.target.dataset.bnat}"]`).forEach(x=>{if(x!==e.target)x.checked=false;});});
 $('#balSave').onclick=async()=>{try{await api('/api/admin/config',{method:'PUT',body:{config:collectBal()}});$('#balMsg').innerHTML='<div class="msg ok">Balance saved. Players get it the next time they open the game.</div>';}catch(e){$('#balMsg').innerHTML=`<div class="msg bad">${esc(e.message)}</div>`;}};
 let balResetArmed=false;
 $('#balReset').onclick=async()=>{
