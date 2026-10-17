@@ -527,15 +527,15 @@ const coastCells=[];for(let i=0;i<N;i++)if(coast[i])coastCells.push(i);
 
 /* ================= Data ================= */
 const NAT=[null,
- {name:'Kuwait',short:'KW',color:[31,192,200],cap:[47.95,29.3],perk:'Burgan oil: oil income +60%',unlock:0},
- {name:'Saudi Arabia',short:'SA',color:[58,166,85],cap:[46.7,24.7],perk:'Royal Guard: troop cap +20%',unlock:0},
- {name:'Bahrain',short:'BH',color:[240,86,60],cap:[50.55,26.2],perk:'Pearl coast: regen +35%, coastal gold. Island start: cross the causeway.',unlock:150},
- {name:'Qatar',short:'QA',color:[166,42,110],cap:[51.45,25.3],perk:'LNG wealth: +40% gold',unlock:40},
- {name:'UAE',short:'AE',color:[245,159,0],cap:[54.45,24.3],perk:'Megaprojects: cities 35% cheaper',unlock:60},
- {name:'Oman',short:'OM',color:[76,124,240],cap:[58.4,23.55],perk:'Hajar highlanders: mountains half cost, +15% defense',unlock:90},
- {name:'Iraq',short:'IQ',color:[168,96,220],cap:[44.4,33.3],perk:'Mesopotamia: regen +25%, cities +100 troop cap',unlock:120},
- {name:'Iran',short:'IR',color:[236,236,226],cap:[51.4,35.7],perk:'Missile arsenal: missiles 30% cheaper, starts with a silo',unlock:200},
- {name:'Yemen',short:'YE',color:[196,224,52],cap:[44.2,15.35],perk:'Highland warriors: land attacks 25% cheaper, mountains half cost, troop cap +20%, bigger start',unlock:150}
+ {name:'Kuwait',short:'KW',color:[31,192,200],cap:[47.95,29.3],unlock:0},
+ {name:'Saudi Arabia',short:'SA',color:[58,166,85],cap:[46.7,24.7],unlock:0},
+ {name:'Bahrain',short:'BH',color:[240,86,60],cap:[50.55,26.2],unlock:150},
+ {name:'Qatar',short:'QA',color:[166,42,110],cap:[51.45,25.3],unlock:40},
+ {name:'UAE',short:'AE',color:[245,159,0],cap:[54.45,24.3],unlock:60},
+ {name:'Oman',short:'OM',color:[76,124,240],cap:[58.4,23.55],unlock:90},
+ {name:'Iraq',short:'IQ',color:[168,96,220],cap:[44.4,33.3],unlock:120},
+ {name:'Iran',short:'IR',color:[236,236,226],cap:[51.4,35.7],unlock:200},
+ {name:'Yemen',short:'YE',color:[196,224,52],cap:[44.2,15.35],unlock:150}
 ];
 const NNAT=NAT.length-1;
 /* ---- Balance: weapons, arsenals, stealth, oil. Defaults in balance.js, overrides from the admin dashboard ---- */
@@ -585,11 +585,26 @@ applyOil();
 const BLOC=[0,1,1,1,1,1,1,2,2,2];
 const sameBloc=(a,b)=>a>0&&b>0&&BLOC[a]===BLOC[b];
 function baseMods(){return {neutral:1,desert:1,mount:1,cap:1,regen:1,atk:1,def:1,oil:1,gold:1,coast:0,speed:1,cityCost:1,cityCap:400,fortR:4,fortPow:0,plunder:0,lion:false,pearl:1,falaj:false,boatSpeed:1,boatPow:1,boats:3,navy:1,patrol:9,reload:1,magD:0,magS:0,magM:0,droneCost:1,missileCost:1,droneN:1,evade:1,samR:7,samPow:1,bunker:0,blast:2,startSilo:false};}
+// Nation perks come from BAL.perks (editable in the dashboard): coast and cityCap add, startSilo switches on, the rest multiply
+const PERK_ADD={coast:1,cityCap:1};
 function applyPerk(id,m){
-  if(id===1)m.oil*=1.6; if(id===2)m.cap*=1.2; if(id===3){m.regen*=1.35;m.coast+=.1;}
-  if(id===4)m.gold*=1.4; if(id===5)m.cityCost*=.65; if(id===6){m.mount*=.5;m.def*=1.15;}
-  if(id===7){m.regen*=1.25;m.cityCap+=100;} if(id===8){m.missileCost*=.7;m.startSilo=true;}
-  if(id===9){m.atk*=.75;m.neutral*=.85;m.mount*=.5;m.cap*=1.2;}
+  const p=BAL.perks[codeOf(id)]||{};
+  for(const [k,v] of Object.entries(p)){if(k==='startSilo')m.startSilo=v>0;else if(PERK_ADD[k])m[k]+=v;else if(k in m)m[k]*=v;}
+}
+const PERK_TITLE={1:'Burgan oil',2:'Royal Guard',3:'Pearl coast',4:'LNG wealth',5:'Megaprojects',6:'Hajar highlanders',7:'Mesopotamia',8:'Missile arsenal',9:'Highland warriors'};
+const PERK_EXTRA={3:'Island start: cross the causeway.',9:'Bigger start.'};
+function perkText(id){
+  const p=BAL.perks[codeOf(id)]||{},pc=v=>Math.round(Math.abs(v-1)*100),up=(v,what)=>`${what} ${v>=1?'+':'−'}${pc(v)}%`,cheap=(v,what)=>v<1?`${what} ${pc(v)}% cheaper`:`${what} ${pc(v)}% dearer`;
+  const parts=[];
+  for(const [k,v] of Object.entries(p)){
+    if(k==='startSilo'){if(v>0)parts.push('starts with a silo');continue;}
+    if(!PERK_ADD[k]&&v===1)continue;
+    parts.push(({oil:()=>up(v,'oil income'),cap:()=>up(v,'troop cap'),regen:()=>up(v,'regen'),gold:()=>up(v,'gold'),def:()=>up(v,'defense'),
+      cityCost:()=>cheap(v,'cities'),missileCost:()=>cheap(v,'missiles'),atk:()=>cheap(v,'land attacks'),neutral:()=>cheap(v,'expansion'),
+      mount:()=>v===.5?'mountains half cost':cheap(v,'mountains'),coast:()=>v?'coastal gold':'',cityCap:()=>`cities +${v} troop cap`}[k]||(()=>`${k} ×${v}`))());
+  }
+  const t=parts.filter(Boolean).join(', ');
+  return `${PERK_TITLE[id]}: ${t||'no bonus'}${PERK_EXTRA[id]?'. '+PERK_EXTRA[id]:''}`;
 }
 const UPG=[
  {k:'troops',name:'Majlis levies',desc:'+20% starting troops',base:15,grow:1.55,max:10},
@@ -2238,7 +2253,7 @@ function renderHome(){
     :`<i class="pearl" style="width:22px;height:22px;opacity:.5"></i><div class="t"><b>No dhow fleet yet</b>Buy the Dhow fleet upgrade to earn pearls while you are away.</div>`;
   const cb=$('#collect');if(cb)cb.onclick=()=>{S.pearls+=Math.floor(idleStored());S.lastIdle=Date.now();save();renderHome();};
   $('#nations').innerHTML=NAT.slice(1).map((n,k)=>{const id=k+1,un=S.unlocked[id];
-    return `<button class="nat ${S.nation===id?'sel':''} ${un?'':'locked'}" data-id="${id}"><span class="row"><i class="sw" style="background:${rgb(n.color)}"></i><b>${n.name}</b></span><small>${n.perk}</small><small class="ars">${esc(arsenalText(id))}</small>${un?'':`<span class="lock"><i class="pearl" style="width:11px;height:11px"></i>Unlock for ${n.unlock}</span>`}</button>`;}).join('');
+    return `<button class="nat ${S.nation===id?'sel':''} ${un?'':'locked'}" data-id="${id}"><span class="row"><i class="sw" style="background:${rgb(n.color)}"></i><b>${n.name}</b></span><small>${esc(perkText(id))}</small><small class="ars">${esc(arsenalText(id))}</small>${un?'':`<span class="lock"><i class="pearl" style="width:11px;height:11px"></i>Unlock for ${n.unlock}</span>`}</button>`;}).join('');
   document.querySelectorAll('.nat').forEach(b=>b.onclick=()=>{const id=+b.dataset.id;
     if(!S.unlocked[id]){const c=NAT[id].unlock;if(S.pearls>=c){S.pearls-=c;S.unlocked[id]=1;S.nation=id;save();}else{b.querySelector('.lock').textContent=`Need ${c} pearls (you have ${Math.floor(S.pearls)})`;return;}}
     else S.nation=id;save();renderHome();});

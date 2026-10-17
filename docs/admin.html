@@ -306,6 +306,7 @@ function editProduct(p){
 /* ---------- balance ---------- */
 const DKEYS=['light','strike','heavy'],MKEYS=['t1','t2','t3','cruise'];
 const COLS={cost:['Cost','gold','1'],radius:['Blast radius','tiles','0.1'],speed:['Speed','tiles/s','0.1'],troops:['Troops hit','%','0.5'],intercept:['Intercept ×','higher = easier to shoot down','0.05'],reload:['Reload ×','silo reload after firing','0.1']};
+const PERK_LABEL={oil:'Oil income ×',cap:'Troop cap ×',regen:'Troop regen ×',coast:'Coastal gold +',gold:'Gold ×',cityCost:'City cost ×',mount:'Mountain cost ×',def:'Defense ×',cityCap:'Troop cap per city +',missileCost:'Missile cost ×',startSilo:'Starts with a silo (1/0)',atk:'Attack cost ×',neutral:'Expansion cost ×'};
 const numIn=(k,v,step)=>`<input type="number" min="0" step="${step}" data-k="${k}" value="${esc(v)}" style="width:86px">`;
 async function loadBal(){const r=await api('/api/admin/config');renderBal(GD_mergeBalance(GD_BALANCE_DEFAULTS,r.config||{}));$('#balMsg').innerHTML='';}
 function renderBal(B){
@@ -341,6 +342,8 @@ function renderBal(B){
       <span>Crater stays empty for</span><span>${numIn('combat.craterTime',B.combat.craterTime,'5')} seconds <span class="hint">before the auto-claim can refill it</span></span>
       <span>Strike troop damage ×</span><span>${numIn('combat.strikeTroops',B.combat.strikeTroops,'0.05')} <span class="hint">scales the % of a nation's army each drone or missile kills</span></span>
      </div></div>
+     <div class="card"><h2>Nation perks</h2><p class="hint">Each nation's bonus. Multipliers: 1 = no effect; above 1 means more (gold, regen, defense), below 1 means cheaper (cities, missiles, attacks, mountains). The nation cards in the game describe these numbers automatically.</p>
+      <div class="kv" style="align-items:center">${GD_NATION_CODES.map(([c,name])=>`<span><b>${esc(name)}</b></span><span>${Object.keys(B.perks[c]).map(k=>`<label style="display:inline-flex;align-items:center;gap:4px;margin:2px 10px 2px 0">${esc(PERK_LABEL[k]||k)} ${numIn(`perks.${c}.${k}`,B.perks[c][k],k==='cityCap'?'10':k==='startSilo'?'1':'0.01')}</label>`).join('')}</span>`).join('')}</div></div>
      <div class="card"><h2>Rules</h2><div class="kv" style="align-items:center">
       <span>Hidden drones appear within</span><span>${numIn('stealth.reveal',B.stealth.reveal,'1')} tiles of the player's land</span>
       <span>Handicap: drone cost ×</span><span>${numIn('droneHandicap.cost',h.cost,'0.05')}</span>

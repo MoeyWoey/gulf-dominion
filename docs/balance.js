@@ -67,6 +67,20 @@ window.GD_BALANCE_DEFAULTS = {
   // nation's land are claimed by it automatically (0 = off). crater: missile hits empty the tiles within crater × blast radius
   // (0 = off); craterTime: seconds before an empty crater can be auto-claimed (anyone bordering it can still expand into it).
   combat: { attackSpeed: 0.5, tileBase: 4, defDensity: 1.5, defLoss: 0.35, fort: 2.5, capital: 4, capitalRing: 2, regenBase: 30, regenPerTile: 0.3, capPerTile: 10, strikeTroops: 0.5, fillPocket: 30, crater: 0.5, craterTime: 30 },
+  // Nation perks. Multipliers: oil (oil income), cap (troop cap), regen (troop regen), gold (all gold), cityCost, mount (cost to
+  // cross mountains), def (defense), missileCost, atk (cost of taking enemy land), neutral (cost of empty land).
+  // Added amounts: coast (gold per coastal tile), cityCap (troop cap per city). startSilo: 1 = starts with a missile silo.
+  perks: {
+    KW: { oil: 1.6 },
+    SA: { cap: 1.2 },
+    BH: { regen: 1.12, coast: 0.1 },
+    QA: { gold: 1.4 },
+    AE: { cityCost: 0.65 },
+    OM: { mount: 0.5, def: 1.15 },
+    IQ: { regen: 1.1, cityCap: 100 },
+    IR: { missileCost: 0.7, startSilo: 1 },
+    YE: { atk: 0.75, neutral: 0.85, mount: 0.5, cap: 1.2 },
+  },
   // Realistic mode (switch beside Begin campaign), applied to every nation: gold income and land-cost multipliers, pearl reward and diplomacy price multipliers
   realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75 },
 };
