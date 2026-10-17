@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `2a6e560`)_
+_Last updated: 2026-10-17 (after commit `e369582`)_
 
 ---
 
@@ -543,6 +543,25 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
   - the map picker comes back to the same place on screen
   - the account, store and balance settings come from a per-tab cache straight away, then refresh in the background
 - **Result:** no more "Sign in with Google" or empty-store flicker. Tested signed in against the local server in both directions.
+
+### 35. Performance pass — `e369582`
+
+- **Measured first** (Middle East map, desktop):
+
+  | Area | Before | After |
+  |---|---|---|
+  | Start-up preview map | 860 ms (redrawn 5×) | 180 ms (once) |
+  | Start-up script total | 620 ms | 275 ms |
+  | Changing nation on the home screen | ~170 ms | 2 ms |
+  | Starting a campaign | full 158 ms repaint | ~3 ms |
+  | Online updates to each guest | ~74 KB/s | ~14 KB/s |
+
+- **Already cheap, left alone:** the simulation (0.3 ms per game step; AI decisions about 57% of it), normal frames (~1.2 ms) and building the map (50–67 ms).
+- **What changed:**
+  - repaints touch only tiles whose owner changed
+  - the preview map is cached
+  - online updates send only changed buildings; reload timers go out as a "ready at" time, and guests re-sync timers on every update
+- **Tested** in a two-player local game.
 
 ---
 
