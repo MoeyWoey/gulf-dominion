@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `0fd527b`)_
+_Last updated: 2026-10-17 (after commit `2a6e560`)_
 
 ---
 
@@ -534,6 +534,15 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
   - No nation dominates. The largest single-game share was 38% with the new weapons and 47% without.
   - Rocket troop damage was cut from 0.9% to 0.7% per rocket after the first round.
   - Israel is the weakest Middle East nation either way (eliminated in about 60% of games with or without artillery). It needs its own look.
+
+### 34. Smoother map switching — `2a6e560`
+
+- **Why it reloads:** switching maps still reloads the page, because the map is built when the page loads.
+- **What changed:**
+  - a "Loading the … map" screen covers the reload
+  - the map picker comes back to the same place on screen
+  - the account, store and balance settings come from a per-tab cache straight away, then refresh in the background
+- **Result:** no more "Sign in with Google" or empty-store flicker. Tested signed in against the local server in both directions.
 
 ---
 
