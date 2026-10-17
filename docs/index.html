@@ -77,14 +77,23 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-o
 .notice.ok{border-color:var(--ok);color:#c9f2de}
 .notice.bad{border-color:var(--danger);color:#ffd2cb}
 .builds button.uav{border-color:var(--teal);color:#bff3ee}
+.news{position:absolute;left:50%;transform:translateX(-50%);top:calc(112px + env(safe-area-inset-top,0px));width:min(92vw,460px);background:rgba(16,10,10,.94);border:1px solid #c0392b;border-left:5px solid #e74c3c;border-radius:10px;padding:9px 12px;display:flex;flex-direction:column;gap:2px;box-shadow:0 8px 24px rgba(0,0,0,.45);animation:newsIn .35s ease-out;z-index:3;pointer-events:none;transition:opacity .4s}
+.news.out{opacity:0}
+.news .ntag{font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#ff8a7a}
+.news b{font-family:var(--f-display);font-size:1.02rem;color:#fff6ef;line-height:1.2}
+.news span:last-child{font-size:.8rem;color:#e9d7cf}
+@keyframes newsIn{from{transform:translate(-50%,-14px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+@media (prefers-reduced-motion:reduce){.news{animation:none}}
+.builds button.locked{opacity:.55;border-style:dashed}
+.builds button.locked small{color:var(--sand)}
 .builds button.rush{border-color:#f0b44c;color:#ffe2ad}
 .builds button.uav.on{background:#123a37;box-shadow:inset 0 0 0 1px var(--teal)}
 .builds button img.bico{width:24px;height:24px;display:block}
 .upg.snd input[type=range]{width:110px;flex:none}
 .upg.snd .btn{min-width:52px}
 .ibtn.muted{opacity:.4;text-decoration:line-through}
-.hometabs{position:sticky;top:0;z-index:4;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-inline:-4px;padding:8px 4px;padding-top:calc(8px + env(safe-area-inset-top,0px));background:linear-gradient(180deg,var(--night) 70%,rgba(10,20,22,0))}
-.hometabs button{position:relative;display:flex;align-items:center;gap:10px;text-align:left;padding:12px;border-radius:12px;border:1.5px solid var(--sand);background:linear-gradient(180deg,#1b3036,#12252a);box-shadow:0 4px 14px rgba(0,0,0,.35);min-width:0}
+.hometabs{position:sticky;top:0;z-index:4;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-inline:-4px;padding:8px 4px;padding-top:calc(8px + env(safe-area-inset-top,0px));background:linear-gradient(180deg,var(--night) 70%,rgba(10,20,22,0))}
+.hometabs button{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:12px 6px 10px;border-radius:12px;border:1.5px solid var(--sand);background:linear-gradient(180deg,#1b3036,#12252a);box-shadow:0 4px 14px rgba(0,0,0,.35);min-width:0}
 .hometabs button:active{transform:translateY(1px)}
 .hometabs svg{width:28px;height:28px;flex:none;fill:var(--sand);color:var(--sand)}
 .hometabs .lbl{display:flex;flex-direction:column;min-width:0}
@@ -92,13 +101,27 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-o
 .hometabs .lbl small{font-size:.7rem;color:var(--muted);line-height:1.25}
 .tbadge{position:absolute;top:-8px;right:8px;background:var(--sand);color:#1d1608;font-size:.68rem;font-weight:700;border-radius:999px;padding:2px 8px;letter-spacing:.02em;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 .tbadge.test{background:#f0b44c}
-@media (max-width:380px){.hometabs .lbl small{display:none}}
+@media (max-width:420px){.hometabs .lbl small{display:none}}
+.achs{display:flex;flex-direction:column;gap:8px}
+.ach{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.ach .medal{width:36px;height:36px;flex:none;border-radius:50%;display:grid;place-items:center;background:#1a2c31;color:var(--muted)}
+.ach .medal svg{width:20px;height:20px;fill:currentColor}
+.ach.done{border-color:var(--sand)}
+.ach.done .medal{background:var(--sand);color:#1d1608}
+.ach .t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ach .t b{font-size:.95rem}
+.ach .t small{color:var(--muted);font-size:.76rem}
+.abar{height:5px;border-radius:3px;background:#203a40;overflow:hidden;margin:3px 0 1px}
+.abar i{display:block;height:100%;background:var(--teal)}
+.ach.done .abar i{background:var(--sand)}
+.ach .rw{flex:none;max-width:38%;text-align:right;font-size:.74rem;font-weight:600;color:var(--sand)}
+.ach .rw.unl{color:var(--teal)}
 .sheet{position:fixed;inset:0;z-index:9;background:var(--night);overflow-y:auto;-webkit-overflow-scrolling:touch}
 .sheethead{position:sticky;top:0;z-index:2;background:rgba(10,20,22,.96);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
 .sheetrow,.sheettabs,.sheetbody{max-width:540px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .sheetrow{display:flex;align-items:center;gap:10px;padding-block:12px 8px}
 .sheetrow h2{flex:1;min-width:0;margin:0;font-family:var(--f-display);font-size:1.3rem;color:var(--pearl)}
-.sheettabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding-block:0 10px}
+.sheettabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding-block:0 10px}
 .sheettabs button{padding:10px;border-radius:10px;border:1px solid var(--line-2);background:#14292f;font-weight:600}
 .sheettabs button.on{background:var(--sand);color:#1d1608;border-color:var(--sand)}
 .sheetbody{padding-block:14px calc(32px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
@@ -178,9 +201,10 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
       <div class="pearlbox"><i class="pearl"></i><span id="pearls" class="num">0</span></div>
     </div>
 
-    <nav class="hometabs" aria-label="Upgrades and store">
-      <button data-sheet="upg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 7h-4v4H9v-4H5z"/><path d="M5 17h14v3H5z"/></svg><span class="lbl"><b>Majlis upgrades</b><small>Spend pearls on permanent boosts</small></span><span class="tbadge" id="upgBadge" hidden></span></button>
-      <button data-sheet="store"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7z"/><path d="M9 8a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="2"/></svg><span class="lbl"><b>Store</b><small>Nations, pearls, perks, cosmetics</small></span><span class="tbadge" id="storeBadge" hidden></span></button>
+    <nav class="hometabs" aria-label="Upgrades, store and achievements">
+      <button data-sheet="upg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 7h-4v4H9v-4H5z"/><path d="M5 17h14v3H5z"/></svg><span class="lbl"><b>Upgrades</b><small>Permanent boosts</small></span><span class="tbadge" id="upgBadge" hidden></span></button>
+      <button data-sheet="store"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7z"/><path d="M9 8a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="2"/></svg><span class="lbl"><b>Store</b><small>Nations, pearls, perks</small></span><span class="tbadge" id="storeBadge" hidden></span></button>
+      <button data-sheet="ach"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v4a5 5 0 0 1-10 0z"/><path d="M4 4h3v3a3 3 0 0 1-3-3zM20 4h-3v3a3 3 0 0 0 3-3z"/><path d="M10 13h4v3h3v3H7v-3h3z"/></svg><span class="lbl"><b>Achievements</b><small>Unlock weapons</small></span><span class="tbadge" id="achBadge" hidden></span></button>
     </nav>
 
     <div class="notice" id="notice" hidden></div>
@@ -225,8 +249,9 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
       <button class="btn" id="sheetClose">Close</button>
     </div>
     <div class="sheettabs">
-      <button data-sheet="upg">Majlis upgrades</button>
+      <button data-sheet="upg">Upgrades</button>
       <button data-sheet="store">Store</button>
+      <button data-sheet="ach">Achievements</button>
     </div>
   </div>
   <div class="sheetbody">
@@ -234,6 +259,10 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
     <div id="sheetUpg">
       <p class="hint">Pearls from every campaign, won or lost, buy permanent upgrades. Higher heat pays more pearls.</p>
       <div class="upgs" id="upgs"></div>
+    </div>
+    <div id="sheetAch" hidden>
+      <p class="hint" id="achSum"></p>
+      <div class="achs" id="achList"></div>
     </div>
     <div id="sheetStore" hidden>
       <div id="storeSec">
@@ -266,6 +295,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
   </div>
   <div class="lb" id="lb"></div>
   <div class="toast" id="toast" style="opacity:0"></div>
+  <div class="news" id="news" hidden role="status"></div>
   <div class="dock">
     <div class="dockin">
       <div class="seg">
@@ -403,7 +433,13 @@ const codeOf=id=>NAT[id].short;
 const DRONE_KEYS=['light','strike','heavy'],MISSILE_KEYS=['t1','t2','t3'];
 const WSIZE={light:.8,strike:1,heavy:1.3,t1:1,t2:1.2,t3:1.45};
 function arsenalOf(id){return BAL.arsenal[codeOf(id)]||{drones:['light'],missileTier:1};}
-function weaponsOf(id){const a=arsenalOf(id),out=[];for(const d of DRONE_KEYS)if(a.drones.includes(d))out.push('drone:'+d);for(let t=1;t<=Math.min(3,a.missileTier|0);t++)out.push('missile:t'+t);return out;}
+// Tier II/III weapons and abilities stay locked for everyone (you and every AI) until you earn their achievements
+const REQ={'drone:strike':'tier2','missile:t2':'tier2','drone:heavy':'tier3','missile:t3':'tier3',uav:'uav',droneRush:'rush'};
+const LOCK_ACH={tier2:'Arms development',tier3:'Strategic deterrent',uav:'Eyes in the sky',rush:'Swarm doctrine'};
+const unlockedFlag=f=>!!(S.unl&&S.unl[f]);
+const isUnlocked=key=>!REQ[key]||unlockedFlag(REQ[key]);
+function arsenalAll(id){const a=arsenalOf(id),out=[];for(const d of DRONE_KEYS)if(a.drones.includes(d))out.push('drone:'+d);for(let t=1;t<=Math.min(3,a.missileTier|0);t++)out.push('missile:t'+t);return out;}
+function weaponsOf(id){return arsenalAll(id).filter(isUnlocked);}
 function weapon(id,wid){
   const [kind,key]=String(wid).split(':'),base=kind==='drone'?BAL.drones[key]:kind==='missile'?BAL.missiles[key]:null;if(!base)return null;
   const c=codeOf(id),n=NATS[id],m=n&&n.id===id?n.m:null;
@@ -411,14 +447,16 @@ function weapon(id,wid){
   if(kind==='drone'){const h=BAL.droneHandicap;if(h.nations.includes(c)){w.cost*=h.cost;w.intercept*=h.intercept;w.radius*=h.radius;w.speed*=h.speed;}
     w.stealth=BAL.stealth.nations.includes(c);if(m)w.cost*=m.droneCost*(m.droneN>1?1.5:1);}
   else if(m){w.cost*=m.missileCost;w.radius+=m.blast-2;w.intercept/=m.evade;}
+  if(kind==='missile'&&G&&G.fx)w.cost*=G.fx.mcost;
   w.cost=Math.max(1,Math.round(w.cost));return w;
 }
 function arsenalText(id){
-  const a=arsenalOf(id),c=codeOf(id),dr=DRONE_KEYS.filter(d=>a.drones.includes(d)).map(d=>BAL.drones[d].name);
+  const a=arsenalOf(id),c=codeOf(id),lk=k=>isUnlocked(k)?'':' (locked)';
+  const dr=DRONE_KEYS.filter(d=>a.drones.includes(d)).map(d=>BAL.drones[d].name+lk('drone:'+d));
   const tags=[];if(dr.length&&BAL.stealth.nations.includes(c))tags.push('hidden until close');if(dr.length&&BAL.droneHandicap.nations.includes(c))tags.push('weaker');
-  const t=Math.min(3,a.missileTier|0);
-  const ab=[hasAbility(id,'uav')?'UAV recon':null,hasAbility(id,'droneRush')?'Drone rush':null].filter(Boolean);
-  return (ab.length?`Ability: ${ab.join(', ')} · `:'')+`Drones: ${dr.length?dr.join(', ')+(tags.length?` (${tags.join(', ')})`:''):'none'} · Missiles: ${t?'up to tier '+['I','II','III'][t-1]:'none'}`;
+  const t=Math.min(3,a.missileTier|0),tu=arsenalAll(id).filter(w=>w.startsWith('missile')&&isUnlocked(w)).length,R=['I','II','III'];
+  const ab=[abilityOwned(id,'uav')?'UAV recon'+lk('uav'):null,abilityOwned(id,'droneRush')?'Drone rush'+lk('droneRush'):null].filter(Boolean);
+  return (ab.length?`Ability: ${ab.join(', ')} · `:'')+`Drones: ${dr.length?dr.join(', ')+(tags.length?` (${tags.join(', ')})`:''):'none'} · Missiles: ${t?'up to tier '+R[t-1]+(tu<t?` (tier ${R[tu]}${tu+1<t?'–'+R[t-1]:''} locked)`:''):'none'}`;
 }
 function applyOil(){
   const ex=Math.max(0,Math.min(.4,BAL.oil.gccExtra)),th=1-ex*2.5;oilCells.length=0;
@@ -630,7 +668,7 @@ function startRun(){
   owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);siloSeen.fill(0);
   G={pid,diff,t:0,speed:1,paused:false,over:false,acc:0,econAcc:0,
      aiRegen:.8+.12*diff,aiCap:.9+.1*diff,aiThresh:Math.max(.3,.62-.06*diff),aiFrac:Math.min(.65,.3+.07*diff),
-     sand:1,kills:0,peak:0,ms:0,drafts:0,rerolls:lvl('reroll'),cards:[],nextEvt:140,ssel:'',rushReady:0,aiRushReady:{},focus:-1,focusUntil:0,hover:-1,uavUntil:0,uavReady:0,aiUav:{},aiUavReady:{},evt:null,evtEnd:0,oilBoost:1,sandstorm:1,
+     sand:1,kills:0,peak:0,ms:0,drafts:0,rerolls:lvl('reroll'),cards:[],nextNews:BAL.news.first,news:null,newsEnd:0,fx:fxBase(),ssel:'',rushReady:0,aiRushReady:{},focus:-1,focusUntil:0,hover:-1,uavUntil:0,uavReady:0,aiUav:{},aiUavReady:{},evt:null,evtEnd:0,oilBoost:1,sandstorm:1,
      mode:'attack',bsel:'city',ratio:+$('#ratio').value/100,pings:[]};
   NATS=[null];
   for(let id=1;id<=NNAT;id++)NATS.push(newNation(id,id===pid,diff));
@@ -651,7 +689,7 @@ function startRun(){
 }
 
 /* ================= Simulation ================= */
-function terrMul(m,i){const t=terr[i];return t===3?1+.8*m.desert*G.sandstorm:t===4?1+1.6*m.mount:1;}
+function terrMul(m,i){const t=terr[i];return t===3?1+.8*m.desert*G.fx.desert:t===4?1+1.6*m.mount:1;}
 function fortMul(d,i){
   let mul=1;const x=i%W,y=(i/W)|0;const R2=d.m.fortR*d.m.fortR;
   for(const f of blist){if(bld[f]!==2||owner[f]!==d.id)continue;const dx=f%W-x,dy=((f/W)|0)-y;if(dx*dx+dy*dy<=R2){mul=Math.max(mul,1.8+d.m.fortPow);}}
@@ -743,7 +781,7 @@ function collapse(d,att){
   for(let i=0;i<N;i++){if(owner[i]!==d.id)continue;const dx=i%W-ox,dy=((i/W)|0)-oy,dd=dx*dx+dy*dy;if(dd>bd){bd=dd;best=i;}}
   if(best<0){eliminate(d,att);return;}
   d.capIdx=best;
-  if(att.isPlayer){if(att.m.lion)att.troops=Math.max(att.troops,att.cap);if(!d.capLost){G.drafts++;}toast(`You took ${d.name}'s capital. They regroup at a new one.`,3500);}
+  if(att.isPlayer){if(att.m.lion)att.troops=Math.max(att.troops,att.cap);if(!d.capLost){G.drafts++;}bump('capitals');toast(`You took ${d.name}'s capital. They regroup at a new one.`,3500);}
   else if(d.isPlayer)toast(`${att.name} took your capital. Your government moved. Hold your land.`,4000);
   else toast(`${att.name} took ${d.name}'s capital.`,3000);
   d.capLost=true;
@@ -752,7 +790,7 @@ function eliminate(d,att,annexed){
   if(!d.alive)return;d.alive=false;d.troops=0;
   attacks.forEach(a=>{if(a.att===d.id)a.done=true;});boats.forEach(b=>{if(b.att===d.id)b.done=true;});ships.forEach(w=>{if(w.own===d.id)w.dead=true;});missiles.forEach(m=>{if(m.own===d.id)m.done=true;});
   if(d.isPlayer){toast(`${att.name} has overrun your last territory.`);endRun(false);return;}
-  if(att.isPlayer){G.kills++;G.drafts++;toast(`${d.name} is no more.`,3500);}
+  if(att.isPlayer){G.kills++;G.drafts++;bump('kills');toast(`${d.name} is no more.`,3500);}
   else toast(`${d.name} has fallen to ${att.name}.`,3000);
   const rivals=NATS.filter(n=>n&&!n.isPlayer&&n.alive).length;
   if(rivals===0)endRun(true);
@@ -794,7 +832,7 @@ function stepBoats(dt){
     if(!NATS[b.att].alive){b.done=true;continue;}
     const bc=boatCell(b),bx=bc%W,by=(bc/W)|0;
     const underFire=ships.some(w=>w.own!==b.att&&!w.dead&&(w.c%W-bx)**2+(((w.c/W)|0)-by)**2<=12);
-    b.p+=dt*5*NATS[b.att].m.boatSpeed*(underFire?.35:1);
+    b.p+=dt*5*NATS[b.att].m.boatSpeed*G.fx.boat*(underFire?.35:1);
     if(b.p>=b.path.length){b.done=true;landBoat(b);if(G.over)return;}
   }
   boats=boats.filter(b=>!b.done);
@@ -888,7 +926,7 @@ function econ(init){
     n.ports=c.ports;n.rigsDry=c.dry;n.tiles=c.t;n.oilT=c.oil;n.coastT=c.coast;n.cities=c.cities;n.rigs=c.rigs;
     if(c.t){n.cx=c.sx/c.t;n.cy=c.sy/c.t;}
     n.cap=(300+n.tiles*10+n.cities*n.m.cityCap)*n.m.cap*(n.isPlayer?1:G.aiCap);
-    const om=n.m.oil*G.oilBoost;
+    const om=n.m.oil*G.fx.oil;
     n.goldNow=n.alive?(n.tiles*.04+n.oilT*.5*om+n.rigs*4*om+n.rigsDry*1.2*om+n.cities*1.5+n.ports*2+n.coastT*n.m.coast)*n.m.gold:0;
     if(!init)n.gold+=n.goldNow;
     if(n.alive&&n.tiles===0&&!init){eliminate(n,{name:'its rivals',isPlayer:false});if(G.over)return;}
@@ -994,6 +1032,11 @@ function nearestLauncher(n,code,i,range){
   return best<0?-1:bd<=range*range?best:-2;
 }
 function launchStrike(attId,wid,i){
+  const res=launchStrikeInner(attId,wid,i);
+  if(res==='ok'&&G&&attId===G.pid){const k=wid.startsWith('drone')?NATS[attId].m.droneN:1;bump('strikes');if(wid.startsWith('drone'))bump('drones',k);}
+  return res;
+}
+function launchStrikeInner(attId,wid,i){
   const n=NATS[attId],o=owner[i];
   if(i<0||terr[i]<2||!o||o===attId)return 'target';
   const w=weapon(attId,wid);if(!w||!weaponsOf(attId).includes(wid))return 'locked';
@@ -1006,23 +1049,24 @@ function launchStrike(attId,wid,i){
   if(!any)return 'nolauncher';if(!inRange)return 'range';
   if(L<0){G.lastWait=wait;return 'cooldown';}
   if(n.gold<w.cost)return 'gold';
-  n.gold-=w.cost;ammo[L]--;if(kind==='missile')siloSeen[L]=G.t+BAL.silo.reveal;if(ammo[L]<1)bcool[L]=RELOAD[code]*n.m.reload*(kind==='missile'?w.reload:1);
+  n.gold-=w.cost;ammo[L]--;if(kind==='missile')siloSeen[L]=G.t+BAL.silo.reveal;if(ammo[L]<1)bcool[L]=RELOAD[code]*n.m.reload*(kind==='missile'?w.reload*G.fx.mreload:1);
   const k=kind==='drone'?n.m.droneN:1;
   for(let q=0;q<k;q++){const j=q?2.5:0;
     missiles.push({kind,wid,name:w.name,own:attId,x:L%W,y:(L/W)|0,tx:i%W+(Math.random()-.5)*j,ty:((i/W)|0)+(Math.random()-.5)*j,sp:w.speed,r:w.radius,tp:w.troops,pk:w.intercept,stealth:w.stealth,seen:false,size:WSIZE[w.key]||1,done:false});}
   return 'ok';
 }
-function destroyBld(j){const o=owner[j];if(o&&NATS[o].m.bunker&&Math.random()<NATS[o].m.bunker)return;bld[j]=0;}
+function destroyBld(j){const o=owner[j];if(o&&NATS[o].m.bunker&&Math.random()<NATS[o].m.bunker)return false;bld[j]=0;return true;}
 function impact(m){
   const cx=Math.round(m.tx),cy=Math.round(m.ty);if(cx<0||cy<0||cx>=W||cy>=H)return;
   const i=cy*W+cx,att=NATS[m.own],hit=new Set();
   booms.push({x:m.tx,y:m.ty,r:m.r+.6,t:performance.now()});
-  const Rb=Math.max(.5,m.r),R2=Rb*Rb+.5,ri=Math.ceil(Rb),victims=new Map();
+  const Rb=Math.max(.5,m.r),R2=Rb*Rb+.5,ri=Math.ceil(Rb),victims=new Map();let wrecked=0;
   for(let dy=-ri;dy<=ri;dy++)for(let dx=-ri;dx<=ri;dx++){if(dx*dx+dy*dy>R2)continue;const x=cx+dx,y=cy+dy;if(x<0||y<0||x>=W||y>=H)continue;
     const j=y*W+x,o=owner[j];if(terr[j]<2||!o||o===m.own)continue;
-    if(bld[j])destroyBld(j);
+    if(bld[j]&&destroyBld(j)&&m.own===G.pid)wrecked++;
     victims.set(o,(victims.get(o)||0)+1);}
   for(const [o,k] of victims){const d=NATS[o];d.troops-=Math.min(d.troops,d.troops*m.tp+k*(m.kind==='drone'?4:6));hit.add(o);}
+  if(wrecked)bump('destroyed',wrecked);
   const what=m.name;
   SFX.explosion(hit.has(G.pid)||m.own===G.pid?1:vAt(m.tx,m.ty)*.6,m.r/2);
   if(hit.has(G.pid))toast(`A ${att.name} ${what} hit your territory.`);
@@ -1041,14 +1085,14 @@ function stepMissiles(dt){
     if(!tgt)return false;
     const pk=Math.min(.95,(tgt.kind==='drone'?pkD:pkM)*(tgt.pk||1));
     shots.push({ax:ox,ay:oy,bx:tgt.x,by:tgt.y,t:now,aa:1});
-    if(Math.random()<pk){tgt.done=true;booms.push({x:tgt.x,y:tgt.y,r:.8,t:now});SFX.intercept(tgt.own===G.pid||o===G.pid?1:vAt(tgt.x,tgt.y)*.6);
+    if(Math.random()<pk){tgt.done=true;booms.push({x:tgt.x,y:tgt.y,r:.8,t:now});if(o===G.pid)bump('intercepts');SFX.intercept(tgt.own===G.pid||o===G.pid?1:vAt(tgt.x,tgt.y)*.6);
       if(tgt.own===G.pid)toast(`${NATS[o].name} air defense shot down your ${tgt.name}.`);
       else if(o===G.pid&&now-(G.lastAA||0)>3000){G.lastAA=now;toast(`Your air defense shot down a ${NATS[tgt.own].name} ${tgt.name}.`);}}
     return true;
   };
   if(missiles.length){
     for(const j of blist){if(bld[j]!==7||!owner[j]||ammo[j]<1)continue;if(bgap[j]>0){bgap[j]-=dt;continue;}
-      const d=NATS[owner[j]],boost=radarCovers(d.id,j%W,(j/W)|0)?BAL.radar.samBoost:1;if(fire(j%W,(j/W)|0,d.id,d.m.samR,.7*d.m.samPow*boost,.38*d.m.samPow*boost)){bgap[j]=.8;ammo[j]--;if(ammo[j]<1)bcool[j]=RELOAD[7]*d.m.reload;}}
+      const d=NATS[owner[j]],boost=(radarCovers(d.id,j%W,(j/W)|0)?BAL.radar.samBoost:1)*G.fx.sam;if(fire(j%W,(j/W)|0,d.id,d.m.samR,.7*d.m.samPow*boost,.38*d.m.samPow*boost)){bgap[j]=.8;ammo[j]--;if(ammo[j]<1)bcool[j]=RELOAD[7]*d.m.reload;}}
     for(const w of ships){w.aa=(w.aa||0)-dt;if(w.aa>0)continue;if(fire(w.c%W,(w.c/W)|0,w.own,4,.45,.15))w.aa=1;}
   }
   missiles=missiles.filter(m=>!m.done);
@@ -1081,12 +1125,28 @@ function aiStrike(n){
   if(tgt>=0&&launchStrike(n.id,wid,tgt)==='cooldown'&&kind==='missile'&&dr.length)launchStrike(n.id,dr[0],tgt);
 }
 
-const EVENTS=[
- {id:'oil',txt:'Oil price spike: oil income ×3 for 30s',dur:30,on:()=>{G.oilBoost=3},off:()=>{G.oilBoost=1}},
- {id:'sand',txt:"Sandstorm over the Rub' al Khali: desert costs double for 30s",dur:30,on:()=>{G.sandstorm=2.2},off:()=>{G.sandstorm=1}},
- {id:'tribe',txt:'Tribes pledge loyalty: +25% of cap in troops',dur:6,on:()=>{const p=NATS[G.pid];p.troops+=p.cap*.25},off:()=>{}},
- {id:'trade',txt:'Dhow traders arrive in port: +gold',dur:6,on:()=>{const p=NATS[G.pid];p.gold+=80+p.coastT*2},off:()=>{}}
+// World news: rare headlines that shift the whole region for a while (all nations are affected)
+const fxBase=()=>({oil:1,mreload:1,mcost:1,boat:1,sam:1,desert:1});
+const NEWS=[
+ {id:'fedcut',tag:'Markets',head:'US Federal Reserve cuts interest rates',body:'A weaker dollar pushes oil prices up.',fx:{oil:1.5},chip:'Oil income ×1.5'},
+ {id:'fedhike',tag:'Markets',head:'US Federal Reserve raises interest rates',body:'A stronger dollar drags oil prices down.',fx:{oil:.6},chip:'Oil income ×0.6'},
+ {id:'opec',tag:'Energy',head:'OPEC+ agrees a surprise output cut',body:'Oil prices jump across the region.',fx:{oil:1.4},chip:'Oil income ×1.4'},
+ {id:'glut',tag:'Energy',head:'Global oil glut as demand slows',body:'Tankers queue offshore and prices slide.',fx:{oil:.7},chip:'Oil income ×0.7'},
+ {id:'gas',tag:'Supply',head:'Global gas shortage hits fuel depots',body:'Missile fuel is scarce, so silos reload 50% slower.',fx:{mreload:1.5},chip:'Silo reload ×1.5'},
+ {id:'embargo',tag:'Politics',head:'UN debates a regional arms embargo',body:'Missile parts are harder to buy: missiles cost 30% more.',fx:{mcost:1.3},chip:'Missiles +30% cost'},
+ {id:'hormuz',tag:'Shipping',head:'Insurance rates soar for Hormuz shipping',body:'Dhows sail 40% slower.',fx:{boat:.6},chip:'Dhows ×0.6 speed'},
+ {id:'chips',tag:'Tech',head:'Breakthrough in interceptor guidance',body:'Air defense hits 20% more often.',fx:{sam:1.2},chip:'Air defense ×1.2'},
+ {id:'sand',tag:'Weather',head:"Sandstorm sweeps the Rub' al Khali",body:'Desert land costs double to cross.',fx:{desert:2.2},chip:'Desert cost ×2.2'},
+ {id:'tribe',tag:'Region',head:'Tribal leaders pledge their support',body:'Your armies swell by a quarter of their cap.',now:()=>{const p=NATS[G.pid];p.troops+=p.cap*.25;}},
+ {id:'trade',tag:'Region',head:'Dhow traders return from India',body:'Ports and coasts bring in extra gold.',now:()=>{const p=NATS[G.pid];p.gold+=80+p.coastT*2;}}
 ];
+let newsTimer=0;
+function showNews(n){
+  const el=$('#news');
+  el.innerHTML=`<span class="ntag">Breaking · ${esc(n.tag)}</span><b>${esc(n.head)}</b><span>${esc(n.body)}${n.fx?` For ${BAL.news.duration}s.`:''}</span>`;
+  el.hidden=false;el.classList.remove('out');clearTimeout(newsTimer);newsTimer=setTimeout(()=>{el.classList.add('out');setTimeout(()=>{el.hidden=true;},400);},9000);
+  try{SFX.news();}catch(e){}
+}
 
 function tick(){
   const dt=.1;G.t+=dt;
@@ -1100,10 +1160,10 @@ function tick(){
   G.econAcc+=dt;if(G.econAcc>=1){G.econAcc-=1;econ(false);if(G.over)return;}
   for(let id=1;id<NATS.length;id++){const n=NATS[id];if(n.alive&&!n.isPlayer)aiThink(n);}
   // events
-  if(G.evt&&G.t>=G.evtEnd){G.evt.off();G.evt=null;}
-  if(!G.evt&&G.t>=G.nextEvt){G.evt=EVENTS[(Math.random()*EVENTS.length)|0];G.evt.on();G.evtEnd=G.t+G.evt.dur;G.nextEvt=G.t+130+Math.random()*60;toast(G.evt.txt,3500);}
+  if(G.news&&G.t>=G.newsEnd){G.news=null;G.fx=fxBase();}
+  if(!G.news&&G.t>=G.nextNews){const n=NEWS[(Math.random()*NEWS.length)|0];showNews(n);if(n.fx){G.news=n;G.fx=Object.assign(fxBase(),n.fx);G.newsEnd=G.t+BAL.news.duration;}else if(n.now)n.now();G.nextNews=G.t+BAL.news.min+Math.random()*Math.max(0,BAL.news.max-BAL.news.min);}
   // milestones
-  const p=NATS[G.pid],pct=p.tiles/LANDN*100;G.peak=Math.max(G.peak,pct);
+  const p=NATS[G.pid],pct=p.tiles/LANDN*100;G.peak=Math.max(G.peak,pct);if(pct>=(stats().peak||0)+.5)bumpMax('peak',Math.floor(pct*10)/10);
   while(G.ms<MILESTONES.length&&pct>=MILESTONES[G.ms]){G.ms++;G.drafts++;}
   if(pct>=WIN_PCT)endRun(true);
 }
@@ -1204,7 +1264,8 @@ function bldVisibleTo(viewer,i){
   if(siloSeen[i]>G.t)return true;
   return viewer===G.pid?G.uavUntil>G.t:(G.aiUav[viewer]||0)>G.t;
 }
-const hasAbility=(id,ab)=>(BAL.abilities[ab]||[]).includes(codeOf(id));
+const abilityOwned=(id,ab)=>(BAL.abilities[ab]||[]).includes(codeOf(id));
+const hasAbility=(id,ab)=>abilityOwned(id,ab)&&isUnlocked(ab);
 // Drone rush: every ready drone in every hangar flies at a random enemy building in range, at a discount
 function readyDrones(id){let k=0;for(const j of blist)if(bld[j]===6&&owner[j]===id)k+=Math.floor(ammo[j]);return k;}
 function droneRush(attId){
@@ -1231,7 +1292,7 @@ function launchRush(){
   if(G.rushReady>G.t){SFX.deny();toast(`Drone rush is regrouping. Ready in ${Math.ceil(G.rushReady-G.t)}s.`);return;}
   const r=droneRush(G.pid);
   if(!r.n){SFX.deny();toast({nodrones:'Your nation has no drones.',noready:'No drones are ready. Build hangars and wait for them to rearm.',gold:'Not enough gold to launch even one drone.',notargets:'No enemy buildings in drone range.'}[r.why]);return;}
-  G.rushReady=G.t+BAL.droneRush.cooldown;SFX.droneLaunch();setTimeout(SFX.droneLaunch,180);setTimeout(SFX.droneLaunch,360);
+  G.rushReady=G.t+BAL.droneRush.cooldown;bump('strikes');bump('drones',r.n);SFX.droneLaunch();setTimeout(SFX.droneLaunch,180);setTimeout(SFX.droneLaunch,360);
   toast(`Drone rush: ${r.n} drone${r.n>1?'s':''} launched at ${[...r.victims].map(o=>NATS[o].name).join(', ')} (${fmt(r.spent)} gold).`,3000);
 }
 function launchUAV(){
@@ -1413,7 +1474,7 @@ function hud(){
   if(untracked.missile>0||untracked.drone>0)ch+=`<span class="chip warn">Incoming: ${[untracked.missile>0?untracked.missile+' missile'+(untracked.missile>1?'s':''):'',untracked.drone>0?untracked.drone+' drone'+(untracked.drone>1?'s':''):''].filter(Boolean).join(', ')}${blist.some(j=>bld[j]===8&&owner[j]===G.pid)?'':' · build a radar to track'}</span>`;
   if(mine.missile||mine.drone)ch+=`<span class="chip"><i class="d" style="background:#8ce6ff"></i>In flight: ${mine.missile+mine.drone}</span>`;
   if(G.uavUntil>G.t)ch+=`<span class="chip evt">UAV overhead ${Math.ceil(G.uavUntil-G.t)}s</span>`;
-  if(G.evt)ch+=`<span class="chip evt">${G.evt.id==='oil'?'Oil spike':G.evt.id==='sand'?'Sandstorm':'Event'} ${Math.ceil(G.evtEnd-G.t)}s</span>`;
+  if(G.news)ch+=`<span class="chip evt">${esc(G.news.chip)} · ${Math.ceil(G.newsEnd-G.t)}s</span>`;
   if(G.ms<MILESTONES.length)ch+=`<span class="chip">Next decree at ${MILESTONES[G.ms]}%</span>`;
   $('#chips').innerHTML=ch;
   const rows=NATS.slice(1).sort((a,b)=>b.tiles-a.tiles);
@@ -1434,13 +1495,14 @@ $('#mBoat').onclick=()=>{setMode('boat');toast('Tap any coast across the water. 
 $('#mBld').onclick=()=>{setMode('build');toast('Tap anywhere on your land to build. Rigs pay most on dark oil fields; ports need water within 3 tiles.');};
 $('#mStk').onclick=()=>{setMode('strike');toast('Tap enemy territory. Drones fly from your hangars, missiles from your silos.');};
 function renderStrikeRow(){
-  const ws=weaponsOf(G.pid),row=$('#strikeRow');if(!ws.includes(G.ssel))G.ssel=ws[0]||'';
-  const abil=[hasAbility(G.pid,'uav')?'uav':null,hasAbility(G.pid,'droneRush')?'rush':null].filter(Boolean);
-  const n=ws.length+abil.length||1;row.style.gridTemplateColumns=`repeat(${n<=4?n:3},1fr)`;
-  row.innerHTML=ws.map(wid=>{const w=weapon(G.pid,wid);return `<button data-s="${wid}" class="${wid===G.ssel?'on':''}">${esc(w.name)}<small data-c="${wid}">${w.cost} g</small></button>`;}).join('')
-    +(abil.includes('uav')?'<button class="uav" id="uavBtn">UAV recon<small id="uavInfo"></small></button>':'')
-    +(abil.includes('rush')?'<button class="uav rush" id="rushBtn">Drone rush<small id="rushInfo"></small></button>':'')
-    +(!n||(!ws.length&&!abil.length)?'<button disabled>Your nation has no strike weapons</button>':'');
+  const all=arsenalAll(G.pid),ws=weaponsOf(G.pid),row=$('#strikeRow');if(!ws.includes(G.ssel))G.ssel=ws[0]||'';
+  const abil=[abilityOwned(G.pid,'uav')?'uav':null,abilityOwned(G.pid,'droneRush')?'droneRush':null].filter(Boolean);
+  const n=all.length+abil.length||1;row.style.gridTemplateColumns=`repeat(${n<=4?n:3},1fr)`;
+  const locked=(name,key)=>`<button disabled class="locked">${esc(name)}<small>Locked · ${esc(LOCK_ACH[REQ[key]])}</small></button>`;
+  row.innerHTML=all.map(wid=>{const w=weapon(G.pid,wid);if(!isUnlocked(wid))return locked(w.name,wid);return `<button data-s="${wid}" class="${wid===G.ssel?'on':''}">${esc(w.name)}<small data-c="${wid}">${w.cost} g</small></button>`;}).join('')
+    +(abil.includes('uav')?(isUnlocked('uav')?'<button class="uav" id="uavBtn">UAV recon<small id="uavInfo"></small></button>':locked('UAV recon','uav')):'')
+    +(abil.includes('droneRush')?(isUnlocked('droneRush')?'<button class="uav rush" id="rushBtn">Drone rush<small id="rushInfo"></small></button>':locked('Drone rush','droneRush')):'')
+    +(!all.length&&!abil.length?'<button disabled>Your nation has no strike weapons</button>':'');
   if($('#uavBtn'))$('#uavBtn').onclick=launchUAV;if($('#rushBtn'))$('#rushBtn').onclick=launchRush;
   row.querySelectorAll('button[data-s]').forEach(b=>b.onclick=()=>{G.ssel=b.dataset.s;row.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));});
 }
@@ -1501,7 +1563,7 @@ function handleTap(sx,sy){
     if(bld[i]){ping(true);toast('Something is already built here.');return;}
     if(G.bsel==='port'&&nearWater(i,3)<0){ping(true);toast('Ports need open water within 3 tiles.');return;}
     const c=costOf(p,G.bsel);if(p.gold<c){ping(true);toast(`Need ${fmt(c)} gold.`);return;}
-    place(p,i,G.bsel);ping(false);if(G.bsel==='radar')SFX.radar();else SFX.build();toast({city:'City founded: more troops and gold.',fort:'Fort raised: nearby land is far harder to take.',rig:oil[i]?'Oil rig on an oil field: +4 gold/s.':'Oil rig pumping: +1.2 gold/s. Oil fields pay +4.',port:'Port opened: +2 gold/s. Launch warships from here.',silo:`Missile silo ready. Missiles reach ${RANGE.missile} tiles.`,hangar:`Drone hangar ready. Drones reach ${RANGE.drone} tiles.`,sam:'Air defense battery online. It shoots down drones and missiles nearby.',radar:`Radar online: tracks incoming strikes within ${BAL.radar.range} tiles, reveals hidden drones and sharpens nearby air defense.`}[G.bsel]);econ(true);return;
+    place(p,i,G.bsel);ping(false);if(G.bsel==='radar'){SFX.radar();bump('radars');}else SFX.build();toast({city:'City founded: more troops and gold.',fort:'Fort raised: nearby land is far harder to take.',rig:oil[i]?'Oil rig on an oil field: +4 gold/s.':'Oil rig pumping: +1.2 gold/s. Oil fields pay +4.',port:'Port opened: +2 gold/s. Launch warships from here.',silo:`Missile silo ready. Missiles reach ${RANGE.missile} tiles.`,hangar:`Drone hangar ready. Drones reach ${RANGE.drone} tiles.`,sam:'Air defense battery online. It shoots down drones and missiles nearby.',radar:`Radar online: tracks incoming strikes within ${BAL.radar.range} tiles, reveals hidden drones and sharpens nearby air defense.`}[G.bsel]);econ(true);return;
   }
   if(o===G.pid){ping(true);toast(G.mode==='boat'?'Your own shore. Tap a coast you want to invade.':'Your land. Tap neutral sand or a rival next to your border.');return;}
   const troops=p.troops*G.ratio;
@@ -1555,6 +1617,7 @@ function pearlsFor(win){
 function endRun(win,retreat){
   if(G.over)return;G.over=true;
   const earned=pearlsFor(win);
+  bump('campaigns');bumpMax('peak',Math.floor(G.peak*10)/10);if(win){bump('wins');bumpMax('heatWin',G.diff);}
   (win?SFX.win:SFX.lose)();
   S.pearls+=earned;S.runs++;if(win){S.wins++;if(S.diff===S.maxDiff)S.maxDiff++;}S.best=Math.max(S.best,Math.round(G.peak*10)/10);save();
   logEvent('run_end',{nation:NAT[G.pid].name,heat:G.diff,win:!!win,retreat:!!retreat,peak:Math.round(G.peak*10)/10,minutes:Math.round(G.t/6)/10,kills:G.kills,pearls:earned});
@@ -1567,6 +1630,49 @@ function endRun(win,retreat){
      <button class="go" id="toMajlis">Return to the Majlis</button>`);
     $('#toMajlis').onclick=()=>{closeModal();if(win&&S.diff<S.maxDiff){S.diff=S.maxDiff;save();}showScreen('home');};
   },win?600:900);
+}
+
+/* ================= Achievements ================= */
+const ACH=[
+ {id:'first_run',name:'First campaign',desc:'Finish a campaign, won or lost',stat:'campaigns',goal:1,reward:{pearls:20}},
+ {id:'expand10',name:'Expansionist',desc:'Hold 10% of the region in one campaign',stat:'peak',goal:10,reward:{pearls:30}},
+ {id:'strikes',name:'Arms development',desc:'Launch drone or missile strikes',stat:'strikes',goal:()=>BAL.unlocks.tier2Strikes,reward:{unlock:'tier2'},unlockText:'Unlocks Missile II and Strike drones'},
+ {id:'capital',name:'Kingmaker',desc:"Take a rival's capital",stat:'capitals',goal:1,reward:{pearls:40}},
+ {id:'radars',name:'Eyes in the sky',desc:'Build radars',stat:'radars',goal:()=>BAL.unlocks.uavRadars,reward:{unlock:'uav'},unlockText:'Unlocks UAV recon for GCC states'},
+ {id:'intercepts',name:'Iron wall',desc:'Shoot down incoming drones or missiles',stat:'intercepts',goal:50,reward:{pearls:50}},
+ {id:'destroyed',name:'Strategic deterrent',desc:'Destroy enemy buildings with strikes',stat:'destroyed',goal:()=>BAL.unlocks.tier3Buildings,reward:{unlock:'tier3'},unlockText:'Unlocks Missile III and Heavy drones'},
+ {id:'drones',name:'Swarm doctrine',desc:'Launch drones',stat:'drones',goal:()=>BAL.unlocks.rushDrones,reward:{unlock:'rush'},unlockText:'Unlocks Drone rush for Iran'},
+ {id:'kills',name:'Conqueror',desc:'Eliminate a rival nation',stat:'kills',goal:1,reward:{pearls:40}},
+ {id:'expand30',name:'Regional power',desc:'Hold 30% of the region in one campaign',stat:'peak',goal:30,reward:{pearls:60}},
+ {id:'win',name:'Dominion',desc:'Win a campaign',stat:'wins',goal:1,reward:{pearls:100}},
+ {id:'heat3',name:'Under fire',desc:'Win a campaign at Heat 3 or higher',stat:'heatWin',goal:3,reward:{pearls:150}}
+];
+const stats=()=>S.st||(S.st={});
+const achGoal=a=>typeof a.goal==='function'?a.goal():a.goal;
+function bump(k,n=1){const o=stats();o[k]=(o[k]||0)+n;checkAch();}
+function bumpMax(k,v){const o=stats();if(v>(o[k]||0)){o[k]=v;checkAch();}}
+function checkAch(){
+  S.ach=S.ach||{};let got=false;
+  for(const a of ACH){
+    if(S.ach[a.id]||(stats()[a.stat]||0)<achGoal(a))continue;
+    S.ach[a.id]=Date.now();got=true;
+    if(a.reward.pearls)S.pearls+=a.reward.pearls;
+    if(a.reward.unlock){S.unl=S.unl||{};S.unl[a.reward.unlock]=1;}
+    const msg=`Achievement: ${a.name} · ${a.reward.unlock?a.unlockText:'+'+a.reward.pearls+' pearls'}`;
+    if(typeof screen!=='undefined'&&screen==='game')toast(msg,4000);else showNote('ok',msg);
+    try{SFX.chime();}catch(e){}
+    logEvent('achievement',{id:a.id});
+  }
+  if(got){save();if(typeof screen!=='undefined'&&screen==='game'&&G&&G.pid)renderStrikeRow();}
+}
+function renderAch(){
+  const box=$('#achList');if(!box)return;S.ach=S.ach||{};
+  const done=ACH.filter(a=>S.ach[a.id]).length;$('#achSum').textContent=`${done} of ${ACH.length} unlocked. Unlocks apply to you and every AI nation.`;
+  box.innerHTML=ACH.map(a=>{const g=achGoal(a),v=Math.min(g,Math.floor(stats()[a.stat]||0)),ok=!!S.ach[a.id],pct=Math.round(v/g*100);
+    const rw=a.reward.unlock?a.unlockText:`+${a.reward.pearls} pearls`;
+    return `<div class="ach ${ok?'done':''}"><span class="medal" aria-hidden="true">${ok?'<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>':a.reward.unlock?'<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>':'<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="6"/><path d="M8 15l-2 7 6-3 6 3-2-7"/></svg>'}</span>
+      <div class="t"><b>${esc(a.name)}</b><small>${esc(a.desc)}</small><div class="abar"><i style="width:${ok?100:pct}%"></i></div><small class="num">${ok?'Unlocked '+new Date(S.ach[a.id]).toLocaleDateString():`${v} / ${g}${a.stat==='peak'?'%':''}`}</small></div>
+      <span class="rw ${a.reward.unlock?'unl':''}">${esc(rw)}</span></div>`;}).join('');
 }
 
 /* ================= Sound: Web Audio synthesis, no files ================= */
@@ -1650,6 +1756,7 @@ const SFX={
   alarm:()=>{if(!sfxOK('alarm',6000))return;tone('sine',220,212,.35,.13);tone('sine',220,212,.35,.13,.45);},
   chime:()=>{[62,66,69,74].forEach((n,k)=>tone('triangle',midi(n),0,.5,.08,k*.09));},
   win:()=>{[62,66,69,74,78].forEach((n,k)=>tone('triangle',midi(n),0,.75,.1,k*.15));},
+  news:()=>{tone('sine',988,0,.12,.07);tone('sine',740,0,.12,.07,.14);tone('sine',988,0,.18,.07,.28);},
   lose:()=>{[69,67,63,62,50].forEach((n,k)=>tone('triangle',midi(n),0,.85,.1,k*.19));}
 };
 function renderSound(){
@@ -1670,8 +1777,9 @@ function idleStored(){const l=lvl('dhow');if(!l)return 0;const mins=Math.min(IDL
 let SHEET='upg';
 function openSheet(which){$('#sheet').hidden=false;setSheet(which);if(which==='store'&&API&&!STORE)loadStore();}
 function setSheet(which){
-  SHEET=which;$('#sheetUpg').hidden=which!=='upg';$('#sheetStore').hidden=which!=='store';
-  $('#sheetTitle').textContent=which==='upg'?'Majlis upgrades':'Store';
+  SHEET=which;$('#sheetUpg').hidden=which!=='upg';$('#sheetStore').hidden=which!=='store';$('#sheetAch').hidden=which!=='ach';
+  $('#sheetTitle').textContent=which==='upg'?'Majlis upgrades':which==='store'?'Store':'Achievements';
+  if(which==='ach'){renderAch();S.achSeen=Object.keys(S.ach||{}).length;save();renderTabBadges();}
   document.querySelectorAll('.sheettabs button').forEach(b=>b.classList.toggle('on',b.dataset.sheet===which));
   $('#sheet').scrollTop=0;
 }
@@ -1688,9 +1796,10 @@ function renderTabBadges(){
     sb.hidden=!left;sb.textContent=STORE.mode==='test'?'Test mode':left+' items';sb.classList.toggle('test',STORE.mode==='test');
   }else sb.hidden=true;
   $('#sheetPearls').textContent=fmt(S.pearls);
+  const fresh=Object.keys(S.ach||{}).length-(S.achSeen||0),abd=$('#achBadge');abd.hidden=fresh<=0;abd.textContent=fresh+' new';
 }
 function renderHome(){
-  renderSound();renderAccount();renderStore();renderCosmetics();
+  renderSound();renderAccount();renderStore();renderCosmetics();renderAch();
   if(HASH_NOTE){showNote(HASH_NOTE[0],HASH_NOTE[1]);HASH_NOTE=null;}
   $('#pearls').textContent=fmt(S.pearls);
   const st=idleStored(),dl=lvl('dhow');
@@ -1735,6 +1844,8 @@ $('#howBtn').onclick=()=>{openModal(`<h3>How to play</h3>
   <span style="color:var(--pearl)"><b>Reload.</b> Silos hold 1 missile (30s reload), hangars 4 drones (35s rearm), air defense 3 interceptors (18s reload). Blue pips show what is ready; a red ring shows reloading.</span>
   <span style="color:var(--pearl)"><b>Counter.</b> Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.</span>
   <span style="color:var(--pearl)"><b>Navy.</b> Launch warships from a port. They patrol nearby waters and sink enemy dhows and warships.</span>
+  <span style="color:var(--pearl)"><b>Achievements.</b> Missile II and III, Strike and Heavy drones, UAV recon and Drone rush start locked for everyone, including the AI. Earn their achievements to unlock them in every campaign.</span>
+  <span style="color:var(--pearl)"><b>World news.</b> Now and then a headline shifts the whole region for a minute: rate cuts lift oil prices, gas shortages slow silo reloads, embargoes raise missile costs.</span>
   <span style="color:var(--pearl)"><b>Decrees.</b> Each land milestone and each fallen rival lets you pick a power for this campaign.</span>
   <span style="color:var(--pearl)"><b>Grow.</b> Every campaign pays pearls for permanent upgrades, new nations and higher heat. Hold ${WIN_PCT}% of the land to win.</span></div>
   <button class="go" id="okHow">Got it</button>`);$('#okHow').onclick=closeModal;};

@@ -46,6 +46,10 @@ window.GD_BALANCE_DEFAULTS = {
   abilities: { uav: ['KW', 'SA', 'BH', 'QA', 'AE', 'OM'], droneRush: ['IR'] },
   // Drone rush: each drone costs `discount` × its normal price; then the ability needs `cooldown` seconds
   droneRush: { discount: 0.5, cooldown: 90 },
+  // Achievement goals that unlock content for you and every AI: strikes for tier II, buildings destroyed for tier III, radars for UAV, drones for Drone rush
+  unlocks: { tier2Strikes: 15, tier3Buildings: 40, uavRadars: 3, rushDrones: 60 },
+  // World news: first headline after `first` seconds, then one every `min`–`max` seconds; effects last `duration` seconds
+  news: { first: 200, min: 280, max: 420, duration: 60 },
 };
 
 // Merge saved overrides over the defaults, keeping only known keys and sane values.

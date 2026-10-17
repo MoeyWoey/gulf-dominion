@@ -5,7 +5,7 @@ const enc = new TextEncoder();
 const dec = new TextDecoder();
 const SESSION_DAYS = 30;
 const MAX_SAVE_BYTES = 100 * 1024;
-const CLIENT_EVENTS = new Set(['run_start', 'run_end', 'store_open', 'client_error', 'session']);
+const CLIENT_EVENTS = new Set(['run_start', 'run_end', 'store_open', 'client_error', 'session', 'achievement']);
 const MF_BASES = {
   test: 'https://apitest.myfatoorah.com',
   kw: 'https://api.myfatoorah.com', // Kuwait, UAE, Bahrain, Jordan, Oman

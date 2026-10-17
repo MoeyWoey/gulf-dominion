@@ -331,6 +331,13 @@ function renderBal(B){
       <span>UAV recon cooldown</span><span>${numIn('uav.cooldown',B.uav.cooldown,'5')} seconds</span>
       <span>Drone rush cost ×</span><span>${numIn('droneRush.discount',B.droneRush.discount,'0.05')} <span class="hint">of each drone's normal price</span></span>
       <span>Drone rush cooldown</span><span>${numIn('droneRush.cooldown',B.droneRush.cooldown,'5')} seconds</span>
+      <span>Unlock Missile II + Strike drone</span><span>${numIn('unlocks.tier2Strikes',B.unlocks.tier2Strikes,'1')} strikes launched</span>
+      <span>Unlock Missile III + Heavy drone</span><span>${numIn('unlocks.tier3Buildings',B.unlocks.tier3Buildings,'1')} enemy buildings destroyed</span>
+      <span>Unlock UAV recon</span><span>${numIn('unlocks.uavRadars',B.unlocks.uavRadars,'1')} radars built</span>
+      <span>Unlock Drone rush</span><span>${numIn('unlocks.rushDrones',B.unlocks.rushDrones,'1')} drones launched</span>
+      <span>First world news after</span><span>${numIn('news.first',B.news.first,'10')} seconds</span>
+      <span>Then one every</span><span>${numIn('news.min',B.news.min,'10')} to ${numIn('news.max',B.news.max,'10')} seconds</span>
+      <span>News effects last</span><span>${numIn('news.duration',B.news.duration,'5')} seconds</span>
       <span>Extra GCC oil fields</span><span>${numIn('oil.gccExtra',B.oil.gccExtra,'0.01')} <span class="hint">0 = real fields only, 0.05 = default, 0.15 = lots</span></span>
      </div></div>`;
 }
