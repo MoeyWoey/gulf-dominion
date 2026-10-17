@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `50ae1a3`)_
+_Last updated: 2026-10-17 (after commit `07497eb`)_
 
 ---
 
@@ -325,6 +325,13 @@ Safety rules we keep:
 - On PC they're centred. On phones they're left-aligned so they clear the nation list.
 - World news moves below an active notice.
 
+### 19. Expansion fills gaps — `07497eb`
+
+- **The problem:** expanding left scattered empty tiles. A simulation of 8 expansions (about 860 tiles) left 26–30 enclosed holes, mostly single tiles, plus about 50 tiles with empty land on three sides.
+- **Fix 1:** attacks now take any tile that has the attacker's land on 3 or more sides before pushing on. In the same test there were 0 holes left, with the same land gained in the same time.
+- **Fix 2 (safety net):** once a second, any empty pocket of up to 30 tiles that touches only one nation's land joins that nation for free. Bigger pockets are left alone. It costs under 1 ms.
+- **Dashboard:** Balance → Combat → "Auto-claim empty pockets up to N tiles" (0 turns it off).
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -353,7 +360,7 @@ Safety rules we keep:
 | Diplomacy | Ceasefire 60 s, alliance 180 s, price ×1 |
 | Counter-battery | 55-tile range, silos revealed 30 s |
 | Realistic mode | Gold ×0.5, land ×2 (everyone), pearls ×1.5, diplomacy ×0.75 |
-| Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 |
+| Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 · empty pockets up to 30 tiles auto-claimed |
 | Win condition | 60% of the land, or every rival eliminated |
 
 Every value above can be changed live from the dashboard's **Balance** tab.
