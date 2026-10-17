@@ -349,7 +349,7 @@ body.pc .toast{left:50%;transform:translateX(-50%);text-align:center;max-width:m
 
     <div class="sec">
       <h2>Choose your nation</h2>
-      <p class="hint">GCC states rarely attack each other, and Iraq, Iran and Yemen rarely attack each other. Your bloc's AIs mostly leave you alone too. Realistic mode weakens that loyalty.</p>
+      <p class="hint">GCC states rarely attack each other, and the Iraq, Iran and Yemen militias rarely attack each other. Your bloc's AIs mostly leave you alone too. Realistic mode weakens that loyalty.</p>
       <div class="nations" id="nations"></div>
     </div>
 
@@ -601,8 +601,8 @@ const NAT_ALL=[null,
  {name:'Israel',short:'IL',color:[40,90,200],cap:[34.78,32.08],unlock:150},
  {name:'Turkey',short:'TR',color:[200,30,40],cap:[35.3,37.0],unlock:180}
 ];
-// The Gulf map has the first nine nations; the Middle East map has all fifteen, with the militia names
-const NAT=EXT?NAT_ALL.map((n,i)=>!n?n:Object.assign({},n,{name:({7:'Iraq Militias',8:'Iran Militias',9:'Yemen Militias',13:'Lebanon Militias'})[i]||n.name})):NAT_ALL.slice(0,10);
+// The Gulf map has the first nine nations, the Middle East map all fifteen; both use the militia names
+const NAT=(EXT?NAT_ALL:NAT_ALL.slice(0,10)).map((n,i)=>!n?n:Object.assign({},n,{name:({7:'Iraq Militias',8:'Iran Militias',9:'Yemen Militias',13:'Lebanon Militias'})[i]||n.name}));
 const NNAT=NAT.length-1;
 const BIG_START=id=>id===9||id===13; // Yemen and Lebanon start with a slightly bigger home region
 /* ---- Balance: weapons, arsenals, stealth, oil. Defaults in balance.js, overrides from the admin dashboard ---- */
@@ -1720,10 +1720,10 @@ function render(now){
     ctx.restore();
   }
   booms=booms.filter(b=>now-b.t<700);
-  for(const b of booms){const k=(now-b.t)/700,x=view.ox+(b.x+.5)*s,y=view.oy+(b.y+.5)*s,r=Math.max(6,b.r*s)*(.4+k*.8);
+  for(const b of booms){const k=Math.max(0,(now-b.t)/700),x=view.ox+(b.x+.5)*s,y=view.oy+(b.y+.5)*s,r=Math.max(6,b.r*s)*(.4+k*.8);
     ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fillStyle=`rgba(255,150,60,${.45*(1-k)})`;ctx.fill();ctx.strokeStyle=`rgba(255,230,160,${1-k})`;ctx.lineWidth=2;ctx.stroke();}
   shots=shots.filter(h=>now-h.t<220);
-  for(const h of shots){const k=1-(now-h.t)/220,bx=view.ox+(h.bx+.5)*s,by=view.oy+(h.by+.5)*s;ctx.beginPath();ctx.moveTo(view.ox+(h.ax+.5)*s,view.oy+(h.ay+.5)*s);ctx.lineTo(bx,by);
+  for(const h of shots){const k=Math.min(1,1-(now-h.t)/220),bx=view.ox+(h.bx+.5)*s,by=view.oy+(h.by+.5)*s;ctx.beginPath();ctx.moveTo(view.ox+(h.ax+.5)*s,view.oy+(h.ay+.5)*s);ctx.lineTo(bx,by);
     ctx.strokeStyle=h.aa?`rgba(140,230,255,${k})`:`rgba(255,210,122,${k})`;ctx.lineWidth=2;ctx.stroke();
     ctx.beginPath();ctx.arc(bx,by,3+(1-k)*8,0,7);ctx.strokeStyle=`rgba(255,160,90,${k})`;ctx.stroke();}
   // UAV overhead: faint green wash and a slow scan line
@@ -1742,7 +1742,7 @@ function render(now){
   }
   // tap pings
   G.pings=G.pings.filter(p=>now-p.t<600);
-  for(const p of G.pings){const k=(now-p.t)/600,x=view.ox+(p.x+.5)*s,y=view.oy+(p.y+.5)*s;
+  for(const p of G.pings){const k=Math.max(0,(now-p.t)/600),x=view.ox+(p.x+.5)*s,y=view.oy+(p.y+.5)*s;
     ctx.beginPath();ctx.arc(x,y,6+k*22,0,7);ctx.strokeStyle=p.bad?`rgba(255,111,94,${1-k})`:`rgba(255,240,200,${1-k})`;ctx.lineWidth=2;ctx.stroke();}
 }
 
@@ -2140,7 +2140,7 @@ const ACH=[
  {id:'radars',name:'Eyes in the sky',desc:'Build radars',stat:'radars',goal:()=>BAL.unlocks.uavRadars,reward:{unlock:'uav'},unlockText:'Unlocks UAV recon for GCC states'},
  {id:'intercepts',name:'Iron wall',desc:'Shoot down incoming drones or missiles',stat:'intercepts',goal:50,reward:{pearls:50}},
  {id:'destroyed',name:'Strategic deterrent',desc:'Destroy enemy buildings with strikes',stat:'destroyed',goal:()=>BAL.unlocks.tier3Buildings,reward:{unlock:'tier3'},unlockText:'Unlocks Missile III and Heavy drones'},
- {id:'drones',name:'Swarm doctrine',desc:'Launch drones',stat:'drones',goal:()=>BAL.unlocks.rushDrones,reward:{unlock:'rush'},unlockText:'Unlocks Drone rush for Iran'},
+ {id:'drones',name:'Swarm doctrine',desc:'Launch drones',stat:'drones',goal:()=>BAL.unlocks.rushDrones,reward:{unlock:'rush'},unlockText:'Unlocks Drone rush for Iran Militias'},
  {id:'kills',name:'Conqueror',desc:'Eliminate a rival nation',stat:'kills',goal:1,reward:{pearls:40}},
  {id:'expand30',name:'Regional power',desc:'Hold 30% of the region in one campaign',stat:'peak',goal:30,reward:{pearls:60}},
  {id:'win',name:'Dominion',desc:'Win a campaign',stat:'wins',goal:1,reward:{pearls:100}},
@@ -2375,14 +2375,14 @@ const GUIDE=[
  ['counter','Counter',()=>`Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.`],
  ['sail','Sail',()=>`Tap a coast you don't border, or use Boat mode, and dhows carry troops across the water, land, and push inland. Up to 3 fleets at once.`],
  ['build','Build',()=>`Place anything anywhere on your land: cities, forts, oil rigs (best on dark oil fields), ports near water, missile silos, drone hangars, air defense and radars.`],
- ['strike','Strike',()=>`Drones are cheap and slow; missiles are fast and costly. Bigger drone types and higher missile tiers blast a wider area. Strikes destroy buildings and kill troops; only ground troops and landings take land. Iraqi, Iranian and Yemeni drones stay hidden until they near your border.`],
+ ['strike','Strike',()=>`Drones are cheap and slow; missiles are fast and costly. Bigger drone types and higher missile tiers blast a wider area. Strikes destroy buildings and kill troops; only ground troops and landings take land. Militia drones (Iraq, Iran, Yemen and, on the Middle East map, Syria and Lebanon) stay hidden until they near your border.`],
  ['crater','Craters',()=>`A missile empties the core of its blast: those tiles go back to empty land and their buildings are gone. Craters stay empty for ${BAL.combat.craterTime}s, so anyone bordering one can grab it. Drones never crater.`],
  ['defend','Defend',()=>`Air defense batteries shoot down incoming drones (most of the time) and missiles (sometimes). Layer them around your capital and silos. Tap or hover a battery to see its range and ammo; rivals can't see your ranges unless they fly a UAV.`],
  ['radar','Radar',()=>`A radar tracks incoming strikes in its range: red impact zones, a countdown and arrows at the screen edge. It reveals hidden drones early and sharpens air defense inside its coverage. A new radar also shows strikes that were already on the way.`],
  ['hidden','Hidden silos',()=>`Rivals cannot see your silos, and you cannot see theirs, until a silo fires (then it shows for ${BAL.silo.reveal}s). GCC states can fly a UAV recon flight that reveals every hidden silo, drone and air defense range for ${BAL.uav.duration}s.`],
  ['cb','Counter-battery radar',()=>`When an enemy silo inside its range fires, the silo stays revealed to you for ${BAL.counterBattery.reveal}s, so you can hit it back.`],
- ['cruise','Cruise missiles',()=>`They fly low: radar cannot track them, you only see them a few tiles out, and air defense can only engage them at close range. Iraq, Iran and Yemen pay more, reload slower and use two silo slots each.`],
- ['rush','Drone rush',()=>`Iran can launch every ready drone at once at random enemy buildings in range, at half price. It then needs ${BAL.droneRush.cooldown}s to regroup.`],
+ ['cruise','Cruise missiles',()=>`They fly low: radar cannot track them, you only see them a few tiles out, and air defense can only engage them at close range. The Iraq, Iran and Yemen militias pay more, reload slower and use two silo slots each.`],
+ ['rush','Drone rush',()=>`Iran Militias can launch every ready drone at once at random enemy buildings in range, at half price. It then needs ${BAL.droneRush.cooldown}s to regroup.`],
  ['reload','Reload',()=>`Silos hold 1 missile, hangars 4 drones, air defense 3 interceptors. Blue pips show what is ready; a red ring shows reloading.`],
  ['navy','Navy',()=>`Launch warships from a port. They patrol nearby waters and sink enemy dhows and warships.`],
  ['keys','Keyboard and mouse',()=>`On a PC, press 1, 2, 3 or 4 for Attack, Boat, Strike and Build. Hover any building to see what it does, and the build menu stays on screen so you always know what you can afford.`],
