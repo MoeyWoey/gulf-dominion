@@ -325,6 +325,19 @@ function renderBal(B){
     wtable('Missiles','missiles',MKEYS,['cost','radius','speed','troops','intercept','reload'])+
     `<div class="card"><h2>Arsenals</h2><p class="hint">Which drones each nation can fly, its highest missile tier, and its special abilities. Hidden drones only appear when they come near the player's border. The drone handicap applies the multipliers below.</p>
      <div class="tablewrap"><table><thead><tr><th>Nation</th>${DKEYS.map(d=>`<th>${esc(B.drones[d].name)}</th>`).join('')}<th>Max missile tier</th><th>Hidden drones</th><th>Drone handicap</th><th>UAV recon</th><th>Cruise handicap</th><th>Drone rush</th></tr></thead><tbody>${nrows}</tbody></table></div></div>
+     <div class="card"><h2>Combat</h2><p class="hint">Ground attacks, defence and troop growth for every nation. Taking a tile costs <b>base + density × (defender troops per tile)</b>, times terrain, forts and capital.</p><div class="kv" style="align-items:center">
+      <span>Attack speed ×</span><span>${numIn('combat.attackSpeed',B.combat.attackSpeed,'0.05')} <span class="hint">1 = original pace, 0.5 = wars take twice as long</span></span>
+      <span>Tile cost base</span><span>${numIn('combat.tileBase',B.combat.tileBase,'0.5')} troops <span class="hint">also the cost of empty land</span></span>
+      <span>Defender density weight</span><span>${numIn('combat.defDensity',B.combat.defDensity,'0.1')} <span class="hint">higher = defending troops count for more</span></span>
+      <span>Defender losses</span><span>${numIn('combat.defLoss',B.combat.defLoss,'0.05')} × tile cost <span class="hint">troops the defender loses per tile taken</span></span>
+      <span>Fort ×</span><span>${numIn('combat.fort',B.combat.fort,'0.1')} <span class="hint">land near a fort</span></span>
+      <span>Capital tile ×</span><span>${numIn('combat.capital',B.combat.capital,'0.5')}</span>
+      <span>Around the capital ×</span><span>${numIn('combat.capitalRing',B.combat.capitalRing,'0.1')} <span class="hint">within 2 tiles</span></span>
+      <span>Troop regen base</span><span>${numIn('combat.regenBase',B.combat.regenBase,'1')} per second</span>
+      <span>Troop regen per tile</span><span>${numIn('combat.regenPerTile',B.combat.regenPerTile,'0.01')} per second <span class="hint">lower = less snowballing for big nations</span></span>
+      <span>Troop cap per tile</span><span>${numIn('combat.capPerTile',B.combat.capPerTile,'1')}</span>
+      <span>Strike troop damage ×</span><span>${numIn('combat.strikeTroops',B.combat.strikeTroops,'0.05')} <span class="hint">scales the % of a nation's army each drone or missile kills</span></span>
+     </div></div>
      <div class="card"><h2>Rules</h2><div class="kv" style="align-items:center">
       <span>Hidden drones appear within</span><span>${numIn('stealth.reveal',B.stealth.reveal,'1')} tiles of the player's land</span>
       <span>Handicap: drone cost ×</span><span>${numIn('droneHandicap.cost',h.cost,'0.05')}</span>

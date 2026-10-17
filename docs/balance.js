@@ -59,6 +59,12 @@ window.GD_BALANCE_DEFAULTS = {
   cruiseHandicap: { nations: ['IQ', 'IR', 'YE'], cost: 1.5, reload: 1.4, slots: 2 },
   // Counter-battery radar: enemy silos that fire within `range` tiles stay revealed to you for `reveal` seconds
   counterBattery: { range: 55, reveal: 30 },
+  // Ground combat (every nation). attackSpeed: how fast armies advance (1 = original pace). Taking a tile costs
+  // tileBase + defDensity × (defender troops per tile); the defender loses defLoss × that cost. fort / capital / capitalRing:
+  // how much harder land is to take near a fort, on the capital, and within 2 tiles of it. Troop regen per second is
+  // regenBase + regenPerTile × tiles (+6 per city); troop cap is 300 + capPerTile × tiles. strikeTroops scales the share of a
+  // nation's whole army that a drone or missile hit kills.
+  combat: { attackSpeed: 0.5, tileBase: 4, defDensity: 1.5, defLoss: 0.35, fort: 2.5, capital: 4, capitalRing: 2, regenBase: 30, regenPerTile: 0.3, capPerTile: 10, strikeTroops: 0.5 },
   // Realistic mode (switch beside Begin campaign), applied to every nation: gold income and land-cost multipliers, pearl reward and diplomacy price multipliers
   realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75 },
 };
