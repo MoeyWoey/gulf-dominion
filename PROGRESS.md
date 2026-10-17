@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `cf26abe`)_
+_Last updated: 2026-10-17 (after commit `99736a9`)_
 
 ---
 
@@ -312,6 +312,12 @@ Safety rules we keep:
   | Regen, 2000-tile nation | — | −29% |
 
   Empty land still costs ~4.4 troops per tile but takes twice as long to take.
+
+### 17. Keybinds — `99736a9`
+
+- **Keys 1, 2, 3 and 4** switch to Attack, Boat, Strike and Build during a game.
+- On PC the mode buttons show their key number.
+- Keys are ignored while typing, while a menu is open, or with Ctrl, Alt or Cmd held.
 
 ---
 
