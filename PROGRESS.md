@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `b16af81`)_
+_Last updated: 2026-10-17 (after commit `0fbfc0e`)_
 
 ---
 
@@ -411,6 +411,13 @@ Safety rules we keep:
 
   - Defense alone didn't help, because Yemen gets drained to about one troop per tile.
   - With the applied bonuses Yemen sits mid-table without snowballing, and the lead stays spread across nations.
+
+### 25. No right-click menu — `0fbfc0e`
+
+- The browser's right-click menu (Copy, Save image…) is blocked everywhere in the game.
+- Phones no longer show the long-press callout, and images and the map can't be dragged out.
+- Text fields keep the menu so game codes can be pasted.
+- The admin dashboard is unchanged.
 
 ---
 
