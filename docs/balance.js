@@ -87,8 +87,8 @@ window.GD_BALANCE_DEFAULTS = {
   // cross mountains), def (defense of all its land), mountDef (extra defense of its mountain tiles), missileCost, atk (cost of taking enemy land), neutral (cost of empty land).
   // Added amounts: coast (gold per coastal tile), cityCap (troop cap per city). startSilo: 1 = starts with a missile silo.
   perks: {
-    KW: { oil: 1.6 },
-    SA: { cap: 1.2 },
+    KW: { oil: 1.6, def: 1.6, cap: 1.25, regen: 1.08 },
+    SA: { cap: 1.25, neutral: 0.8, def: 1.15, regen: 1.05 },
     BH: { regen: 1.12, coast: 0.1 },
     QA: { gold: 1.4 },
     AE: { cityCost: 0.65 },
@@ -116,7 +116,7 @@ window.GD_BALANCE_DEFAULTS = {
   heat: { regen: 0.2, cap: 0.2, troops: 0.2, aggression: 0.1, sendMore: 0.12, playerFocus: 0.12, strikesEarlier: 20 },
   // Realistic mode (switch beside Begin campaign), applied to every nation: gold income and land-cost multipliers, pearl reward and diplomacy price multipliers,
   // and blocLoyalty: how much nations still spare their own bloc (1 = as in normal games, 0 = everyone treats everyone the same)
-  realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75, blocLoyalty: 0.8 },
+  realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75, blocLoyalty: 0.6 },
 };
 
 // Merge saved overrides over the defaults, keeping only known keys and sane values.
