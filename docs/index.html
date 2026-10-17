@@ -273,6 +273,18 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
 .lbywait{text-align:center;color:var(--muted);margin:0;padding:8px}
 .netbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(84px + env(safe-area-inset-top,0px));z-index:25;display:flex;align-items:center;gap:10px;background:#2a1712;border:1px solid #c0583e;color:#ffd2c4;border-radius:10px;padding:7px 8px 7px 12px;font-size:.82rem;font-weight:600;width:max-content;max-width:calc(100% - 32px)}
 .lb .tr.hu{color:#b9adff}
+.tip{position:fixed;z-index:8;pointer-events:none;max-width:270px;background:rgba(10,22,26,.96);border:1px solid var(--line-2);border-radius:10px;padding:8px 10px;font-size:.78rem;line-height:1.35;box-shadow:0 6px 18px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:3px}
+.tip b{font-family:var(--f-display);font-size:.95rem;color:var(--sand)}
+.tip .own{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.72rem}
+.tip .own i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.tip p{margin:0;color:#e9e2d2}
+.tip em{font-style:normal;font-weight:600;color:#8ce6ff}
+.tip em.bad{color:var(--danger)}
+body.pc .dockin{max-width:960px}
+body.pc #buildRow{grid-template-columns:repeat(10,1fr)}
+body.pc #buildRow button:last-child:nth-child(3n+1){grid-column:auto}
+body.pc #buildRow.idle button.on{border-color:var(--line-2);box-shadow:none}
+body.pc .toast{bottom:calc(196px + env(safe-area-inset-bottom,0px))}
 </style>
 
 <div id="home">
@@ -387,6 +399,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
   </div>
   <div class="lb" id="lb"></div>
   <div class="toast" id="toast" style="opacity:0"></div>
+  <div class="tip" id="tip" hidden></div>
   <div class="news" id="news" hidden role="status"></div>
   <div class="dock">
     <div class="dockin">
@@ -1646,9 +1659,10 @@ function hud(){
     el.textContent=fmt(w.cost)+' g · '+(!r[2]?'no '+(w.kind==='drone'?'hangar':'silo'):r[0]?r[0]+' ready':'reload '+Math.ceil(r[1])+'s');el.parentElement.classList.toggle('poor',p.gold<w.cost);});
   const ui=$('#uavInfo');if(ui){ui.textContent=G.uavUntil>G.t?`overhead ${Math.ceil(G.uavUntil-G.t)}s`:G.uavReady>G.t?`ready in ${Math.ceil(G.uavReady-G.t)}s`:`${fmt(BAL.uav.cost)} g · reveal ${BAL.uav.duration}s`;
     ui.parentElement.classList.toggle('poor',G.uavUntil<=G.t&&G.uavReady<=G.t&&p.gold<BAL.uav.cost);ui.parentElement.classList.toggle('on',G.uavUntil>G.t);}
+  if(TIP.btn)btnTip();else if(TIP.x>=0&&!$('#tip').hidden)mapTip();
   const ri=$('#rushInfo');if(ri){const k=readyDrones(G.pid);ri.textContent=G.rushReady>G.t?`ready in ${Math.ceil(G.rushReady-G.t)}s`:`${k} drone${k===1?'':'s'} ready · ${Math.round(BAL.droneRush.discount*100)}% cost`;ri.parentElement.classList.toggle('poor',G.rushReady<=G.t&&!k);}
 }
-function setMode(m){G.mode=m;$('#mAtk').classList.toggle('on',m==='attack');$('#mBoat').classList.toggle('on',m==='boat');$('#mStk').classList.toggle('on',m==='strike');$('#mBld').classList.toggle('on',m==='build');$('#sendRow').hidden=m==='build'||m==='strike';$('#buildRow').hidden=m!=='build';$('#strikeRow').hidden=m!=='strike';}
+function setMode(m){G.mode=m;$('#mAtk').classList.toggle('on',m==='attack');$('#mBoat').classList.toggle('on',m==='boat');$('#mStk').classList.toggle('on',m==='strike');$('#mBld').classList.toggle('on',m==='build');$('#sendRow').hidden=m==='build'||m==='strike';$('#buildRow').hidden=m!=='build'&&!isPC();$('#buildRow').classList.toggle('idle',m!=='build');$('#strikeRow').hidden=m!=='strike';}
 $('#mAtk').onclick=()=>setMode('attack');
 $('#mBoat').onclick=()=>{setMode('boat');toast('Tap any coast across the water. Dhows sail from your nearest shore.');};
 $('#mBld').onclick=()=>{setMode('build');toast('Tap anywhere on your land to build. Rigs pay most on dark oil fields; ports need water within 3 tiles.');};
@@ -1667,9 +1681,62 @@ function renderStrikeRow(){
 }
 $('#spd').onclick=()=>{if(G.mp)return;G.speed=G.speed===1?2:G.speed===2?3:1;$('#spd').textContent=G.speed+'×';};
 $('#ratio').oninput=e=>{G.ratio=e.target.value/100;};
-document.querySelectorAll('#buildRow button').forEach(b=>b.onclick=()=>{G.bsel=b.dataset.b;document.querySelectorAll('#buildRow button').forEach(x=>x.classList.toggle('on',x===b));});
+document.querySelectorAll('#buildRow button').forEach(b=>{b.onclick=()=>{G.bsel=b.dataset.b;document.querySelectorAll('#buildRow button').forEach(x=>x.classList.toggle('on',x===b));if(G.mode!=='build')setMode('build');};
+  b.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse'){TIP.btn=b;btnTip();}});b.addEventListener('pointerleave',()=>{if(TIP.btn===b){TIP.btn=null;hideTip();}});});
 $('#pauseBtn').onclick=()=>G&&G.mp?openMpMenu():openPause();
 $('#lb').addEventListener('click',e=>{const r=e.target.closest('.r.talk');if(r)openDiplomacy(+r.dataset.n);});
+
+/* ================= PC: hover tooltips and an always-visible build menu ================= */
+const isPC=()=>matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>=900;
+function applyPC(){const pc=isPC();document.body.classList.toggle('pc',pc);if(G&&screen==='game')setMode(G.mode);if(!pc)hideTip();}
+const TIP={x:-1,y:0,btn:null};
+function bldInfo(code,n){
+  const m=n?n.m:baseMods(),mag=b=>MAG[b]+(b===6?m.magD:b===7?m.magS:m.magM),rl=b=>Math.round(RELOAD[b]*m.reload);
+  switch(code){
+    case 1:return ['City',`+${fmt(m.cityCap*m.cap)} troop cap, faster troop regen and +1.5 gold/s. Each new city costs more.`];
+    case 2:return ['Fort',`Your land within ${m.fortR} tiles is ${(1.8+m.fortPow).toFixed(1)}× harder to take.`];
+    case 3:return ['Oil rig','+4 gold/s on a dark oil field, +1.2 gold/s anywhere else.'];
+    case 4:return ['Port',`+2 gold/s. Launches up to 2 warships that patrol ${m.patrol} tiles and sink enemy dhows. Needs water within 3 tiles.`];
+    case 5:return ['Missile silo',`Fires missiles up to ${RANGE.missile} tiles. Holds ${mag(5)}, reloads in ${rl(5)}s. Hidden from rivals until it fires, then seen for ${BAL.silo.reveal}s.`];
+    case 6:return ['Drone hangar',`Launches drones up to ${RANGE.drone} tiles. Holds ${mag(6)}, rearms in ${rl(6)}s.`];
+    case 7:return ['Air defense',`Shoots down drones (often) and missiles (sometimes) within ${m.samR} tiles; cruise missiles only up close. ${mag(7)} interceptors, ${rl(7)}s reload.`];
+    case 8:return ['Radar',`Tracks incoming strikes within ${BAL.radar.range} tiles (impact zone and countdown), spots hidden drones early and sharpens air defense in range.`];
+    case 9:return ['Counter-battery radar',`Enemy silos that fire within ${BAL.counterBattery.range} tiles stay revealed to you for ${BAL.counterBattery.reveal}s.`];
+    case 11:return ['Warship',`Tap one of your ports to launch it. Patrols ${m.patrol} tiles around the port, sinks enemy dhows and warships and shoots at drones.`];
+  }
+  return ['',''];
+}
+function bldStatus(i){
+  const b=bld[i];if(!MAG[b])return '';
+  if(ammo[i]<1)return `Reloading · ready in ${Math.max(1,Math.ceil(bcool[i]))}s`;
+  return `${Math.floor(ammo[i])}/${magOf(NATS[owner[i]],b)} ${b===5?'missiles':b===6?'drones':'interceptors'} ready`;
+}
+function hideTip(){const t=$('#tip');if(t)t.hidden=true;}
+function placeTip(html,x,y,above){
+  const t=$('#tip');t.innerHTML=html;t.hidden=false;
+  const w=t.offsetWidth,h=t.offsetHeight;
+  let l=above?x-w/2:x+16,tp=above?y-h-10:y+16;
+  if(l+w>innerWidth-8)l=above?innerWidth-8-w:x-16-w;if(l<8)l=8;
+  if(tp+h>innerHeight-8)tp=y-16-h;if(tp<8)tp=8;
+  t.style.left=l+'px';t.style.top=tp+'px';
+}
+// The building under the mouse pointer (only ones the player can see)
+function mapTip(){
+  if(!G||screen!=='game'||!isPC()||modalOpen||TIP.x<0){hideTip();return;}
+  const r=cv.getBoundingClientRect(),s=view.s,mx=(TIP.x-r.left-view.ox)/s,my=(TIP.y-r.top-view.oy)/s,rad=Math.max(5,s*.72)/s*1.3;
+  let best=-1,bd=rad*rad;
+  if(s>=3)for(const j of blist){if(!bld[j]||!owner[j]||!bldVisibleTo(G.pid,j))continue;const dx=j%W+.5-mx,dy=((j/W)|0)+.5-my,d=dx*dx+dy*dy;if(d<=bd){bd=d;best=j;}}
+  if(best<0){hideTip();return;}
+  const o=owner[best],n=NATS[o],[nm,desc]=bldInfo(bld[best],n),st=bldStatus(best);
+  const who=o===G.pid&&!G.spec?'Yours':esc(G.mp&&G.names&&G.names[o]?`${n.name} (${G.names[o]})`:n.name);
+  placeTip(`<b>${nm}</b><span class="own"><i style="background:${rgb(n.color)}"></i>${who}</span><p>${desc}</p>${st?`<em>${st}</em>`:''}`,TIP.x,TIP.y);
+}
+// Build menu buttons: what it does and whether you can afford it
+function btnTip(){
+  const b=TIP.btn;if(!b||!G||screen!=='game'||!b.isConnected){hideTip();return;}
+  const t=b.dataset.b,p=NATS[G.pid],[nm,desc]=bldInfo(t==='ship'?11:BCODE[t],p),c=costOf(p,t),poor=p.gold<c,r=b.getBoundingClientRect();
+  placeTip(`<b>${nm}</b><p>${desc}</p><em class="${poor?'bad':''}">${fmt(c)} gold${poor?` · need ${fmt(c-p.gold)} more`:' · you can afford it'}</em>`,r.left+r.width/2,r.top,true);
+}
 
 /* ================= Input ================= */
 const ptrs=new Map();let tapCand=null,pinch=null;
@@ -1677,15 +1744,15 @@ function cellFromScreen(x,y){const cx=Math.floor((x-view.ox)/view.s),cy=Math.flo
 function zoomAt(x,y,f){const s2=Math.max(1.5,Math.min(22,view.s*f));const k=s2/view.s;view.ox=x-(x-view.ox)*k;view.oy=y-(y-view.oy)*k;view.s=s2;clampView();}
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);const r=cv.getBoundingClientRect();const p={x:e.clientX-r.left,y:e.clientY-r.top};ptrs.set(e.pointerId,p);
   if(ptrs.size===1)tapCand={x:p.x,y:p.y};else{tapCand=null;const [a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y)};}});
-cv.addEventListener('pointermove',e=>{if(G&&e.pointerType==='mouse'&&!e.buttons){const r0=cv.getBoundingClientRect();G.hover=cellFromScreen(e.clientX-r0.left,e.clientY-r0.top);}
+cv.addEventListener('pointermove',e=>{if(G&&e.pointerType==='mouse'){if(e.buttons)hideTip();else{const r0=cv.getBoundingClientRect();G.hover=cellFromScreen(e.clientX-r0.left,e.clientY-r0.top);TIP.x=e.clientX;TIP.y=e.clientY;mapTip();}}
   if(!ptrs.has(e.pointerId))return;const r=cv.getBoundingClientRect();const p={x:e.clientX-r.left,y:e.clientY-r.top};const old=ptrs.get(e.pointerId);
   if(ptrs.size===1){if(tapCand&&Math.hypot(p.x-tapCand.x,p.y-tapCand.y)>8)tapCand=null;if(!tapCand){view.ox+=p.x-old.x;view.oy+=p.y-old.y;clampView();}}
   ptrs.set(e.pointerId,p);
   if(ptrs.size===2&&pinch){const [a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
     if(pinch.mx!==undefined){view.ox+=mx-pinch.mx;view.oy+=my-pinch.my;}zoomAt(mx,my,d/pinch.d);pinch={d,mx,my};}});
 function endPtr(e){if(!ptrs.has(e.pointerId))return;if(ptrs.size===1&&tapCand)handleTap(tapCand.x,tapCand.y);ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(ptrs.size===0)tapCand=null;}
-cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointerleave',()=>{if(G)G.hover=-1;});cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);tapCand=null;pinch=null;});
-cv.addEventListener('wheel',e=>{e.preventDefault();const r=cv.getBoundingClientRect();zoomAt(e.clientX-r.left,e.clientY-r.top,e.deltaY<0?1.15:1/1.15);},{passive:false});
+cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointerleave',()=>{if(G)G.hover=-1;TIP.x=-1;hideTip();});cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);tapCand=null;pinch=null;});
+cv.addEventListener('wheel',e=>{e.preventDefault();hideTip();const r=cv.getBoundingClientRect();zoomAt(e.clientX-r.left,e.clientY-r.top,e.deltaY<0?1.15:1/1.15);},{passive:false});
 
 function handleTap(sx,sy){
   if(!G||G.over||G.paused||modalOpen)return;
@@ -1799,7 +1866,7 @@ function showResult(res,ping){
 
 /* ================= Modals ================= */
 let modalOpen=false;
-function openModal(html){$('#mbox').innerHTML=html;$('#modal').hidden=false;modalOpen=true;}
+function openModal(html){hideTip();$('#mbox').innerHTML=html;$('#modal').hidden=false;modalOpen=true;}
 function closeModal(){$('#modal').hidden=true;modalOpen=false;}
 function draftOptions(){
   const pool=CARDS.filter(c=>!(c.once&&G.cards.includes(c.id)));const k=3+lvl('choice')+(owns('founder')&&!DAILY?1:0),out=[];
@@ -2495,8 +2562,8 @@ function openMpMenu(){
 
 /* ================= Screens & loop ================= */
 let screen='home';
-function showScreen(s){if(s==='home')endDaily();screen=s;$('#home').hidden=s!=='home';$('#game').hidden=s!=='game';if(s==='home')renderHome();}
-window.addEventListener('resize',()=>{if(screen==='game'){resize();clampView();}});
+function showScreen(s){hideTip();if(s==='home')endDaily();screen=s;$('#home').hidden=s!=='home';$('#game').hidden=s!=='game';if(s==='home')renderHome();}
+window.addEventListener('resize',()=>{applyPC();if(screen==='game'){resize();clampView();}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&screen==='game'&&G&&!G.mp&&!G.over&&!modalOpen)openPause();});
 let last=performance.now();
 function frame(now){
@@ -2510,7 +2577,7 @@ function frame(now){
   }
   requestAnimationFrame(frame);
 }
-applyCosmetics();renderSound();
+applyCosmetics();renderSound();applyPC();
 (function buildMenuIcons(){
   const codes={city:1,fort:2,rig:3,port:4,ship:11,silo:5,hangar:6,sam:7,radar:8,cb:9},oc=document.createElement('canvas');oc.width=oc.height=48;const c2=oc.getContext('2d');
   document.querySelectorAll('#buildRow button[data-b]').forEach(b=>{const code=codes[b.dataset.b];if(!code)return;c2.clearRect(0,0,48,48);drawGlyph(c2,code,24,24,21,'#dcb46a');
