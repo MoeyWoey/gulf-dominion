@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `58b71be`)_
+_Last updated: 2026-10-17 (after commit `0fd527b`)_
 
 ---
 
@@ -507,6 +507,34 @@ Safety rules we keep:
 - **Names:** Iran Militias, Iraq Militias and Yemen Militias now appear on the Gulf map too (Lebanon Militias exists on the Middle East map only). The bloc hint, guide and achievement text match.
 - **Fix:** an effect stamped slightly ahead of the frame clock could give a negative circle size and stop the map drawing that frame.
 
+### 33. Rocket artillery and coastal batteries — `0fd527b`
+
+Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 strategic air defense and electronic warfare, 4 nation abilities).
+
+- **Artillery (new building):**
+  - **Who has it:** Syria, Lebanon Militias, Israel and Turkey.
+  - **How it fires:** from Strike mode, a salvo of 6 rockets at land up to 18 tiles away. Rockets scatter over about 3 tiles.
+  - **Cost and reload:** 40 gold per salvo, 12 s reload. Lebanon Militias' perk makes salvos 30% cheaper.
+  - **Damage:** rockets kill troops, wreck a building only 12% of the time and never crater.
+  - **Air defense:** shoots rockets down at half the usual missile rate, but every attempt still spends an interceptor.
+- **Coastal battery (new building, needs water within 2 tiles):**
+  - **Who has it:** Egypt, Iran Militias and Yemen Militias.
+  - **How it fires:** by itself, at hostile warships and dhows within 22 tiles. When no ship is near, it fires at ports.
+  - **Damage:** a hit sinks the ship or dhow. A port is wrecked 35% of the time.
+  - **Magazine:** 2 missiles, 20 s reload. The missiles home on moving ships, and warships and air defense can shoot them down.
+  - **Targets:** never fires at partners. It fires at same-bloc ships only when they are landing on its own shore.
+- **AI:**
+  - It builds artillery on a border with a rival and shells the nation it is at war with. Other rivals are shelled only now and then.
+  - It puts coastal batteries on its coast.
+- **Menus and help:**
+  - The build menu shows each new building only to nations that can use it.
+  - PC tooltips, nation cards, How to play (two new illustrated sections) and the dashboard's Balance tab cover both. The dashboard has two new cards, two arsenal columns and a "Rocket artillery cost" perk.
+- **Online:** guests see the new weapons through the existing missile sync. Sinkings come through as a new host event, and guests get one message per rocket salvo.
+- **Balance check:** 20 seeded all-AI games per setting (12 on the Middle East map, 8 on the Gulf map), with and without the new weapons:
+  - No nation dominates. The largest single-game share was 38% with the new weapons and 47% without.
+  - Rocket troop damage was cut from 0.9% to 0.7% per rocket after the first round.
+  - Israel is the weakest Middle East nation either way (eliminated in about 60% of games with or without artillery). It needs its own look.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -520,6 +548,8 @@ Safety rules we keep:
 | Missile II | 420 | 3 | 7 | GCC; silo reload ×1.5 |
 | Missile III | 750 | 4 | 8 | GCC; silo reload ×2.2 |
 | Cruise missile | 300 | 1.5 | 5 | All; untracked by radar, seen within 5 tiles, air defense at half range; Iraq/Iran/Yemen ×1.5 cost, ×1.4 reload, 2 silo slots |
+| Rocket artillery | 40 per salvo | 0.9 per rocket | 4 | SY, LB, IL, TR; Artillery building 140 gold; 6 rockets, 18-tile range, 3-tile scatter, 0.7% troops per rocket, 12% building wreck chance, intercept ×0.5, 12 s reload |
+| Anti-ship missile | free (automatic) | ship/dhow sunk | 6 | EG, IR, YE; Coastal battery 170 gold; 22-tile range, 2 missiles, 20 s reload, ports wrecked 35% of hits, intercept ×0.8 |
 
 | Rule | Default |
 |---|---|
@@ -529,7 +559,7 @@ Safety rules we keep:
 | UAV recon | 120 gold, 15 s, 60 s cooldown |
 | Drone rush | 50% cost, 90 s cooldown |
 | Extra GCC oil | 0.05 |
-| Magazines (reload) | Silo 1 (30 s), Hangar 4 (35 s), Air defense 3 (18 s) |
+| Magazines (reload) | Silo 1 (30 s), Hangar 4 (35 s), Air defense 3 (18 s), Artillery 1 salvo (12 s), Coastal battery 2 (20 s) |
 | Unlock goals | Tier II: 15 strikes · Tier III: 40 buildings destroyed · UAV: 3 radars · Drone rush: 60 drones |
 | World news | First at 200 s, then every 280–420 s, effects last 60 s |
 | Diplomacy | Ceasefire 60 s, alliance 180 s, price ×1 |
@@ -557,12 +587,13 @@ Every value above can be changed live from the dashboard's **Balance** tab.
 - [ ] Existing saves (including yours) also start with tier II/III and abilities locked. There's no admin grant for unlocks yet.
 - [ ] **Online play with real people:** play a full game on two or more phones over mobile data. Check that the game keeps going when the host's screen is on but the tab is in the background.
 - [x] **Yemen collapses early** in AI-only simulations (0–2% land by 8 min). Fixed in `70099a0` with the AI breather: Yemen now averages ~7%. It's still the smallest nation on average, so watch it in real games.
+- [ ] **Israel is weak on the Middle East map:** it's eliminated in about 60% of all-AI games, with or without the new weapons. Look at its perks or start area.
 - [ ] Achievement thresholds for pearl rewards (10%, 30%, 50 interceptions, …) are fixed in code; only the four unlock goals are in the Balance tab.
 
 ## Ideas suggested but not built
 
 - Online phase 3: player-to-player diplomacy, quick chat, a public game list
-- Middle East weapons: rocket artillery, anti-ship missiles, strategic air defense, electronic warfare, long-range drone; abilities (Egypt canal closure, Israel interceptor surge, Syria missile barrage, Turkey drone swarm)
+- Middle East weapons (still to build): strategic air defense, electronic warfare, long-range drone; abilities (Egypt canal closure, Israel interceptor surge, Syria missile barrage, Turkey drone swarm)
 
 - Rival-specific events (e.g. a GCC summit truce, an oil embargo)
 - Nation-specific decree cards
