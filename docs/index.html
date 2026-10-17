@@ -872,7 +872,7 @@ const fmt=n=>{n=Math.max(0,n);return n<1000?String(Math.floor(n)):n<1e6?(n/1000)
 const rgb=(c,a=1)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
 
 /* ================= Run state ================= */
-const owner=new Uint8Array(N), bld=new Uint8Array(N), ammo=new Float32Array(N), bcool=new Float32Array(N), bgap=new Float32Array(N), siloSeen=new Float32Array(N); // bld: 1 city, 2 fort, 3 rig, 4 port, 5 silo, 6 drone hangar, 7 air defense, 8 radar, 9 counter-battery, 10 artillery, 12 coastal battery (11 = warship, tooltips only)
+const owner=new Uint8Array(N), bld=new Uint8Array(N), ammo=new Float32Array(N), bcool=new Float32Array(N), bgap=new Float32Array(N), siloSeen=new Float32Array(N), unrest=new Float32Array(N); // bld: 1 city, 2 fort, 3 rig, 4 port, 5 silo, 6 drone hangar, 7 air defense, 8 radar, 9 counter-battery, 10 artillery, 12 coastal battery (11 = warship, tooltips only)
 let blist=[], attacks=[], boats=[], ships=[], shots=[], missiles=[], booms=[], NATS=[null], G=null;
 const dirty=new Uint8Array(N); let dirtyList=[], fullPaint=true, basePaint=true, heroKey=null;
 // shownOwner = the owners currently painted on the map texture. fullPaint asks to repaint whatever changed since; basePaint (colours changed) forces a full repaint
@@ -927,8 +927,8 @@ function startRun(spec){
   if(!spec||mp)endDaily();
   closeSheet();
   const pid=mp?mp.nation:spec?spec.nation:S.nation,diff=mp?mp.room.heat:spec?spec.heat:S.diff,isH=id=>mp?!!mp.humans[id]:id===pid;
-  owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);siloSeen.fill(0);crater.fill(0);
-  G={pid,diff,daily:mp?null:spec||null,mp:mp?1:0,spec:mp?!!mp.spec:false,names:mp?mp.names:{},real:mp?!!mp.room.realistic:!spec&&!!S.realistic,caps:0,t:0,speed:1,paused:false,over:false,acc:0,econAcc:0,
+  owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);siloSeen.fill(0);crater.fill(0);unrest.fill(0);
+  G={revolts:[],pid,diff,daily:mp?null:spec||null,mp:mp?1:0,spec:mp?!!mp.spec:false,names:mp?mp.names:{},real:mp?!!mp.room.realistic:!spec&&!!S.realistic,caps:0,t:0,speed:1,paused:false,over:false,acc:0,econAcc:0,
      aiRegen:heatOf(diff).regen,aiCap:heatOf(diff).cap,aiThresh:heatOf(diff).thresh,aiFrac:heatOf(diff).frac,aiFocus:heatOf(diff).focus,strikeAt:heatOf(diff).strikeAt,
      sand:1,kills:0,peak:0,ms:0,drafts:0,rerolls:lvl('reroll'),cards:[],nextNews:BAL.news.first,news:null,newsEnd:0,fx:fxBase(),ssel:'',cbSeen:{},dip:{},trustUntil:0,breakArm:0,breakArmUntil:0,rushReady:0,aiRushReady:{},focus:-1,focusUntil:0,hover:-1,uavUntil:0,uavReady:0,aiUav:{},aiUavReady:{},evt:null,evtEnd:0,oilBoost:1,sandstorm:1,
      mode:'attack',bsel:'city',ratio:+$('#ratio').value/100,pings:[]};
@@ -949,7 +949,7 @@ function startRun(spec){
   else if(spec)toast(`Daily challenge: ${NAT[pid].name}, Heat ${diff}. ${spec.twist.name}: ${spec.twist.desc}`,6000);else toast(S.tut?`Heat ${diff}. Expand from ${NATS[pid].name} and hold ${WIN_PCT}% of the region.`:'Tap sand next to your land to expand. Drag to pan, pinch to zoom.',5000);
   S.tut=1;save();
   if(!mp)logEvent('run_start',{nation:NAT[pid].name,heat:diff,realistic:!!G.real});
-  if(G.real)setTimeout(()=>toast(`Realistic rules: gold ×${BAL.realistic.gold}, land ×${BAL.realistic.land} for every nation, and weaker bloc loyalty. Pearls ×${BAL.realistic.pearls}.`,4500),5200);
+  if(G.real)setTimeout(()=>toast(`Realistic rules: gold ×${BAL.realistic.gold}, land ×${BAL.realistic.land}, weaker bloc loyalty, overextension past ${BAL.realistic.overStart}%, restless conquests. Pearls ×${BAL.realistic.pearls}.`,5000),5200);
 }
 
 /* ================= Simulation ================= */
@@ -967,7 +967,7 @@ function tileCost(att,defId,i){
   const C=BAL.combat;
   if(!defId)return C.tileBase*tm*att.m.neutral*lm;
   const d=NATS[defId],dens=d.troops/Math.max(1,d.tiles);
-  return (C.tileBase+dens*C.defDensity)*tm*att.m.atk*d.m.def*(terr[i]===4?d.m.mountDef:1)*fortMul(d,i)*lm*(G.leader&&att.id===G.leader?BAL.ai.leaderDef:1); // rivals hold out harder against the leader
+  return (C.tileBase+dens*C.defDensity)*tm*att.m.atk*d.m.def*(terr[i]===4?d.m.mountDef:1)*fortMul(d,i)*lm*(G.leader&&att.id===G.leader?(G.real?BAL.realistic.leaderDef:BAL.ai.leaderDef):1); // rivals hold out harder against the leader
 }
 function sidesOf(i,id){const x=i%W;return (x>0&&owner[i-1]===id)+(x<W-1&&owner[i+1]===id)+(i>=W&&owner[i-W]===id)+(i<N-W&&owner[i+W]===id);}
 // Empty pockets of up to BAL.combat.fillPocket tiles touching only one nation's land join that nation for free
@@ -1059,6 +1059,7 @@ function capture(i,attId,defId){
   owner[i]=attId;const att=NATS[attId];att.tiles++;markAround(i);
   if(!defId)return;
   const d=NATS[defId];d.tiles--;d.press=(d.press||0)+1;
+  if(G.real)unrest[i]=G.t+BAL.realistic.unrest; // Realistic: conquered land is restless for a while
   att.gold+=att.m.plunder;
   if(i===d.capIdx)collapse(d,att);
   else if(d.tiles<=0)eliminate(d,att);
@@ -1070,6 +1071,7 @@ function collapse(d,att){
   for(let i=0;i<N;i++){if(owner[i]!==d.id)continue;const dx=i%W-ox,dy=((i/W)|0)-oy,dd=dx*dx+dy*dy;if(dd>bd){bd=dd;best=i;}}
   if(best<0){eliminate(d,att);return;}
   d.capIdx=best;
+  if(G.real)(G.revolts||(G.revolts=[])).push({cell:old,from:d.id,by:att.id,until:G.t+BAL.realistic.unrest});
   if(G.mp)mpEvt(['c',d.id,att.id]);
   if(att.m&&att.m.lion&&att.isPlayer)att.troops=Math.max(att.troops,att.cap);
   if(att.id===G.pid){if(!d.capLost&&!G.mp){G.drafts++;}bump('capitals');G.caps=(G.caps||0)+1;toast(`You took ${d.name}'s capital. They regroup at a new one.`,3500);}
@@ -1212,26 +1214,49 @@ function aiBoat(n,cnt){
 
 function econ(init){
   if(!init)fillPockets();
-  const cnt=NATS.map(()=>({t:0,oil:0,coast:0,cities:0,rigs:0,dry:0,ports:0,sx:0,sy:0}));
+  const cnt=NATS.map(()=>({t:0,oil:0,coast:0,cities:0,rigs:0,dry:0,ports:0,sx:0,sy:0,u:0,uo:0,uc:0}));
+  if(!init&&G.real)checkRevolts();
+  const RL=G.real?BAL.realistic:null;
   for(let i=0;i<N;i++){const o=owner[i];if(!o)continue;const c=cnt[o];c.t++;if(oil[i])c.oil++;if(coast[i])c.coast++;
+    if(RL&&unrest[i]>G.t){c.u++;if(oil[i])c.uo++;if(coast[i])c.uc++;}
     const b=bld[i];if(b===1)c.cities++;else if(b===3){if(oil[i])c.rigs++;else c.dry++;}else if(b===4)c.ports++;c.sx+=i%W;c.sy+=(i/W)|0;}
   for(let id=1;id<NATS.length;id++){const n=NATS[id],c=cnt[id];
     n.ports=c.ports;n.rigsDry=c.dry;n.tiles=c.t;n.oilT=c.oil;n.coastT=c.coast;n.cities=c.cities;n.rigs=c.rigs;
     if(c.t){n.cx=c.sx/c.t;n.cy=c.sy/c.t;}
-    n.cap=(300+n.tiles*BAL.combat.capPerTile+n.cities*n.m.cityCap)*n.m.cap*(n.isPlayer?1:G.aiCap);
+    n.unrestT=c.u;n.overF=RL?Math.max(RL.overMin,1-Math.max(0,c.t/LANDN*100-RL.overStart)*RL.overPer):1; // Realistic overextension
+    n.cap=(300+n.tiles*BAL.combat.capPerTile+n.cities*n.m.cityCap)*n.m.cap*(n.isPlayer?1:G.aiCap)*n.overF;
     const om=n.m.oil*G.fx.oil;
-    n.goldNow=n.alive?(n.tiles*.04+n.oilT*.5*om+n.rigs*4*om+n.rigsDry*1.2*om+n.cities*1.5+n.ports*2+n.coastT*n.m.coast)*n.m.gold*(G.real?BAL.realistic.gold:1):0;
+    n.goldNow=n.alive?((n.tiles-c.u)*.04+(n.oilT-c.uo)*.5*om+n.rigs*4*om+n.rigsDry*1.2*om+n.cities*1.5+n.ports*2+(n.coastT-c.uc)*n.m.coast)*n.m.gold*(G.real?BAL.realistic.gold:1):0;
     if(!init)n.gold+=n.goldNow;
-    if(id===NATS.length-1){let bt=0,best=0;for(let q=1;q<NATS.length;q++)if(NATS[q].alive&&NATS[q].tiles>bt){bt=NATS[q].tiles;best=q;}const was=G.leader;G.leader=bt/LANDN*100>=BAL.ai.leaderPct?best:0;
+    if(id===NATS.length-1){let bt=0,best=0;for(let q=1;q<NATS.length;q++)if(NATS[q].alive&&NATS[q].tiles>bt){bt=NATS[q].tiles;best=q;}const was=G.leader;G.leader=bt/LANDN*100>=leadPct()?best:0;
       if(!init&&G.leader&&G.leader!==was&&!G.spec){if(G.leader===G.pid)toast('You lead the region. Your rivals are uniting against you.',4000);else toast(`${NATS[G.leader].name} leads the region. Its rivals are turning on it.`,3500);}}
     if(n.alive&&n.tiles===0&&!init){eliminate(n,{name:'its rivals',isPlayer:false});if(G.over)return;}
   }
+}
+const leadPct=()=>G&&G.real?BAL.realistic.leaderPct:BAL.ai.leaderPct;
+const msAt=k=>MILESTONES[k]*(G&&G.real?BAL.realistic.decreeGap:1); // Realistic spaces decrees further apart
+// Realistic: a freshly taken capital rises back to its old owner if the taker's army runs thin while the land is restless
+function checkRevolts(){
+  if(!G.revolts||!G.revolts.length)return;const R=BAL.realistic;
+  G.revolts=G.revolts.filter(v=>{
+    const d=NATS[v.from],a=NATS[v.by];
+    if(G.t>v.until||!d||!d.alive||!a||!a.alive||owner[v.cell]!==v.by)return false;
+    if(a.troops>=a.cap*R.revoltBelow)return true;
+    const cx=v.cell%W,cy=(v.cell/W)|0,r=Math.max(1,R.revoltR)|0;let k=0;
+    for(let y=Math.max(0,cy-r);y<=Math.min(H-1,cy+r);y++)for(let x=Math.max(0,cx-r);x<=Math.min(W-1,cx+r);x++){const i=y*W+x;
+      if(owner[i]!==v.by||i===a.capIdx||(x-cx)**2+(y-cy)**2>r*r)continue;owner[i]=v.from;a.tiles--;d.tiles++;unrest[i]=0;markAround(i);k++;}
+    if(k){d.troops+=k*4;if(G.mp)fullPaint=true;
+      if(a.id===G.pid)toast(`${d.name}'s old capital rose up against your thin garrison. ${k} tiles lost.`,4000);
+      else if(d.id===G.pid)toast(`Your old capital rose up against ${a.name}. ${k} tiles back.`,4000);
+      else toast(`${d.name}'s old capital rebelled against ${a.name}.`,3000);
+      if(a.tiles<=0)eliminate(a,d);}
+    return false;});
 }
 function regen(n,dt){
   if(!n.alive)return;
   const ratio=n.troops/n.cap;
   const f=n.m.falaj?Math.max(0,1-ratio*.55):Math.max(0,1-ratio);
-  const base=(BAL.combat.regenBase+n.tiles*BAL.combat.regenPerTile+n.cities*6)*n.m.regen*(n.isPlayer?1:G.aiRegen*G.sand)*.65;
+  const base=(BAL.combat.regenBase+(n.tiles-(n.unrestT||0))*BAL.combat.regenPerTile+n.cities*6)*n.m.regen*(n.isPlayer?1:G.aiRegen*G.sand)*.65*(n.overF||1);
   n.regenNow=base*f;
   n.troops+=n.regenNow*dt;
   if(n.press)n.press*=Math.max(0,1-dt/Math.max(1,BAL.ai.pileTime));
@@ -1601,7 +1626,7 @@ function tick(){
   // milestones
   if(G.mp){mpCheckEnd();return;}
   const p=NATS[G.pid],pct=p.tiles/LANDN*100;G.peak=Math.max(G.peak,pct);if(pct>=(stats().peak||0)+.5)bumpMax('peak',Math.floor(pct*10)/10);
-  while(G.ms<MILESTONES.length&&pct>=MILESTONES[G.ms]){G.ms++;G.drafts++;}
+  while(G.ms<MILESTONES.length&&pct>=msAt(G.ms)){G.ms++;G.drafts++;}
   if(pct>=WIN_PCT)endRun(true);
 }
 
@@ -1949,7 +1974,8 @@ function hud(){
   if(G.real)ch+=`<span class="chip real">Realistic</span>`;
   if(G.news)ch+=`<span class="chip evt">${esc(G.news.chip)} · ${Math.ceil(G.newsEnd-G.t)}s</span>`;
   if(G.mp){const away=NATS.filter(n=>n&&n.human&&n.away&&n.alive);for(const n of away)ch+=`<span class="chip"><i class="d" style="background:${rgb(n.color)}"></i>${esc(G.names[n.id]||n.name)} away · AI in charge</span>`;if(G.spec)ch+='<span class="chip evt">Spectating</span>';else if(!NATS[G.pid].alive)ch+='<span class="chip warn">Your nation has fallen · watching</span>';}
-  if(G.ms<MILESTONES.length&&!G.mp)ch+=`<span class="chip">Next decree at ${MILESTONES[G.ms]}%</span>`;
+  if(G.ms<MILESTONES.length&&!G.mp&&msAt(G.ms)<WIN_PCT)ch+=`<span class="chip">Next decree at ${+msAt(G.ms).toFixed(1)}%</span>`;
+  if(G.real&&!G.spec&&NATS[G.pid]&&NATS[G.pid].overF<1)ch+=`<span class="chip">Overextended · regen and cap −${Math.round((1-NATS[G.pid].overF)*100)}%</span>`;
   $('#chips').innerHTML=ch;
   const rows=NATS.slice(1).sort((a,b)=>b.tiles-a.tiles);
   $('#lb').innerHTML=`<div class="lbh">${G.mp?'Online · '+esc(MP?MP.code:''):'Tap a nation to negotiate'}</div>`+rows.map(n=>{const t=treaty(n.id),me=n.id===G.pid&&!G.spec;return `<div class="r ${me?'me':''} ${n.alive?'':'dead'} ${!G.mp&&!n.isPlayer&&n.alive?'talk':''}" data-n="${n.id}"><span class="chip d" style="padding:0;border:0;width:8px;height:8px;border-radius:2px;background:${rgb(n.color)}"></span><span>${n.short||NAT[n.id].short}${t?`<em class="tr">${t==='alliance'?'ALLY':'TRUCE'}</em>`:''}${G.mp&&n.human&&!me?`<em class="tr hu">${esc((G.names[n.id]||'').slice(0,10))}</em>`:''}</span><span class="num">${(n.tiles/LANDN*100).toFixed(1)}%</span></div>`;}).join('');
@@ -2207,7 +2233,7 @@ let modalOpen=false;
 function openModal(html){hideTip();$('#mbox').innerHTML=html;$('#modal').hidden=false;modalOpen=true;}
 function closeModal(){$('#modal').hidden=true;modalOpen=false;}
 function draftOptions(){
-  const pool=CARDS.filter(c=>!(c.once&&G.cards.includes(c.id)));const k=3+lvl('choice')+(owns('founder')&&!DAILY?1:0),out=[];
+  const pool=CARDS.filter(c=>!(c.once&&G.cards.includes(c.id)));const k=(G.real?Math.max(1,Math.round(BAL.realistic.choices)):3)+lvl('choice')+(owns('founder')&&!DAILY?1:0),out=[];
   while(out.length<k&&pool.length){const w=pool.map(c=>[6,3,1][c.r]),tot=w.reduce((a,b)=>a+b,0);let r=Math.random()*tot,j=0;while(r>w[j]){r-=w[j];j++;}out.push(pool.splice(j,1)[0]);}
   return out;
 }
@@ -2571,7 +2597,7 @@ function renderHome(){
   $('#heatDn').disabled=S.diff<=1;$('#heatUp').disabled=S.diff>=S.maxDiff;
   $('#go').textContent=`Begin campaign as ${NAT[S.nation].name}`;
   const rl=!!S.realistic;$('#go').classList.toggle('real',rl);$('#realTog').classList.toggle('on',rl);$('#realTog').setAttribute('aria-checked',String(rl));
-  $('#realNote').hidden=!rl;$('#realNote').textContent=`Realistic: gold ×${BAL.realistic.gold} · land ×${BAL.realistic.land} · weaker bloc loyalty · pearls ×${BAL.realistic.pearls}`;
+  $('#realNote').hidden=!rl;$('#realNote').textContent=`Realistic: gold ×${BAL.realistic.gold} · land ×${BAL.realistic.land} · weaker bloc loyalty · overextension and unrest · fewer decrees · pearls ×${BAL.realistic.pearls}`;
   $('#upgs').innerHTML=UPG.map(u=>{const l=lvl(u.k),max=l>=u.max,c=upgCost(u);
     return `<div class="upg"><div class="t"><b>${u.name}</b><small>${u.desc}</small><div class="pips">${Array.from({length:u.max},(_,k)=>`<i class="${k<l?'on':''}"></i>`).join('')}</div></div>
     <button class="btn ${!max&&S.pearls>=c?'gold':''}" data-k="${u.k}" ${max||S.pearls<c?'disabled':''}>${max?'Max':`<span class="num">${c}</span>`}</button></div>`;}).join('');
@@ -2609,7 +2635,7 @@ const GUIDE=[
  ['reload','Reload',()=>`Silos hold 1 missile, hangars 4 drones, air defense 3 interceptors. Blue pips show what is ready; a red ring shows reloading.`],
  ['navy','Navy',()=>`Launch warships from a port. They patrol nearby waters and sink enemy dhows and warships.`],
  ['keys','Keyboard and mouse',()=>`On a PC, press 1, 2, 3 or 4 for Attack, Boat, Strike and Build. Hover any building to see what it does, and the build menu stays on screen so you always know what you can afford.`],
- ['realistic','Realistic mode',()=>`The switch beside Begin campaign halves gold income and doubles the cost of taking land for every nation, and weakens bloc loyalty so neighbours fight each other more. Deals are cheaper and campaigns pay ${BAL.realistic.pearls}× pearls. Not used in the daily challenge.`],
+ ['realistic','Realistic mode',()=>`The switch beside Begin campaign halves gold income and doubles the cost of taking land for every nation, and weakens bloc loyalty so neighbours fight each other more. It is also harder to hold what you take: past ${BAL.realistic.overStart}% of the land your regen and troop cap shrink (overextension); land taken from a nation gives no gold or regen for ${BAL.realistic.unrest} s, and a captured capital rises back to its old owner if your troops drop below ${Math.round(BAL.realistic.revoltBelow*100)}% of your cap in that time. Rivals unite against any nation past ${BAL.realistic.leaderPct}% of the land, and decrees come less often with ${BAL.realistic.choices} choices each. Deals are cheaper and campaigns pay ${BAL.realistic.pearls}× pearls. Not used in the daily challenge.`],
  ['diplomacy','Diplomacy',()=>`Tap a nation in the list at the top right to offer gold for a ceasefire or an alliance. Stronger, angrier nations charge more and refuse more often. Attacking a partner breaks the deal and everyone trusts you less.`],
  ['online','Play online',()=>`Sign in, create a game and share the code or invite link. Up to 9 players each pick a nation; the AI runs the rest. Everyone starts equal. The host's device runs the game, so the host keeps the tab open. Win with ${WIN_PCT}% of the land or as the last player standing.`],
  ['daily','Daily challenge',()=>`Every day everyone plays the same nation, heat and twist with the same random seed and no upgrades. Your score counts land, rivals eliminated, capitals taken and a fast win. Signed-in players appear on the leaderboard.`],

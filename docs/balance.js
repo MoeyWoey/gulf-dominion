@@ -188,7 +188,13 @@ window.GD_BALANCE_DEFAULTS = {
   // per level; playerFocus: how much more they pick on you per level; strikesEarlier: seconds earlier strikes begin per level.
   heat: { regen: 0.2, cap: 0.2, troops: 0.2, aggression: 0.1, sendMore: 0.12, playerFocus: 0.12, strikesEarlier: 20 },
   // Realistic mode (switch beside Begin campaign), applied to every nation: gold income and land-cost multipliers, pearl reward and diplomacy price multipliers,
-  realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75 },
+  // Realistic extras: overextension (past overStart% of the land, regen and troop cap drop overPer per extra %, down to overMin),
+  // unrest (land taken from a nation gives no gold or regen for unrest seconds; a taken capital rebels back to its old owner if the
+  // taker's troops fall below revoltBelow × its cap during that time, freeing land within revoltR tiles), an earlier and harder
+  // leader coalition (leaderPct, leaderDef replace the AI targeting values), decree milestones × decreeGap and choices per decree.
+  realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75,
+    overStart: 20, overPer: 0.02, overMin: 0.4, unrest: 60, revoltBelow: 0.35, revoltR: 5,
+    leaderPct: 20, leaderDef: 1.8, decreeGap: 1.5, choices: 2 },
 };
 
 // Merge saved overrides over the defaults, keeping only known keys and sane values.

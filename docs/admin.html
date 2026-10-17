@@ -449,6 +449,16 @@ function renderBal(B){
       <span>Realistic: gold income ×</span><span>${numIn('realistic.gold',B.realistic.gold,'0.05')} <span class="hint">every nation</span></span>
       <span>Realistic: land cost ×</span><span>${numIn('realistic.land',B.realistic.land,'0.1')} <span class="hint">every nation</span></span>
       <span>Realistic: pearls ×</span><span>${numIn('realistic.pearls',B.realistic.pearls,'0.05')}</span>
+      <span>Realistic: overextension from</span><span>${numIn('realistic.overStart',B.realistic.overStart,'1')}% of the land <span class="hint">past this, regen and troop cap shrink</span></span>
+      <span>Realistic: shrink per extra %</span><span>${numIn('realistic.overPer',B.realistic.overPer,'0.005')} <span class="hint">0.02 = −2% per extra % of land</span></span>
+      <span>Realistic: shrink floor ×</span><span>${numIn('realistic.overMin',B.realistic.overMin,'0.05')} <span class="hint">regen and cap never drop below this</span></span>
+      <span>Realistic: unrest</span><span>${numIn('realistic.unrest',B.realistic.unrest,'5')} seconds <span class="hint">land taken from a nation gives no gold or regen for this long</span></span>
+      <span>Realistic: capital revolt below</span><span>${numIn('realistic.revoltBelow',B.realistic.revoltBelow,'0.05')} × cap <span class="hint">a taken capital rebels if the taker's troops drop under this during unrest; 0 = off</span></span>
+      <span>Realistic: revolt radius</span><span>${numIn('realistic.revoltR',B.realistic.revoltR,'1')} tiles</span>
+      <span>Realistic: leader coalition from</span><span>${numIn('realistic.leaderPct',B.realistic.leaderPct,'1')}% of the land <span class="hint">replaces the AI targeting value in Realistic</span></span>
+      <span>Realistic: leader's attacks cost ×</span><span>${numIn('realistic.leaderDef',B.realistic.leaderDef,'0.05')}</span>
+      <span>Realistic: decree milestones ×</span><span>${numIn('realistic.decreeGap',B.realistic.decreeGap,'0.1')} <span class="hint">1.5 = decrees at 3%, 6%, 10.5%… instead of 2%, 4%, 7%…</span></span>
+      <span>Realistic: choices per decree</span><span>${numIn('realistic.choices',B.realistic.choices,'1')} <span class="hint">normal games offer 3</span></span>
       <span>Realistic: diplomacy price ×</span><span>${numIn('realistic.diplomacy',B.realistic.diplomacy,'0.05')}</span>
       <span>Extra GCC oil fields</span><span>${numIn('oil.gccExtra',B.oil.gccExtra,'0.01')} <span class="hint">0 = real fields only, 0.05 = default, 0.15 = lots</span></span>
      </div></div>`;
