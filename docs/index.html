@@ -275,6 +275,11 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
 .lbywait{text-align:center;color:var(--muted);margin:0;padding:8px}
 .netbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(84px + env(safe-area-inset-top,0px));z-index:25;display:flex;align-items:center;gap:10px;background:#2a1712;border:1px solid #c0583e;color:#ffd2c4;border-radius:10px;padding:7px 8px 7px 12px;font-size:.82rem;font-weight:600;width:max-content;max-width:calc(100% - 32px)}
 .lb .tr.hu{color:#b9adff}
+.mapsel{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mapsel button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line-2);background:var(--panel)}
+.mapsel button b{font-family:var(--f-display);font-size:1rem}
+.mapsel button small{color:var(--muted);font-size:.74rem}
+.mapsel button.on{border-color:var(--sand);background:#1d1a10;box-shadow:inset 0 0 0 1px var(--sand)}
 .guide{display:flex;flex-direction:column;gap:10px}
 .gitem{display:flex;gap:12px;align-items:flex-start;font-size:.86rem;line-height:1.4;color:var(--pearl)}
 .gitem b{color:var(--sand)}
@@ -317,9 +322,14 @@ body.pc .toast{left:50%;transform:translateX(-50%);text-align:center;max-width:m
     <div class="notice" id="notice" hidden></div>
     <div class="acct" id="acct" hidden></div>
 
-    <div class="hero"><canvas id="heroCv" width="528" height="440"></canvas><div class="cap">Nine capitals, from Baghdad to Sana'a. Drones, missiles, and the air defense that stops them.</div></div>
+    <div class="hero"><canvas id="heroCv" width="528" height="440"></canvas><div class="cap" id="heroCap">Nine capitals, from Baghdad to Sana'a. Drones, missiles, and the air defense that stops them.</div></div>
 
     <div class="dhow" id="dhow"></div>
+
+    <div class="mapsel" id="mapSel" role="radiogroup" aria-label="Map">
+      <button data-map="gulf" role="radio"><b>The Gulf</b><small>9 nations</small></button>
+      <button data-map="ext" role="radio"><b>Middle East</b><small>15 nations · Egypt to Iran</small></button>
+    </div>
 
     <div class="heat">
       <button class="step" id="heatDn" aria-label="Lower heat">−</button>
@@ -455,7 +465,9 @@ body.pc .toast{left:50%;transform:translateX(-50%);text-align:center;max-width:m
 const $=s=>document.querySelector(s);
 
 /* ================= Geography (lon,lat pairs) ================= */
-const LON0=34.5, LAT1=38.5, STEP=0.125, W=228, H=212, N=W*H;
+// Map: 'gulf' (the original) or 'ext' (Middle East: adds Egypt, the Levant and southern Turkey)
+const MAP_ID=(()=>{try{return localStorage.getItem('gd_map')==='ext'?'ext':'gulf';}catch(e){return 'gulf';}})(),EXT=MAP_ID==='ext';
+const LON0=EXT?24.5:34.5, LAT1=38.5, STEP=0.125, W=EXT?308:228, H=212, N=W*H;
 const LAND=[34.9,32, 34.9,29.4, 35.1,28.9, 35.6,27.7, 36.5,26.1, 37.4,24.9, 38.1,24.0, 39.0,22.6, 39.2,21.4, 40.2,20.1, 41.2,18.9, 42.0,17.6, 42.7,16.5, 42.8,15.2, 43.2,13.6, 43.5,12.7, 45.0,12.8, 46.5,13.4, 48.0,14.0, 49.1,14.5, 50.5,15.1, 52.2,15.7, 53.5,16.6, 55.0,17.2, 56.0,17.9, 56.8,18.6, 57.7,18.9, 57.8,19.8, 58.5,20.4, 58.9,21.0, 59.5,21.8, 59.8,22.5, 59.0,23.1, 58.6,23.6, 57.4,23.9, 56.7,24.4, 56.37,24.95, 56.37,25.6, 56.4,26.0, 56.45,26.35, 56.25,26.4, 56.1,26.07, 55.9,25.8, 55.3,25.3, 54.7,24.8, 54.4,24.5, 53.5,24.15, 52.7,24.1, 51.9,23.95, 51.6,24.25, 51.6,24.6, 51.62,25.3, 51.5,25.9, 51.2,26.15, 50.95,25.95, 50.8,25.4, 50.75,24.75, 50.45,25.0, 50.2,25.6, 50.05,26.2, 50.2,26.6, 49.7,27.0, 49.3,27.4, 48.8,27.9, 48.45,28.5, 48.15,29.1, 48.1,29.45, 48.35,29.85, 48.6,29.95, 48.8,30.2, 49.5,30.0, 50.3,29.2, 51.4,27.9, 52.6,27.4, 54.0,26.6, 55.5,26.6, 56.3,27.2, 57.3,25.8, 59.0,25.4, 61.6,25.2, 63,25.1, 63,38.5, 34.9,38.5];
 const BAHRAIN=[50.35,25.75, 50.7,25.75, 50.7,26.3, 50.35,26.3];
 const OUT_N=[34.9,32, 34.9,29.35, 36.0,29.2, 37.5,30.3, 37.0,31.5, 39.2,32.15, 42.0,31.1, 44.7,29.2, 46.55,29.1, 47.7,30.1, 48.0,30.0, 48.6,29.97, 48.8,30.2, 49.5,30.0, 50.3,29.2, 51.4,27.9, 52.6,27.4, 54.0,26.6, 55.5,26.6, 56.3,27.2, 57.3,25.8, 59.0,25.4, 60.5,25.3, 60.5,32];
@@ -486,6 +498,33 @@ const DESERT=[
 ];
 const OILF=[[47.95,28.95,.35],[48.1,29.75,.15],[48.7,27.95,.2],[49.6,25.95,.2],[49.25,25.4,.22],[49.3,24.8,.22],[49.35,24.2,.2],[50.55,26.0,.13],[50.85,25.4,.2],[54.0,23.6,.25],[53.7,23.1,.2],[54.0,22.45,.2],[56.5,22.3,.25],[47.3,30.4,.3],[44.4,35.5,.25],[48.8,31.3,.35],[50.8,30.3,.2]];
 
+/* ---- Middle East map (picked on the home screen; the choice is saved on this device and applied on reload) ---- */
+const WEST=[43.4,12.0, 43.25,12.6, 42.5,13.1, 41.4,14.0, 40.1,15.3, 39.3,16.2, 38.4,18.0, 37.3,19.5, 37.25,21.0, 36.9,22.0, 35.7,23.0, 35.5,23.9, 34.85,25.0, 34.2,26.1, 33.6,27.2, 33.25,28.0, 32.7,28.9, 32.35,29.6, 32.55,29.95, 32.75,29.6, 33.2,28.8, 33.75,28.2, 34.25,27.75, 34.45,28.1, 34.7,28.8, 34.95,29.55, 34.95,38.5, 24.5,38.5, 24.5,12.0];
+const MED=[24.5,31.65, 25.2,31.6, 27.3,31.35, 29.0,30.95, 30.1,31.35, 31.0,31.6, 31.8,31.5, 32.3,31.25, 33.0,31.1, 33.8,31.15, 34.25,31.3, 34.55,31.65, 34.75,32.1, 34.95,32.8, 35.1,33.15, 35.4,33.6, 35.6,34.1, 35.9,34.6, 35.85,35.2, 35.8,35.8, 36.0,36.2, 36.2,36.6, 35.9,36.85, 35.3,36.6, 34.6,36.8, 34.0,36.3, 33.4,36.15, 32.6,36.1, 32.0,36.5, 31.4,36.75, 30.65,36.88, 30.5,36.4, 30.1,36.25, 29.6,36.15, 29.1,36.6, 28.3,36.8, 27.6,36.75, 27.3,37.0, 27.2,37.5, 26.9,38.0, 26.5,38.4, 26.3,38.5, 24.5,38.5];
+const CYPRUS=[32.3,35.1, 32.9,35.4, 33.6,35.35, 34.6,35.7, 34.0,35.0, 33.0,34.6, 32.4,34.7];
+const GAZA=[34.2,31.22, 34.35,31.22, 34.58,31.6, 34.45,31.62];
+const WBANK=[34.9,31.35, 35.25,31.35, 35.55,31.75, 35.55,32.4, 35.05,32.55, 34.95,32.2, 35.0,31.85];
+const EGYPT=[25,22, 37.5,22, 35.1,29.45, 34.9,29.5, 34.25,31.3, 34.1,31.8, 25,31.8];
+const ISRAEL=[34.25,31.3, 34.9,29.5, 35.05,29.55, 35.15,30.0, 35.45,31.0, 35.55,32.4, 35.65,32.7, 35.65,33.05, 35.1,33.1, 34.75,32.1, 34.5,31.6];
+const LEBANON=[35.1,33.05, 35.8,33.3, 36.0,33.6, 36.6,34.2, 36.4,34.65, 35.95,34.65, 35.6,34.1, 35.25,33.5];
+const JORDAN=[35.0,29.4, 36.0,29.2, 37.5,30.3, 37.0,31.5, 39.2,32.15, 38.8,33.38, 36.8,32.3, 35.75,32.7, 35.55,32.4, 35.55,31.75, 35.45,31.0, 35.15,30.0, 35.05,29.55];
+const SYRIA=[35.75,32.7, 36.8,32.3, 38.8,33.38, 41.0,34.4, 41.3,36.4, 42.4,37.1, 42.2,37.3, 40.0,36.85, 38.0,36.85, 36.65,36.8, 36.2,36.6, 35.8,35.8, 35.95,35.2, 35.95,34.65, 36.4,34.65, 36.6,34.2, 36.0,33.6, 35.8,33.3, 35.65,33.05, 35.65,32.7];
+const TURKEY=[26.0,38.5, 44.4,38.5, 44.8,37.15, 42.4,37.1, 42.2,37.3, 40.0,36.85, 38.0,36.85, 36.65,36.8, 36.2,36.6, 35.9,36.2, 26.0,36.2];
+if(EXT){
+  MTN.push([33.5,28.4, 34.0,28.1, 34.5,28.6, 34.3,29.1, 33.7,29.0], // Sinai
+    [35.6,33.3, 36.0,33.3, 36.5,34.0, 36.5,34.6, 36.1,34.6, 35.8,34.0], // Lebanon ranges
+    [35.45,29.6, 35.75,29.6, 35.9,31.0, 35.85,32.2, 35.65,32.2, 35.6,31.0], // Jordan highlands
+    [29.5,37.0, 31.0,37.2, 33.0,37.0, 35.0,37.3, 36.5,37.4, 37.5,37.9, 39.0,38.3, 41.0,38.4, 43.0,37.8, 43.0,38.5, 29.5,38.5], // Taurus
+    [33.0,27.5, 34.2,26.0, 35.0,24.5, 35.8,23.0, 35.3,22.5, 34.4,24.0, 33.5,25.5, 32.6,27.2]); // Red Sea hills
+  DESERT.push([25.0,22.0, 30.5,22.0, 30.6,29.2, 29.0,30.3, 27.0,31.0, 25.0,31.2], // Western Desert
+    [32.9,22.2, 34.0,22.2, 33.6,25.0, 32.6,27.0, 32.3,28.6, 31.9,28.6, 32.0,25.0], // Eastern Desert
+    [32.7,30.4, 34.2,30.3, 34.3,31.1, 32.6,31.0], // north Sinai
+    [34.4,29.7, 35.1,29.6, 35.25,30.8, 34.7,31.2, 34.3,30.6], // Negev
+    [36.8,32.4, 38.8,33.4, 40.8,34.4, 40.5,35.3, 38.5,35.2, 37.2,34.0], // Syrian Desert
+    [36.3,30.0, 37.5,30.3, 37.0,31.5, 38.8,32.2, 38.5,32.9, 36.8,32.2, 36.4,31.0]); // eastern Jordan
+  OILF.push([33.2,28.3,.2],[27.3,30.5,.2],[26.3,29.9,.15],[40.3,35.1,.25]);
+}
+
 function pip(p,x,y){let c=false;for(let i=0,j=p.length-2;i<p.length;j=i,i+=2){const xi=p[i],yi=p[i+1],xj=p[j],yj=p[j+1];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))c=!c;}return c;}
 function hash(x,y){let h=(Math.imul(x,374761393)+Math.imul(y,668265263))|0;h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296;}
 function vnoise(x,y,sc){const gx=x/sc,gy=y/sc,x0=Math.floor(gx),y0=Math.floor(gy),fx=gx-x0,fy=gy-y0;const a=hash(x0,y0),b=hash(x0+1,y0),c=hash(x0,y0+1),d=hash(x0+1,y0+1);const u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;}
@@ -499,10 +538,20 @@ let LANDN=0; const oilCells=[];
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const i=y*W+x, lon=lonOf(x), lat=latOf(y);
     let land=(pip(LAND,lon,lat)&&!pip(CASPIAN,lon,lat))||pip(BAHRAIN,lon,lat);
+    if(EXT){
+      if(pip(CYPRUS,lon,lat)){terr[i]=1;continue;}
+      land=(land||pip(WEST,lon,lat))&&!pip(MED,lon,lat);
+      if(land&&Math.abs(lon-32.42)<.07&&lat>29.9&&lat<31.3)land=false; // Suez Canal: boats can sail between the Red Sea and the Mediterranean
+    }
     if(!land&&Math.abs(lat-26.15)<.07&&lon>50.0&&lon<50.4){terr[i]=2;ctry[i]=3;continue;} // King Fahd Causeway
     if(!land){terr[i]=0;continue;}
     let c=0;
     if(pip(KUWAIT,lon,lat))c=1;else if(pip(IRAQ,lon,lat))c=7;else if(pip(IRAN,lon,lat))c=8;else if(pip(YEMEN,lon,lat))c=9;
+    if(EXT&&!c){
+      if(pip(GAZA,lon,lat)||pip(WBANK,lon,lat)){terr[i]=1;continue;} // not modelled at this map scale
+      if(pip(LEBANON,lon,lat))c=13;else if(pip(ISRAEL,lon,lat))c=14;else if(pip(JORDAN,lon,lat))c=11;else if(pip(SYRIA,lon,lat))c=12;else if(pip(TURKEY,lon,lat))c=15;
+      else if(pip(WEST,lon,lat)){if(pip(EGYPT,lon,lat))c=10;else{terr[i]=1;continue;}}
+    }
     if(!c&&(pip(OUT_N,lon,lat)||lat>32.2||lon>60)){terr[i]=1;continue;}
     if(c){}else if(pip(QATAR,lon,lat))c=4;else if(pip(BAHRAIN,lon,lat))c=3;else if(pip(UAE,lon,lat))c=5;
     else if((lat>25.95&&lon>56.05)||pip(OMAN,lon,lat))c=6;else c=2;
@@ -535,7 +584,7 @@ function cellAt(lon,lat){let x=Math.floor((lon-LON0)/STEP),y=Math.floor((LAT1-la
 const coastCells=[];for(let i=0;i<N;i++)if(coast[i])coastCells.push(i);
 
 /* ================= Data ================= */
-const NAT=[null,
+const NAT_ALL=[null,
  {name:'Kuwait',short:'KW',color:[31,192,200],cap:[47.95,29.3],unlock:0},
  {name:'Saudi Arabia',short:'SA',color:[58,166,85],cap:[46.7,24.7],unlock:0},
  {name:'Bahrain',short:'BH',color:[240,86,60],cap:[50.55,26.2],unlock:150},
@@ -544,9 +593,18 @@ const NAT=[null,
  {name:'Oman',short:'OM',color:[76,124,240],cap:[58.4,23.55],unlock:90},
  {name:'Iraq',short:'IQ',color:[168,96,220],cap:[44.4,33.3],unlock:120},
  {name:'Iran',short:'IR',color:[236,236,226],cap:[51.4,35.7],unlock:200},
- {name:'Yemen',short:'YE',color:[196,224,52],cap:[44.2,15.35],unlock:150}
+ {name:'Yemen',short:'YE',color:[196,224,52],cap:[44.2,15.35],unlock:150},
+ {name:'Egypt',short:'EG',color:[255,130,180],cap:[31.24,30.04],unlock:120},
+ {name:'Jordan',short:'JO',color:[20,130,110],cap:[35.93,31.95],unlock:60},
+ {name:'Syria',short:'SY',color:[95,95,95],cap:[36.3,33.51],unlock:100},
+ {name:'Lebanon',short:'LB',color:[120,210,70],cap:[35.5,33.89],unlock:80},
+ {name:'Israel',short:'IL',color:[40,90,200],cap:[34.78,32.08],unlock:150},
+ {name:'Turkey',short:'TR',color:[200,30,40],cap:[35.3,37.0],unlock:180}
 ];
+// The Gulf map has the first nine nations; the Middle East map has all fifteen, with the militia names
+const NAT=EXT?NAT_ALL.map((n,i)=>!n?n:Object.assign({},n,{name:({7:'Iraq Militias',8:'Iran Militias',9:'Yemen Militias',13:'Lebanon Militias'})[i]||n.name})):NAT_ALL.slice(0,10);
 const NNAT=NAT.length-1;
+const BIG_START=id=>id===9||id===13; // Yemen and Lebanon start with a slightly bigger home region
 /* ---- Balance: weapons, arsenals, stealth, oil. Defaults in balance.js, overrides from the admin dashboard ---- */
 let BAL=GD_mergeBalance(GD_BALANCE_DEFAULTS,{});
 const codeOf=id=>NAT[id].short;
@@ -591,19 +649,19 @@ function applyOil(){
 }
 applyOil();
 // Blocs: the six GCC states, and Iraq/Iran/Yemen. AI rarely attacks inside its own bloc.
-const BLOC=[0,1,1,1,1,1,1,2,2,2];
+const BLOC=EXT?[0,1,1,1,1,1,1,2,2,2,1,1,2,2,3,3]:[0,1,1,1,1,1,1,2,2,2]; // Middle East map: Egypt and Jordan join the GCC bloc, Syria and Lebanon the Iran/Iraq/Yemen bloc, Israel and Turkey stand alone
 const sameBloc=(a,b)=>a>0&&b>0&&BLOC[a]===BLOC[b];
 // Bloc loyalty between two nations: 0 for rival blocs; 1 for the same bloc, or BAL.realistic.blocLoyalty in Realistic mode (0 = everyone treats everyone the same)
 const blocL=(a,b)=>sameBloc(a,b)?(G&&G.real?BAL.realistic.blocLoyalty:1):0;
 function baseMods(){return {neutral:1,desert:1,mount:1,cap:1,regen:1,atk:1,def:1,mountDef:1,oil:1,gold:1,coast:0,speed:1,cityCost:1,cityCap:400,fortR:4,fortPow:0,plunder:0,lion:false,pearl:1,falaj:false,boatSpeed:1,boatPow:1,boats:3,navy:1,patrol:9,reload:1,magD:0,magS:0,magM:0,droneCost:1,missileCost:1,droneN:1,evade:1,samR:7,samPow:1,bunker:0,blast:2,startSilo:false};}
 // Nation perks come from BAL.perks (editable in the dashboard): coast and cityCap add, startSilo switches on, the rest multiply
-const PERK_ADD={coast:1,cityCap:1};
+const PERK_ADD={coast:1,cityCap:1,samR:1};
 function applyPerk(id,m){
   const p=BAL.perks[codeOf(id)]||{};
   for(const [k,v] of Object.entries(p)){if(k==='startSilo')m.startSilo=v>0;else if(PERK_ADD[k])m[k]+=v;else if(k in m)m[k]*=v;}
 }
-const PERK_TITLE={1:'Burgan oil',2:'Royal Guard',3:'Pearl coast',4:'LNG wealth',5:'Megaprojects',6:'Hajar highlanders',7:'Mesopotamia',8:'Missile arsenal',9:'Highland warriors'};
-const PERK_EXTRA={3:'Island start: cross the causeway.',9:'Bigger start.'};
+const PERK_TITLE={1:'Burgan oil',2:'Royal Guard',3:'Pearl coast',4:'LNG wealth',5:'Megaprojects',6:'Hajar highlanders',7:'Mesopotamia',8:'Missile arsenal',9:'Highland warriors',10:'Nile and Suez',11:'Desert patrol',12:'Missile stockpile',13:'Mountain fortress',14:'Layered defense',15:'Drone industry'};
+const PERK_EXTRA={3:'Island start: cross the causeway.',9:'Bigger start.',10:'Dhows can sail the Suez Canal.',13:'Bigger start.'};
 function perkText(id){
   const p=BAL.perks[codeOf(id)]||{},pc=v=>Math.round(Math.abs(v-1)*100),up=(v,what)=>`${what} ${v>=1?'+':'−'}${pc(v)}%`,cheap=(v,what)=>v<1?`${what} ${pc(v)}% cheaper`:`${what} ${pc(v)}% dearer`;
   const parts=[];
@@ -612,7 +670,7 @@ function perkText(id){
     if(!PERK_ADD[k]&&v===1)continue;
     parts.push(({oil:()=>up(v,'oil income'),cap:()=>up(v,'troop cap'),regen:()=>up(v,'regen'),gold:()=>up(v,'gold'),def:()=>up(v,'defense'),
       cityCost:()=>cheap(v,'cities'),missileCost:()=>cheap(v,'missiles'),atk:()=>cheap(v,'land attacks'),neutral:()=>cheap(v,'expansion'),
-      mount:()=>v===.5?'mountains half cost':cheap(v,'mountains'),mountDef:()=>up(v,'mountain defense'),coast:()=>v?'coastal gold':'',cityCap:()=>`cities +${v} troop cap`}[k]||(()=>`${k} ×${v}`))());
+      mount:()=>v===.5?'mountains half cost':cheap(v,'mountains'),mountDef:()=>up(v,'mountain defense'),desert:()=>v===.5?'deserts half cost':cheap(v,'deserts'),samPow:()=>up(v,'air defense accuracy'),samR:()=>`air defense range +${v}`,droneCost:()=>cheap(v,'drones'),coast:()=>v?'coastal gold':'',cityCap:()=>`cities +${v} troop cap`}[k]||(()=>`${k} ×${v}`))());
   }
   const t=parts.filter(Boolean).join(', ');
   return `${PERK_TITLE[id]}: ${t||'no bonus'}${PERK_EXTRA[id]?'. '+PERK_EXTRA[id]:''}`;
@@ -822,12 +880,13 @@ const TWISTS=[
 const dayKey=(d=new Date())=>d.toISOString().slice(0,10);
 function dailySpec(key=dayKey()){
   const seed=parseInt(key.replace(/-/g,''),10),r=mulberry32(Math.imul(seed,2654435761)>>>0);
-  return {key,seed,nation:1+Math.floor(r()*NNAT),heat:1+Math.floor(r()*3),twist:TWISTS[Math.floor(r()*TWISTS.length)]};
+  return {key,seed,nation:1+Math.floor(r()*9),heat:1+Math.floor(r()*3),twist:TWISTS[Math.floor(r()*TWISTS.length)]};
 }
 function endDaily(){DAILY=null;Math.random=ORIG_RANDOM;}
 function dailyScore(win){const min=G.t/60;return Math.round(G.peak*100+G.kills*400+(G.caps||0)*250+(win?3000+Math.max(0,45-min)*60:0));}
 function startDaily(){const spec=dailySpec();DAILY=spec;Math.random=mulberry32(spec.seed);startRun(spec);}
 function startRun(spec){
+  if(!NAT[S.nation])S.nation=1;
   const mp=spec&&spec.mp||null;
   if(!spec||mp)endDaily();
   closeSheet();
@@ -839,8 +898,8 @@ function startRun(spec){
      mode:'attack',bsel:'city',ratio:+$('#ratio').value/100,pings:[]};
   NATS=[null];
   for(let id=1;id<=NNAT;id++){NATS.push(newNation(id,isH(id),diff));if(mp&&mp.humans[id])NATS[id].human=mp.humans[id];}
-  for(let id=1;id<=NNAT;id++)if(isH(id))claimBlob(id,NATS[id].capIdx,2+lvl('home')+(id===9?1:0));
-  for(let id=1;id<=NNAT;id++)if(!isH(id))claimBlob(id,NATS[id].capIdx,2+(diff>=3?1:0)+(id===9?1:0));
+  for(let id=1;id<=NNAT;id++)if(isH(id))claimBlob(id,NATS[id].capIdx,2+lvl('home')+(BIG_START(id)?1:0));
+  for(let id=1;id<=NNAT;id++)if(!isH(id))claimBlob(id,NATS[id].capIdx,2+(diff>=3?1:0)+(BIG_START(id)?1:0));
   for(let id=1;id<=NNAT;id++){const n=NATS[id];
     if(n.m.startSilo)placeNear(n,n.capIdx,'silo',3,true);
     if(n.id===pid&&!mp)for(let k=0;k<lvl('sam')+(owns('founder')&&!DAILY?1:0);k++)placeNear(n,n.capIdx,'sam',3,true);}
@@ -1451,7 +1510,8 @@ function clampView(){
 }
 const geo=(lon,lat)=>[view.ox+((lon-LON0)/STEP)*view.s,view.oy+((LAT1-lat)/STEP)*view.s];
 const SEAS=[['ARABIAN GULF',51.6,27.0],['RED SEA',38.0,21.0],['ARABIAN SEA',58.5,16.0],['GULF OF OMAN',58.4,24.7],['CASPIAN SEA',51.6,37.9]];
-const OUTS=[['TURKEY',41.5,38.1],['SYRIA',38.8,35.2],['JORDAN',37.0,30.9],['TURKMENISTAN',58.6,38.2],['AFGHANISTAN',62.2,33.2]];
+const OUTS=EXT?[['LIBYA',25.0,27.0],['SUDAN',31.0,20.6],['CYPRUS',33.3,35.15],['TURKMENISTAN',58.6,38.2],['AFGHANISTAN',62.2,33.2]]:[['TURKEY',41.5,38.1],['SYRIA',38.8,35.2],['JORDAN',37.0,30.9],['TURKMENISTAN',58.6,38.2],['AFGHANISTAN',62.2,33.2]];
+if(EXT)SEAS.push(['MEDITERRANEAN SEA',29.0,33.6]);
 // Round building marker: dark disc, ring in the owner's colour, white symbol for the building type
 function drawGlyph(c2,type,x,y,r,col){
   c2.save();c2.translate(x,y);
@@ -2241,8 +2301,12 @@ function renderTabBadges(){
   $('#sheetPearls').textContent=fmt(S.pearls);
   const fresh=Object.keys(S.ach||{}).length-(S.achSeen||0),abd=$('#achBadge');abd.hidden=fresh<=0;abd.textContent=fresh+' new';
 }
+function switchMap(id,after){try{localStorage.setItem('gd_map',id);if(after)sessionStorage.setItem(after[0],after[1]);}catch(e){}location.reload();}
+document.querySelectorAll('#mapSel button').forEach(b=>b.onclick=()=>{if(b.dataset.map!==MAP_ID&&!MP)switchMap(b.dataset.map);});
 function renderDaily(){
-  const el=$('#daily');if(!el)return;const d=dailySpec(),n=NAT[d.nation],best=(S.dailyBest||{})[d.key];
+  const el=$('#daily');if(!el)return;
+  if(EXT){el.innerHTML=`<div class="dtop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3zm-1 8v10h12V10zm2 2h3v3H8z"/></svg><div><b>Daily challenge</b><small>Played on the Gulf map, so every player gets the same setup</small></div></div><div class="drow"><button class="btn teal" id="dailyMap">Switch to the Gulf map</button><button class="btn" id="dailyLb">Leaderboard</button></div>`;
+    $('#dailyMap').onclick=()=>switchMap('gulf');$('#dailyLb').onclick=()=>openLeaderboard(dayKey());return;}const d=dailySpec(),n=NAT[d.nation],best=(S.dailyBest||{})[d.key];
   const label=new Date(d.key+'T00:00:00Z').toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'});
   el.innerHTML=`<div class="dtop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3zm-1 8v10h12V10zm2 2h3v3H8z"/></svg><div><b>Daily challenge</b><small>${label} · same setup for every player · resets at 00:00 UTC</small></div></div>
     <div class="drule"><span class="pill"><i style="background:${rgb(n.color)}"></i>${esc(n.name)}</span><span class="pill">Heat ${d.heat}</span><span class="pill">${esc(d.twist.name)}</span><span class="pill">No upgrades</span></div>
@@ -2266,6 +2330,9 @@ async function openLeaderboard(key){
   }catch(e){body.innerHTML='<p class="sub">Could not load the leaderboard. Try again in a moment.</p>';}
 }
 function renderHome(){
+  if(!NAT[S.nation])S.nation=1;
+  document.querySelectorAll('#mapSel button').forEach(b=>{const on=b.dataset.map===MAP_ID;b.classList.toggle('on',on);b.setAttribute('aria-checked',String(on));});
+  $('#heroCap').textContent=EXT?'Fifteen capitals, from Cairo to Muscat. Drones, missiles, and the air defense that stops them.':"Nine capitals, from Baghdad to Sana'a. Drones, missiles, and the air defense that stops them.";
   renderSound();renderDaily();renderOnline();renderAccount();renderStore();renderCosmetics();renderAch();
   if(HASH_NOTE){showNote(HASH_NOTE[0],HASH_NOTE[1]);HASH_NOTE=null;}
   $('#pearls').textContent=fmt(S.pearls);
@@ -2387,12 +2454,13 @@ $('#howBtn').onclick=openGuide;
 function drawHero(){
   const hc=$('#heroCv'),hx=hc.getContext('2d');
   const save={own:owner.slice(),G,NATS};
+  if(!NAT[S.nation])S.nation=1;
   owner.fill(0);G={pid:S.nation,pings:[]};NATS=[null];
   for(let id=1;id<=NNAT;id++){NATS.push(newNation(id,id===S.nation,1));claimBlob(id,NATS[id].capIdx,id===S.nation?3:2);}
   paintAll();
   // crop lon 37.5-63, lat 15.8-38.5
-  const x0=(37.5-LON0)/STEP,y0=(LAT1-38.5)/STEP,cw=(63-37.5)/STEP,ch=(38.5-12.3)/STEP;
-  const s=3;hc.width=Math.round(cw*s);hc.height=Math.round(ch*s);
+  const lonA=EXT?24.5:37.5,x0=(lonA-LON0)/STEP,y0=(LAT1-38.5)/STEP,cw=(63-lonA)/STEP,ch=(38.5-12.3)/STEP;
+  const s=EXT?2.4:3;hc.width=Math.round(cw*s);hc.height=Math.round(ch*s);
   hx.imageSmoothingEnabled=true;hx.imageSmoothingQuality='high';hx.drawImage(mapCv,x0*K,y0*K,cw*K,ch*K,0,0,hc.width,hc.height);
   hx.textAlign='center';hx.textBaseline='middle';
   for(let id=1;id<=NNAT;id++){const n=NATS[id],i=n.capIdx,x=(i%W+.5-x0)*s,y=(((i/W)|0)+.5-y0)*s,sel=id===S.nation;
@@ -2580,6 +2648,7 @@ function netMsg(m){
 function mpStart(room,rejoin){
   const M=MP;M.room=room;M.host=Number(room.host)===M.uid;
   if(M.live&&G&&G.mp&&screen==='game'){if(!M.host){M.base=false;M.syncAsk=performance.now();}netBar(null);return;}
+  if((room.map||'gulf')!==MAP_ID){const code=M.code;mpQuit();switchMap(room.map||'gulf',['gd_room',code]);return;}
   if(rejoin&&M.host){netSend({t:'end',res:{aborted:'The host left and came back, so the game could not continue.'}});return;}
   const humans={},names={};for(const p of room.players)if(p.nation){humans[p.nation]=Number(p.uid);names[p.nation]=p.name;}
   const me=room.players.find(p=>Number(p.uid)===M.uid);let nation=me&&me.nation||0;const spec=!nation;
@@ -2639,14 +2708,14 @@ function renderOnline(){
 async function mpCreate(){
   if(!ACCOUNT){signIn();return;}
   const b=$('#onCreate');if(b){b.disabled=true;b.textContent='Creating…';}
-  try{const r=await api('/api/rooms',{method:'POST',body:{}});netConnect(r.code);}
+  try{const r=await api('/api/rooms',{method:'POST',body:{map:MAP_ID}});netConnect(r.code);}
   catch(e){showNote('bad','Could not create a game. Try again in a moment.');renderOnline();}
 }
 async function mpJoin(code){
   code=String(code||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
   if(code.length!==5){showNote('bad','Game codes are 5 letters and numbers.');return;}
   if(!ACCOUNT){try{sessionStorage.setItem('gd_room',code);}catch(e){}signIn();return;}
-  try{await api('/api/rooms/'+code);netConnect(code);}
+  try{const info=await api('/api/rooms/'+code);if((info.map||'gulf')!==MAP_ID){switchMap(info.map||'gulf',['gd_room',code]);return;}netConnect(code);}
   catch(e){showNote('bad',e.status===404?`No open game with code ${code}.`:'Could not reach that game. Try again.');}
 }
 function mpPendingJoin(){
@@ -2672,7 +2741,7 @@ function renderLobby(){
   const canStart=M.host&&ready>=2&&!!me.nation;
   el.innerHTML=`
    <div class="lbyhead"><h2 id="lobbyTitle">Online game</h2><button class="btn" id="lbyLeave">${M.host?'Close game':'Leave'}</button></div>
-   <div class="lbycode"><div><small>Game code</small><b class="num">${esc(r.code)}</b></div><button class="btn gold" id="lbyShare">Invite</button></div>
+   <div class="lbycode"><div><small>Game code · ${(r.map||'gulf')==='ext'?'Middle East map':'Gulf map'}</small><b class="num">${esc(r.code)}</b></div><button class="btn gold" id="lbyShare">Invite</button></div>
    <p class="hint" id="lbyHint">Share the code or the invite link. Up to 9 players; nations nobody picks are run by the AI.</p>
    <div class="sec"><h2>Players <span class="cnt">${r.players.length} of 9</span></h2><div class="mpres">${r.players.map(p=>`<div class="mprow ${Number(p.uid)===M.uid?'you':''}"><i style="${p.nation?`background:${rgb(NAT[p.nation].color)}`:'border:1px dashed var(--line-2)'}"></i><span class="nm">${esc(p.name)}${Number(p.uid)===Number(r.host)?'<em class="hostb">HOST</em>':''}<small>${p.nation?esc(NAT[p.nation].name):'Picking a nation'}</small></span><span class="dot ${p.connected?'on':''}" title="${p.connected?'Connected':'Disconnected'}"></span></div>`).join('')}</div></div>
    <div class="sec"><h2>Your nation</h2><div class="nations lbynat">${NAT.slice(1).map((n,k)=>{const id=k+1,t=taken[id],mine=me.nation===id;return `<button class="nat ${mine?'sel':''}" data-id="${id}" ${t&&!mine?'disabled':''}><span class="row"><i class="sw" style="background:${rgb(n.color)}"></i><b>${n.name}</b></span><small>${t?(mine?'You · tap again to unpick':'Taken by '+esc(t.name)):esc(arsenalText(id))}</small></button>`;}).join('')}</div></div>

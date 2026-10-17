@@ -349,7 +349,7 @@ async function api(req, env, url, path) {
       const bytes = crypto.getRandomValues(new Uint8Array(5));
       for (const b of bytes) code += ABC[b % ABC.length];
       const stub = env.ROOMS.get(env.ROOMS.idFromName(code));
-      const r = await stub.fetch('https://room/init', { method: 'POST', body: JSON.stringify({ code, uid: user.id }) });
+      const r = await stub.fetch('https://room/init', { method: 'POST', body: JSON.stringify({ code, uid: user.id, map: body && body.map === 'ext' ? 'ext' : 'gulf' }) });
       if (r.ok) {
         await log(env, user.id, 'info', 'room_created', { code });
         return json({ code });

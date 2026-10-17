@@ -3,6 +3,8 @@
 window.GD_NATION_CODES = [
   ['KW', 'Kuwait'], ['SA', 'Saudi Arabia'], ['BH', 'Bahrain'], ['QA', 'Qatar'], ['AE', 'UAE'], ['OM', 'Oman'],
   ['IQ', 'Iraq'], ['IR', 'Iran'], ['YE', 'Yemen'],
+  // Middle East map only
+  ['EG', 'Egypt'], ['JO', 'Jordan'], ['SY', 'Syria'], ['LB', 'Lebanon'], ['IL', 'Israel'], ['TR', 'Turkey'],
 ];
 
 window.GD_BALANCE_DEFAULTS = {
@@ -30,11 +32,17 @@ window.GD_BALANCE_DEFAULTS = {
     IQ: { drones: ['light'], missileTier: 1 },
     IR: { drones: ['light', 'strike', 'heavy'], missileTier: 1 },
     YE: { drones: ['light'], missileTier: 1 },
+    EG: { drones: ['light'], missileTier: 2 },
+    JO: { drones: ['light'], missileTier: 1 },
+    SY: { drones: ['light'], missileTier: 1 },
+    LB: { drones: ['light'], missileTier: 1 },
+    IL: { drones: ['light'], missileTier: 3 },
+    TR: { drones: ['light', 'strike', 'heavy'], missileTier: 2 },
   },
   // Drones from these nations stay hidden until they come within `reveal` tiles of the player's land
-  stealth: { nations: ['IQ', 'IR', 'YE'], reveal: 8 },
+  stealth: { nations: ['IQ', 'IR', 'YE', 'SY', 'LB'], reveal: 8 },
   // Drone disadvantage for these nations: multipliers on cost, interceptability, blast radius and speed
-  droneHandicap: { nations: ['KW', 'SA', 'BH', 'QA', 'AE', 'OM'], cost: 1.4, intercept: 1.3, radius: 0.8, speed: 0.9 },
+  droneHandicap: { nations: ['KW', 'SA', 'BH', 'QA', 'AE', 'OM', 'EG', 'JO'], cost: 1.4, intercept: 1.3, radius: 0.8, speed: 0.9 },
   // Extra oil fields scattered across GCC land (0 = only the real fields, 0.1 = a lot more)
   oil: { gccExtra: 0.05 },
   // Radar: tracking range in tiles, and the hit-chance multiplier for air defense inside its own radar coverage
@@ -44,7 +52,7 @@ window.GD_BALANCE_DEFAULTS = {
   // UAV recon flight: reveals hidden silos and drones for `duration` seconds, then needs `cooldown` seconds
   uav: { cost: 120, duration: 15, cooldown: 60 },
   // Special abilities by nation: UAV recon, and Drone rush (all ready drones at once at random enemy buildings)
-  abilities: { uav: ['KW', 'SA', 'BH', 'QA', 'AE', 'OM'], droneRush: ['IR'] },
+  abilities: { uav: ['KW', 'SA', 'BH', 'QA', 'AE', 'OM', 'EG', 'JO', 'IL'], droneRush: ['IR', 'TR'] },
   // Drone rush: each drone costs `discount` × its normal price; then the ability needs `cooldown` seconds
   droneRush: { discount: 0.5, cooldown: 90 },
   // Achievement goals that unlock content for you and every AI: strikes for tier II, buildings destroyed for tier III, radars for UAV, drones for Drone rush
@@ -56,7 +64,7 @@ window.GD_BALANCE_DEFAULTS = {
   // Cruise missiles fly under radar: seen only within `reveal` tiles of your land; air defense engages them within `samRange` × its range
   cruise: { reveal: 5, samRange: 0.5 },
   // Cruise missile handicap: cost and reload multipliers, and silo slots used per launch
-  cruiseHandicap: { nations: ['IQ', 'IR', 'YE'], cost: 1.5, reload: 1.4, slots: 2 },
+  cruiseHandicap: { nations: ['IQ', 'IR', 'YE', 'SY', 'LB'], cost: 1.5, reload: 1.4, slots: 2 },
   // Counter-battery radar: enemy silos that fire within `range` tiles stay revealed to you for `reveal` seconds
   counterBattery: { range: 55, reveal: 30 },
   // Ground combat (every nation). attackSpeed: how fast armies advance (1 = original pace). Taking a tile costs
@@ -80,6 +88,13 @@ window.GD_BALANCE_DEFAULTS = {
     IQ: { regen: 1.1, cityCap: 100 },
     IR: { missileCost: 0.7, startSilo: 1 },
     YE: { atk: 0.75, neutral: 0.85, mount: 0.5, cap: 1.2, def: 1.25, mountDef: 1.6, regen: 1.2 },
+    // Middle East map only. Extra keys: desert (cost to cross deserts), samPow (air defense accuracy), samR (added air defense range), droneCost
+    EG: { coast: 0.1, def: 1.1, neutral: 1.15 },
+    JO: { desert: 0.5, def: 1.2, neutral: 0.85 },
+    SY: { missileCost: 0.75, mountDef: 1.4, regen: 1.08 },
+    LB: { mountDef: 1.6, def: 1.1 },
+    IL: { samPow: 1.25, samR: 1, def: 1.2, atk: 0.85, regen: 1.1 },
+    TR: { droneCost: 0.75, cap: 1.2, mount: 0.6, regen: 1.08 },
   },
   // AI targeting. bloc: how much less attractive a same-bloc nation is as a target (GCC vs GCC, Iraq/Iran/Yemen vs each other);
   // blocChance: chance an AI still attacks a same-bloc nation it picked. pile: once an AI nation has recently lost this share of its

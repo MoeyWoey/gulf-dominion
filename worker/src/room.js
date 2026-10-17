@@ -3,7 +3,7 @@
 // The host's browser runs the simulation; this object never simulates.
 
 const MAX_PLAYERS = 9;
-const NATIONS = 9;
+const NATIONS = { gulf: 9, ext: 15 }; // nations per map
 
 export class GameRoom {
   constructor(ctx, env) {
@@ -21,7 +21,7 @@ export class GameRoom {
 
   view() {
     const r = this.room;
-    return { code: r.code, host: r.host, status: r.status, heat: r.heat, realistic: r.realistic, players: r.players };
+    return { code: r.code, host: r.host, map: r.map || 'gulf', status: r.status, heat: r.heat, realistic: r.realistic, players: r.players };
   }
 
   sockets(uid) {
@@ -51,13 +51,13 @@ export class GameRoom {
     if (url.pathname === '/init' && req.method === 'POST') {
       if (this.room && this.room.status !== 'closed') return Response.json({ error: 'exists' }, { status: 409 });
       const b = await req.json();
-      this.room = { code: b.code, host: b.uid, status: 'lobby', heat: 1, realistic: false, players: [], created: Date.now() };
+      this.room = { code: b.code, host: b.uid, map: b.map === 'ext' ? 'ext' : 'gulf', status: 'lobby', heat: 1, realistic: false, players: [], created: Date.now() };
       await this.save();
       return Response.json({ ok: true });
     }
     if (url.pathname === '/info') {
       if (!this.room || this.room.status === 'closed') return Response.json({ error: 'none' }, { status: 404 });
-      return Response.json({ status: this.room.status, players: this.room.players.length, max: MAX_PLAYERS });
+      return Response.json({ status: this.room.status, map: this.room.map || 'gulf', players: this.room.players.length, max: MAX_PLAYERS });
     }
 
     if (req.headers.get('Upgrade') !== 'websocket') return new Response('Expected a WebSocket', { status: 426 });
@@ -101,7 +101,7 @@ export class GameRoom {
       case 'pick': {
         if (r.status !== 'lobby') return;
         const n = Math.floor(Number(m.nation)) || 0;
-        if (n < 0 || n > NATIONS) return;
+        if (n < 0 || n > (NATIONS[r.map] || 9)) return;
         if (n && r.players.some((x) => x.uid !== uid && x.nation === n)) return;
         me.nation = n;
         await this.save();
