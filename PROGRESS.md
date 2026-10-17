@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `9d6ba71`)_
+_Last updated: 2026-10-17 (after commit `99f11f0`)_
 
 ---
 
@@ -224,6 +224,18 @@ Safety rules we keep:
 - New achievement **Under the radar**: 10 cruise hits, +40 pearls.
 - The Balance tab has cruise stats, visibility, how far air defense reaches, a per-nation handicap checkbox, and the counter-battery range and reveal time.
 
+### 12. Realistic mode — `99f11f0`
+
+- A **Realistic** switch sits next to the Begin campaign button and is remembered between sessions. When it's on, the button turns red-sand and the rules are shown below it.
+- It applies to **every nation**: gold income ×0.5, and taking land costs ×2.
+- Rewards:
+  - pearls ×1.5 per campaign
+  - deals with AI nations 25% cheaper
+  - new achievement **Hard truths**: win on Realistic, +120 pearls
+  - a separate "best on Realistic" in your stats
+- In-game it shows as a "Realistic" chip and on the end screen. The daily challenge ignores it.
+- The Balance tab has all four multipliers.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -251,6 +263,7 @@ Safety rules we keep:
 | World news | First at 200 s, then every 280–420 s, effects last 60 s |
 | Diplomacy | Ceasefire 60 s, alliance 180 s, price ×1 |
 | Counter-battery | 55-tile range, silos revealed 30 s |
+| Realistic mode | Gold ×0.5, land ×2 (everyone), pearls ×1.5, diplomacy ×0.75 |
 | Win condition | 60% of the land, or every rival eliminated |
 
 Every value above can be changed live from the dashboard's **Balance** tab.
