@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `e557929`)_
+_Last updated: 2026-10-17 (after commit `53ed891`)_
 
 ---
 
@@ -351,6 +351,18 @@ Safety rules we keep:
   - One siren per salvo and one tracking ping every 2s.
   - The radar notice counts how many missiles are inbound.
 
+### 21. Missile craters — `53ed891`
+
+- **Missiles only** (ballistic and cruise) empty the **core of the blast**, half the blast radius, back to unowned land, and any building there is gone. Missile I empties about 5 tiles, Missile III about 13. Drones never crater.
+- **Capitals:** a capital's own tile is never emptied.
+- **Elimination:** a nation whose last tiles are cratered is eliminated.
+- **Refilling:**
+  - craters are skipped by the auto-claim for **30 s**
+  - meanwhile anyone bordering a crater can expand into it at the empty-land cost
+  - after 30 s, a crater enclosed by one nation is claimed back automatically
+- **Tested:** Missile I emptied 5/5 core tiles and left the outer 8 owned. The crater was still empty at 25 s and refilled by 35 s. A drone left no crater. A direct hit on a capital kept the capital's tile.
+- **Dashboard:** Balance → Combat → "Missile crater size" (× blast radius, 0 = off) and "Crater stays empty for" (seconds).
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -379,7 +391,7 @@ Safety rules we keep:
 | Diplomacy | Ceasefire 60 s, alliance 180 s, price ×1 |
 | Counter-battery | 55-tile range, silos revealed 30 s |
 | Realistic mode | Gold ×0.5, land ×2 (everyone), pearls ×1.5, diplomacy ×0.75 |
-| Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 · empty pockets up to 30 tiles auto-claimed |
+| Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 · empty pockets up to 30 tiles auto-claimed · missile craters 0.5 × blast radius, empty for 30 s |
 | Win condition | 60% of the land, or every rival eliminated |
 
 Every value above can be changed live from the dashboard's **Balance** tab.
