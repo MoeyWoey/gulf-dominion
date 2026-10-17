@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `ea7a499`)_
+_Last updated: 2026-10-17 (after commit `58b71be`)_
 
 ---
 
@@ -501,6 +501,11 @@ Safety rules we keep:
 - **Online:** the room stores its map. A guest joining from the other map switches automatically; tested with a Turkey host and an Egypt guest.
 - **Daily challenge:** stays on the Gulf map.
 - **Caveat:** if a balance config was ever saved in the dashboard, its saved nation lists (abilities, stealth, handicaps) override the new defaults until the new nations are ticked there.
+
+### 32. Militia names on both maps — `58b71be`
+
+- **Names:** Iran Militias, Iraq Militias and Yemen Militias now appear on the Gulf map too (Lebanon Militias exists on the Middle East map only). The bloc hint, guide and achievement text match.
+- **Fix:** an effect stamped slightly ahead of the frame clock could give a negative circle size and stop the map drawing that frame.
 
 ---
 
