@@ -383,6 +383,7 @@ function renderBal(B){
       <span>Auto-claim empty pockets up to</span><span>${numIn('combat.fillPocket',B.combat.fillPocket,'1')} tiles <span class="hint">empty land enclosed by one nation joins it for free; 0 = off</span></span>
       <span>Missile crater size</span><span>${numIn('combat.crater',B.combat.crater,'0.05')} × blast radius <span class="hint">tiles there become empty land; 0 = off. Drones never crater</span></span>
       <span>Crater stays empty for</span><span>${numIn('combat.craterTime',B.combat.craterTime,'5')} seconds <span class="hint">before the auto-claim can refill it</span></span>
+      <span>Fort radius</span><span>${numIn('combat.fortRadius',B.combat.fortRadius,'1')} tiles <span class="hint">land this close to a fort costs the Fort × above to take</span></span>
       <span>Strike troop damage ×</span><span>${numIn('combat.strikeTroops',B.combat.strikeTroops,'0.05')} <span class="hint">scales the % of a nation's army each drone or missile kills</span></span>
      </div></div>
      <div class="card"><h2>AI targeting</h2><p class="hint">How computer nations pick who to attack. Blocs are the GCC on one side and Iraq, Iran and Yemen on the other. The breather stops every AI taking turns on the same collapsing nation. It never protects the player.</p><div class="kv" style="align-items:center">
@@ -390,6 +391,8 @@ function renderBal(B){
       <span>Same-bloc attack chance</span><span>${numIn('ai.blocChance',B.ai.blocChance,'0.01')} <span class="hint">chance an AI still attacks a same-bloc nation it picked (0–1)</span></span>
       <span>Breather after losing</span><span>${numIn('ai.pile',B.ai.pile,'0.01')} × its land <span class="hint">recent losses above this share stop new AI attacks and landings on it; 0 = off</span></span>
       <span>Losses fade over</span><span>${numIn('ai.pileTime',B.ai.pileTime,'5')} seconds <span class="hint">longer = longer breathers</span></span>
+      <span>AI forts: one per</span><span>${numIn('ai.fortTiles',B.ai.fortTiles,'10')} tiles <span class="hint">built on borders where they were just attacked or face a stronger rival; +1 from Heat 3</span></span>
+      <span>Troops at cap for</span><span>${numIn('ai.stuckTime',B.ai.stuckTime,'5')} seconds <span class="hint">then the AI builds every turn, cities and air defense first</span></span>
      </div></div>
      <div class="card"><h2>Blocs</h2><p class="hint">Nations in the same bloc mostly spare each other. Loyalty runs from 1 (full) to 0 (they treat each other like anyone else), with one value for normal games and one for Realistic mode. A nation in no bloc stands alone; a nation ticked in two blocs belongs to the first. Middle East nations only matter on the Middle East map.</p>
       <div id="blocRows">${(B.blocs||[]).map((g,bi)=>`<div class="blocrow" data-bloc="${bi}" style="border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0">

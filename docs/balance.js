@@ -112,7 +112,7 @@ window.GD_BALANCE_DEFAULTS = {
   // nation's whole army that a drone or missile hit kills. fillPocket: empty pockets up to this many tiles that touch only one
   // nation's land are claimed by it automatically (0 = off). crater: missile hits empty the tiles within crater × blast radius
   // (0 = off); craterTime: seconds before an empty crater can be auto-claimed (anyone bordering it can still expand into it).
-  combat: { attackSpeed: 0.5, tileBase: 4, defDensity: 1.5, defLoss: 0.35, fort: 2.5, capital: 4, capitalRing: 2, regenBase: 30, regenPerTile: 0.3, capPerTile: 10, strikeTroops: 0.5, fillPocket: 30, crater: 0.5, craterTime: 30 },
+  combat: { attackSpeed: 0.5, tileBase: 4, defDensity: 1.5, defLoss: 0.35, fort: 2.5, capital: 4, capitalRing: 2, regenBase: 30, regenPerTile: 0.3, capPerTile: 10, strikeTroops: 0.5, fortRadius: 4, fillPocket: 30, crater: 0.5, craterTime: 30 },
   // Nation perks. Multipliers: oil (oil income), cap (troop cap), regen (troop regen), gold (all gold), cityCost, mount (cost to
   // cross mountains), def (defense of all its land), mountDef (extra defense of its mountain tiles), missileCost, atk (cost of taking enemy land), neutral (cost of empty land).
   // Added amounts: coast (gold per coastal tile), cityCap (troop cap per city). startSilo: 1 = starts with a missile silo.
@@ -138,7 +138,9 @@ window.GD_BALANCE_DEFAULTS = {
   // blocChance: chance an AI still attacks a same-bloc nation it picked. pile: once an AI nation has recently lost this share of its
   // land (losses fade over pileTime seconds), other AIs stop opening new attacks or landings on it until it recovers; 0 = off.
   // Stops the whole GCC taking turns on Yemen. Never shields the player.
-  ai: { bloc: 6, blocChance: 0.05, pile: 0.04, pileTime: 60 },
+  // fortTiles: AI nations may keep one fort per this many tiles (on threatened borders); stuckTime: seconds at its troop cap
+  // before an AI puts cities and air defense first
+  ai: { bloc: 6, blocChance: 0.05, pile: 0.04, pileTime: 60, fortTiles: 300, stuckTime: 25 },
   // Blocs: nations in the same bloc mostly spare each other. loyalty (normal games) and realistic (Realistic mode) run from
   // 1 = full loyalty to 0 = they treat each other like anyone else. A nation in no bloc stands alone; a nation listed in two
   // blocs belongs to the first. Codes not on the current map are ignored. Edit, add or remove blocs in the dashboard.

@@ -671,7 +671,7 @@ function blocOf(id){if(_blocFor!==BAL.blocs){_blocFor=BAL.blocs;_blocMap={};(BAL
 const sameBloc=(a,b)=>{if(!(a>0&&b>0))return false;const i=blocOf(a);return i>=0&&i===blocOf(b);};
 // Bloc loyalty between two nations: 0 for different blocs, otherwise the bloc's loyalty (normal) or realistic value (Realistic mode)
 const blocL=(a,b)=>{if(!sameBloc(a,b))return 0;const g=BAL.blocs[blocOf(a)];return G&&G.real?g.realistic:g.loyalty;};
-function baseMods(){return {respect:1,neutral:1,desert:1,mount:1,cap:1,regen:1,atk:1,def:1,mountDef:1,oil:1,gold:1,coast:0,speed:1,cityCost:1,cityCap:400,fortR:4,fortPow:0,plunder:0,lion:false,pearl:1,falaj:false,boatSpeed:1,boatPow:1,boats:3,navy:1,patrol:9,reload:1,magD:0,magS:0,magM:0,droneCost:1,missileCost:1,artyCost:1,droneN:1,evade:1,samR:7,samPow:1,bunker:0,blast:2,startSilo:false};}
+function baseMods(){return {respect:1,neutral:1,desert:1,mount:1,cap:1,regen:1,atk:1,def:1,mountDef:1,oil:1,gold:1,coast:0,speed:1,cityCost:1,cityCap:400,fortR:BAL.combat.fortRadius,fortPow:0,plunder:0,lion:false,pearl:1,falaj:false,boatSpeed:1,boatPow:1,boats:3,navy:1,patrol:9,reload:1,magD:0,magS:0,magM:0,droneCost:1,missileCost:1,artyCost:1,droneN:1,evade:1,samR:7,samPow:1,bunker:0,blast:2,startSilo:false};}
 // Nation perks come from BAL.perks (editable in the dashboard): coast and cityCap add, startSilo switches on, the rest multiply
 const PERK_ADD={coast:1,cityCap:1,samR:1};
 function applyPerk(id,m){
@@ -980,7 +980,7 @@ function fillPockets(){
 function adjTo(i,id){const x=i%W;return (x>0&&owner[i-1]===id)||(x<W-1&&owner[i+1]===id)||(i>=W&&owner[i-W]===id)||(i<N-W&&owner[i+W]===id);}
 
 function launchAttack(attId,defId,troops,tx,ty,pool=true){
-  const n=NATS[attId];if(pool){troops=Math.min(troops,n.troops);if(troops<3)return 'few';}
+  const n=NATS[attId];if(defId&&NATS[defId]&&G)NATS[defId].lastHit={by:attId,t:G.t};if(pool){troops=Math.min(troops,n.troops);if(troops<3)return 'few';}
   const inc=defId?attacks.find(a=>a.att===defId&&a.def===attId&&!a.done):null;
   if(inc){
     // Clash with the incoming army first, then push back over the tiles it just took
@@ -1235,7 +1235,10 @@ function aiThink(n){
   if(G.t<n.nextAI)return;
   n.nextAI=G.t+1.6+Math.random()*1.6;
   if(Math.random()<.35)aiStrike(n);
-  if(Math.random()<.4)aiBuild(n);
+  // Troops sitting at the cap for a while: build every turn (cities raise the cap, air defense protects them)
+  if(n.troops>=n.cap*.88){if(!n.fullSince)n.fullSince=G.t;}else n.fullSince=0;
+  n.stuck=!!n.fullSince&&G.t-n.fullSince>=BAL.ai.stuckTime;
+  if(n.stuck||Math.random()<.4)aiBuild(n);
   const inc=attacks.find(a=>a.def===n.id&&!a.done);
   if(inc&&n.troops>inc.troops*.5){const t=inc.taken.length?inc.taken[inc.taken.length-1]:-1;
     launchAttack(n.id,inc.att,Math.min(n.troops*.7,inc.troops*1.4+60),t>=0?t%W:inc.tx,t>=0?(t/W)|0:inc.ty);return;}
@@ -1262,7 +1265,32 @@ function aiThink(n){
   const j=samp.get(target);
   launchAttack(n.id,target,n.troops*(target===0?.45:G.aiFrac),j%W,(j/W)|0);
 }
+// A tile a few steps inside a border the AI feels threatened on (last attacker within 90s, or a stronger rival), not already covered by its forts
+function aiFortSpot(n){
+  const R=n.m.fortR,hit=n.lastHit&&G.t-n.lastHit.t<90&&NATS[n.lastHit.by]&&NATS[n.lastHit.by].alive?n.lastHit.by:0;
+  const forts=blist.filter(j=>bld[j]===2&&owner[j]===n.id),cand=[];
+  for(let i=0;i<N;i++){if(owner[i]!==n.id)continue;const x=i%W;
+    for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W]){if(j<0||j>=N)continue;const o=owner[j];if(!o||o===n.id)continue;
+      if(hit?o===hit:(NATS[o].troops>n.troops*1.1&&blocL(n.id,o)<.5)){cand.push(i);break;}}}
+  for(let k=0;k<30&&cand.length;k++){
+    let i=cand[(Math.random()*cand.length)|0];const x=i%W,y=(i/W)|0,dx=n.cx-x,dy=n.cy-y,d=Math.hypot(dx,dy)||1;
+    const j=Math.round(y+dy/d*2)*W+Math.round(x+dx/d*2);if(j>=0&&j<N&&owner[j]===n.id)i=j; // two steps inland, so the fort isn't lost with the first tile
+    if(bld[i]||i===n.capIdx)continue;
+    if(forts.every(f=>(f%W-i%W)**2+(((f/W)|0)-((i/W)|0))**2>(R*1.5)**2))return i;
+  }
+  return -1;
+}
 function aiBuild(n){
+  // Stuck at the troop cap: a city first (raises the cap), then more air defense
+  if(n.stuck){
+    if(n.gold>=costOf(n,'city')){for(let k=0;k<300;k++){const i=(Math.random()*N)|0;if(owner[i]===n.id&&!bld[i]&&!oil[i]&&i!==n.capIdx){place(n,i,'city');return;}}}
+    let s=0;for(const j of blist)if(bld[j]===7&&owner[j]===n.id)s++;
+    if(s<2+Math.floor(n.tiles/250)&&n.gold>=costOf(n,'sam')){const anchors=[n.capIdx,...blist.filter(j=>owner[j]===n.id&&(bld[j]===1||bld[j]===5||bld[j]===6))];if(placeNear(n,anchors[(Math.random()*anchors.length)|0],'sam',4))return;}
+    if(n.gold>=costOf(n,'city')*.6)return; // a city is within reach: save up for it instead of spending elsewhere
+  }
+  // Forts on a threatened border; more willing at higher heat
+  if(G.t>45){let f=0;for(const j of blist)if(bld[j]===2&&owner[j]===n.id)f++;
+    if(f<1+Math.floor(n.tiles/Math.max(20,BAL.ai.fortTiles))+(G.diff>=3?1:0)&&n.gold>=costOf(n,'fort')*Math.max(1,1.4-.1*(G.diff-1))){const i=aiFortSpot(n);if(i>=0){place(n,i,'fort');return;}}}
   const rc=costOf(n,'rig');
   if(n.gold>=rc){for(const i of oilCells){if(owner[i]===n.id&&!bld[i]){place(n,i,'rig');return;}}}
   let sams=0,hang=0,silo=0;for(const j of blist){if(owner[j]!==n.id)continue;if(bld[j]===7)sams++;else if(bld[j]===6)hang++;else if(bld[j]===5)silo++;}
