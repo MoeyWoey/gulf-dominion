@@ -1361,7 +1361,10 @@ function launchStrikeInner(attId,wid,i){
     missiles.push({kind,wid,name:w.name,own:attId,x:L%W,y:(L/W)|0,tx:i%W+(Math.random()-.5)*j,ty:((i/W)|0)+(Math.random()-.5)*j,sp:kind==='artillery'?w.speed*(.85+Math.random()*.3):w.speed,r:w.radius,tp:w.troops,pk:w.intercept,bh:w.bld,stealth:w.stealth||!!w.cruise,cruise:!!w.cruise,seen:false,size:WSIZE[w.key]||1,done:false});}
   return 'ok';
 }
-function destroyBld(j){const o=owner[j];if(o&&NATS[o].m.bunker&&Math.random()<NATS[o].m.bunker)return false;bld[j]=0;return true;}
+// A building destroyed by a strike lowers its owner's price counter by one (prices rise with each one built; capture doesn't refund)
+const BUILT_KEY={};for(const t in BCODE)BUILT_KEY[BCODE[t]]=BKEY[t];
+function refundBuilt(j){const o=owner[j],k=BUILT_KEY[bld[j]];if(o&&k&&NATS[o][k]>0)NATS[o][k]--;}
+function destroyBld(j){const o=owner[j];if(o&&NATS[o].m.bunker&&Math.random()<NATS[o].m.bunker)return false;refundBuilt(j);bld[j]=0;return true;}
 function impact(m){
   const cx=Math.round(m.tx),cy=Math.round(m.ty);if(cx<0||cy<0||cx>=W||cy>=H)return;
   if(m.kind==='antiship'){impactShip(m);return;}
@@ -1378,7 +1381,7 @@ function impact(m){
   if(m.kind==='missile'&&cf>0){const rc=Math.max(.5,m.r*cf),rc2=rc*rc+.5,rci=Math.ceil(rc),hitN=new Set();
     for(let dy=-rci;dy<=rci;dy++)for(let dx=-rci;dx<=rci;dx++){if(dx*dx+dy*dy>rc2)continue;const x=cx+dx,y=cy+dy;if(x<0||y<0||x>=W||y>=H)continue;
       const j=y*W+x,o=owner[j];if(terr[j]<2||!o||o===m.own||j===NATS[o].capIdx)continue;
-      owner[j]=0;bld[j]=0;crater[j]=G.t+BAL.combat.craterTime;NATS[o].tiles--;markAround(j);hitN.add(o);}
+      if(bld[j])refundBuilt(j);owner[j]=0;bld[j]=0;crater[j]=G.t+BAL.combat.craterTime;NATS[o].tiles--;markAround(j);hitN.add(o);}
     for(const o of hitN){const d=NATS[o];if(d.alive&&d.tiles<=0){eliminate(d,att);if(G.over)return;}}}
   if(wrecked)bump('destroyed',wrecked);
   if(m.cruise&&m.own===G.pid&&hit.size)bump('cruiseHits');
