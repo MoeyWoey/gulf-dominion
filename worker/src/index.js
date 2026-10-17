@@ -1,11 +1,14 @@
 // Gulf Dominion backend: Google sign-in, cloud saves, event logs, store and MyFatoorah payments.
 // Runs on Cloudflare Workers with a D1 database bound as DB. Optionally serves ../docs as static assets.
 
+import { GameRoom } from './room.js';
+export { GameRoom };
+
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 const SESSION_DAYS = 30;
 const MAX_SAVE_BYTES = 100 * 1024;
-const CLIENT_EVENTS = new Set(['run_start', 'run_end', 'store_open', 'client_error', 'session', 'achievement']);
+const CLIENT_EVENTS = new Set(['run_start', 'run_end', 'store_open', 'client_error', 'session', 'achievement', 'mp_end']);
 const MAX_DAILY_SCORE = 25000;
 const utcDay = (offsetDays = 0) => new Date(Date.now() + offsetDays * 86400000).toISOString().slice(0, 10);
 // Leaderboard names: first name plus last initial, never the email
@@ -338,6 +341,29 @@ async function api(req, env, url, path) {
   const user = await currentUser(req, env);
   if (!user) return json({ error: 'auth' }, 401);
 
+  if (path === '/api/rooms' && method === 'POST') {
+    // Online game: create a room with a short code; the creator is the host
+    const ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    for (let tries = 0; tries < 6; tries++) {
+      let code = '';
+      const bytes = crypto.getRandomValues(new Uint8Array(5));
+      for (const b of bytes) code += ABC[b % ABC.length];
+      const stub = env.ROOMS.get(env.ROOMS.idFromName(code));
+      const r = await stub.fetch('https://room/init', { method: 'POST', body: JSON.stringify({ code, uid: user.id }) });
+      if (r.ok) {
+        await log(env, user.id, 'info', 'room_created', { code });
+        return json({ code });
+      }
+    }
+    return json({ error: 'busy' }, 503);
+  }
+  if (path.startsWith('/api/rooms/') && method === 'GET') {
+    const code = path.slice(11).toUpperCase();
+    if (!/^[A-Z0-9]{5}$/.test(code)) return json({ error: 'code' }, 400);
+    const r = await env.ROOMS.get(env.ROOMS.idFromName(code)).fetch('https://room/info');
+    return json(await r.json(), r.status);
+  }
+
   if (path === '/api/daily/score' && method === 'POST') {
     const date = String(body.date || '');
     if (date !== utcDay() && date !== utcDay(-1)) return json({ error: 'date' }, 400);
@@ -605,6 +631,20 @@ export default {
       if (path === '/auth/google/callback') return await authCallback(req, env, url);
       if (path === '/pay/callback') return await payCallback(req, env, url);
       if (path === '/pay/webhook' && req.method === 'POST') return await payWebhook(req, env);
+      if (path.startsWith('/ws/room/')) {
+        // WebSocket into an online game room; the session token comes in the query string
+        const code = path.slice(9).toUpperCase();
+        if (!/^[A-Z0-9]{5}$/.test(code)) return new Response('Bad code', { status: 400 });
+        const origin = req.headers.get('Origin');
+        if (origin && !allowedOrigins(env, req.url).includes(origin)) return new Response('Forbidden', { status: 403 });
+        const p = await verifyToken(url.searchParams.get('token'), env.SESSION_SECRET);
+        const u = p && p.typ === 'session' ? await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(p.uid).first() : null;
+        if (!u || u.banned) return new Response('Sign in first', { status: 401 });
+        const h = new Headers(req.headers);
+        h.set('x-uid', String(u.id));
+        h.set('x-name', shortName(u.name || u.email));
+        return env.ROOMS.get(env.ROOMS.idFromName(code)).fetch(new Request('https://room/ws', { headers: h }));
+      }
       if (path.startsWith('/api/')) {
         const r = await api(req, env, url, path);
         const h = new Headers(r.headers);

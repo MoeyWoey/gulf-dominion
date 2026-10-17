@@ -13,6 +13,15 @@ binding = "DB"
 database_name = "gulf-dominion"
 database_id = "92de228b-eec0-4d74-9954-dcc7cabca14b"
 
+# Online games: one Durable Object per room (SQLite-backed, available on the free plan)
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "GameRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GameRoom"]
+
 [vars]
 # Sites allowed to call this API and receive sign-in redirects, e.g. your GitHub Pages address (comma separated, no trailing slash)
 ALLOWED_ORIGINS = "https://moeywoey.github.io"
