@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `d089a9a`)_
+_Last updated: 2026-10-17 (after commit `ea7a499`)_
 
 ---
 
@@ -474,6 +474,34 @@ Safety rules we keep:
 - **Change:** each rush drone takes the enemy building with the fewest drones already aimed at it, counting every hangar in the rush and drones already in flight.
 - **Test:** 12 drones at 6 buildings hit each one exactly twice. Random picking used to miss about 0.7 buildings per rush.
 
+### 31. Middle East map — `ea7a499`
+
+- **Picking the map:** the home screen has a map picker, "The Gulf" (9 nations, unchanged) or **"Middle East"** (15 nations). The choice is saved on the device and switching reloads the page.
+- **Geography:** the map extends west to Egypt and adds the Mediterranean, Sinai and a sailable Suez Canal.
+- **New nations:** Egypt, Jordan, Syria, Lebanon, Israel and Turkey (its southern strip).
+- **Names:** Iran, Iraq, Yemen and Lebanon are called "… Militias" on this map.
+- **Not modelled at this scale:** Gaza and the West Bank are shown as outside the theatre, as are Libya, Sudan and Cyprus.
+- **Perks** (tuned over three rounds of 12 all-AI games; editable in Nation perks):
+
+  | Nation | Perks |
+  |---|---|
+  | Egypt | coastal gold, defense ×1.1, expansion ×1.15 cost |
+  | Jordan | deserts ×0.5, defense ×1.2, expansion ×0.85 |
+  | Syria | missiles ×0.75, mountain defense ×1.4, regen ×1.08 |
+  | Lebanon | mountain defense ×1.6, defense ×1.1, bigger start |
+  | Israel | air defense accuracy ×1.25, range +1, defense ×1.2, attacks ×0.85, regen ×1.1 |
+  | Turkey | drones ×0.75, all drone types, cap ×1.2, mountains ×0.6, regen ×1.08 |
+
+- **Arsenals:**
+  - Egypt has missiles to tier II and Israel to tier III.
+  - Turkey has every drone type, missiles to tier II and Drone rush.
+  - Egypt, Jordan and Israel can fly UAV recon.
+- **Blocs:** Egypt and Jordan join the GCC bloc, Syria and Lebanon join Iran, Iraq and Yemen, and Israel and Turkey stand alone.
+- **Balance:** all nations end between 3.3% and 11.3% of the land, none eliminated. Egypt is biggest in 5 of 12 games and Iran Militias in 4.
+- **Online:** the room stores its map. A guest joining from the other map switches automatically; tested with a Turkey host and an Egypt guest.
+- **Daily challenge:** stays on the Gulf map.
+- **Caveat:** if a balance config was ever saved in the dashboard, its saved nation lists (abilities, stealth, handicaps) override the new defaults until the new nations are ticked there.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -529,6 +557,7 @@ Every value above can be changed live from the dashboard's **Balance** tab.
 ## Ideas suggested but not built
 
 - Online phase 3: player-to-player diplomacy, quick chat, a public game list
+- Middle East weapons: rocket artillery, anti-ship missiles, strategic air defense, electronic warfare, long-range drone; abilities (Egypt canal closure, Israel interceptor surge, Syria missile barrage, Turkey drone swarm)
 
 - Rival-specific events (e.g. a GCC summit truce, an oil embargo)
 - Nation-specific decree cards
