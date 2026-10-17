@@ -17,6 +17,7 @@ window.GD_BALANCE_DEFAULTS = {
     t1: { name: 'Missile I', cost: 200, radius: 2, speed: 6, troops: 8, intercept: 1, reload: 1 },
     t2: { name: 'Missile II', cost: 420, radius: 3, speed: 7, troops: 11, intercept: 0.9, reload: 1.5 },
     t3: { name: 'Missile III', cost: 750, radius: 4, speed: 8, troops: 15, intercept: 0.8, reload: 2.2 },
+    cruise: { name: 'Cruise missile', cost: 300, radius: 1.5, speed: 5, troops: 6, intercept: 0.6, reload: 1.3 },
   },
   // Which drone types each nation can fly, and the highest missile tier it can fire (0 = none)
   arsenal: {
@@ -52,6 +53,12 @@ window.GD_BALANCE_DEFAULTS = {
   news: { first: 200, min: 280, max: 420, duration: 60 },
   // Diplomacy: ceasefire and alliance length in seconds, and a multiplier on what AI nations charge
   diplomacy: { ceasefire: 60, alliance: 180, costMul: 1 },
+  // Cruise missiles fly under radar: seen only within `reveal` tiles of your land; air defense engages them within `samRange` × its range
+  cruise: { reveal: 5, samRange: 0.5 },
+  // Cruise missile handicap: cost and reload multipliers, and silo slots used per launch
+  cruiseHandicap: { nations: ['IQ', 'IR', 'YE'], cost: 1.5, reload: 1.4, slots: 2 },
+  // Counter-battery radar: enemy silos that fire within `range` tiles stay revealed to you for `reveal` seconds
+  counterBattery: { range: 55, reveal: 30 },
 };
 
 // Merge saved overrides over the defaults, keeping only known keys and sane values.

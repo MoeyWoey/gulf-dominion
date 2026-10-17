@@ -304,7 +304,7 @@ function editProduct(p){
 }
 
 /* ---------- balance ---------- */
-const DKEYS=['light','strike','heavy'],MKEYS=['t1','t2','t3'];
+const DKEYS=['light','strike','heavy'],MKEYS=['t1','t2','t3','cruise'];
 const COLS={cost:['Cost','gold','1'],radius:['Blast radius','tiles','0.1'],speed:['Speed','tiles/s','0.1'],troops:['Troops hit','%','0.5'],intercept:['Intercept ×','higher = easier to shoot down','0.05'],reload:['Reload ×','silo reload after firing','0.1']};
 const numIn=(k,v,step)=>`<input type="number" min="0" step="${step}" data-k="${k}" value="${esc(v)}" style="width:86px">`;
 async function loadBal(){const r=await api('/api/admin/config');renderBal(GD_mergeBalance(GD_BALANCE_DEFAULTS,r.config||{}));$('#balMsg').innerHTML='';}
@@ -317,13 +317,14 @@ function renderBal(B){
     <td><input type="checkbox" data-stealth="${c}" ${B.stealth.nations.includes(c)?'checked':''} aria-label="${esc(name)} hidden drones"></td>
     <td><input type="checkbox" data-hcap="${c}" ${B.droneHandicap.nations.includes(c)?'checked':''} aria-label="${esc(name)} drone handicap"></td>
     <td><input type="checkbox" data-abuav="${c}" ${B.abilities.uav.includes(c)?'checked':''} aria-label="${esc(name)} UAV recon"></td>
+    <td><input type="checkbox" data-crh="${c}" ${B.cruiseHandicap.nations.includes(c)?'checked':''} aria-label="${esc(name)} cruise handicap"></td>
     <td><input type="checkbox" data-abrush="${c}" ${B.abilities.droneRush.includes(c)?'checked':''} aria-label="${esc(name)} drone rush"></td></tr>`;}).join('');
   const h=B.droneHandicap;
   $('#balForm').innerHTML=
     wtable('Drones','drones',DKEYS,['cost','radius','speed','troops','intercept'])+
     wtable('Missiles','missiles',MKEYS,['cost','radius','speed','troops','intercept','reload'])+
     `<div class="card"><h2>Arsenals</h2><p class="hint">Which drones each nation can fly, its highest missile tier, and its special abilities. Hidden drones only appear when they come near the player's border. The drone handicap applies the multipliers below.</p>
-     <div class="tablewrap"><table><thead><tr><th>Nation</th>${DKEYS.map(d=>`<th>${esc(B.drones[d].name)}</th>`).join('')}<th>Max missile tier</th><th>Hidden drones</th><th>Drone handicap</th><th>UAV recon</th><th>Drone rush</th></tr></thead><tbody>${nrows}</tbody></table></div></div>
+     <div class="tablewrap"><table><thead><tr><th>Nation</th>${DKEYS.map(d=>`<th>${esc(B.drones[d].name)}</th>`).join('')}<th>Max missile tier</th><th>Hidden drones</th><th>Drone handicap</th><th>UAV recon</th><th>Cruise handicap</th><th>Drone rush</th></tr></thead><tbody>${nrows}</tbody></table></div></div>
      <div class="card"><h2>Rules</h2><div class="kv" style="align-items:center">
       <span>Hidden drones appear within</span><span>${numIn('stealth.reveal',B.stealth.reveal,'1')} tiles of the player's land</span>
       <span>Handicap: drone cost ×</span><span>${numIn('droneHandicap.cost',h.cost,'0.05')}</span>
@@ -348,6 +349,13 @@ function renderBal(B){
       <span>Ceasefire length</span><span>${numIn('diplomacy.ceasefire',B.diplomacy.ceasefire,'5')} seconds</span>
       <span>Alliance length</span><span>${numIn('diplomacy.alliance',B.diplomacy.alliance,'10')} seconds</span>
       <span>Diplomacy price ×</span><span>${numIn('diplomacy.costMul',B.diplomacy.costMul,'0.1')} <span class="hint">what AI nations charge for a deal</span></span>
+      <span>Cruise seen within</span><span>${numIn('cruise.reveal',B.cruise.reveal,'1')} tiles of your land (radar can't track them)</span>
+      <span>Air defense vs cruise</span><span>${numIn('cruise.samRange',B.cruise.samRange,'0.05')} × battery range</span>
+      <span>Cruise handicap cost ×</span><span>${numIn('cruiseHandicap.cost',B.cruiseHandicap.cost,'0.05')}</span>
+      <span>Cruise handicap reload ×</span><span>${numIn('cruiseHandicap.reload',B.cruiseHandicap.reload,'0.05')}</span>
+      <span>Cruise handicap silo slots</span><span>${numIn('cruiseHandicap.slots',B.cruiseHandicap.slots,'1')} per launch</span>
+      <span>Counter-battery range</span><span>${numIn('counterBattery.range',B.counterBattery.range,'1')} tiles</span>
+      <span>Counter-battery reveal</span><span>${numIn('counterBattery.reveal',B.counterBattery.reveal,'1')} seconds</span>
       <span>Extra GCC oil fields</span><span>${numIn('oil.gccExtra',B.oil.gccExtra,'0.01')} <span class="hint">0 = real fields only, 0.05 = default, 0.15 = lots</span></span>
      </div></div>`;
 }
@@ -358,6 +366,7 @@ function collectBal(){
   B.stealth.nations=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-stealth="${c}"]`).checked);
   B.droneHandicap.nations=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-hcap="${c}"]`).checked);
   B.abilities.uav=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-abuav="${c}"]`).checked);
+  B.cruiseHandicap.nations=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-crh="${c}"]`).checked);
   B.abilities.droneRush=GD_NATION_CODES.map(x=>x[0]).filter(c=>document.querySelector(`[data-abrush="${c}"]`).checked);
   return B;
 }
