@@ -63,8 +63,9 @@ window.GD_BALANCE_DEFAULTS = {
   // tileBase + defDensity × (defender troops per tile); the defender loses defLoss × that cost. fort / capital / capitalRing:
   // how much harder land is to take near a fort, on the capital, and within 2 tiles of it. Troop regen per second is
   // regenBase + regenPerTile × tiles (+6 per city); troop cap is 300 + capPerTile × tiles. strikeTroops scales the share of a
-  // nation's whole army that a drone or missile hit kills.
-  combat: { attackSpeed: 0.5, tileBase: 4, defDensity: 1.5, defLoss: 0.35, fort: 2.5, capital: 4, capitalRing: 2, regenBase: 30, regenPerTile: 0.3, capPerTile: 10, strikeTroops: 0.5 },
+  // nation's whole army that a drone or missile hit kills. fillPocket: empty pockets up to this many tiles that touch only one
+  // nation's land are claimed by it automatically (0 = off).
+  combat: { attackSpeed: 0.5, tileBase: 4, defDensity: 1.5, defLoss: 0.35, fort: 2.5, capital: 4, capitalRing: 2, regenBase: 30, regenPerTile: 0.3, capPerTile: 10, strikeTroops: 0.5, fillPocket: 30 },
   // Realistic mode (switch beside Begin campaign), applied to every nation: gold income and land-cost multipliers, pearl reward and diplomacy price multipliers
   realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75 },
 };

@@ -845,6 +845,21 @@ function tileCost(att,defId,i){
   const d=NATS[defId],dens=d.troops/Math.max(1,d.tiles);
   return (C.tileBase+dens*C.defDensity)*tm*att.m.atk*d.m.def*fortMul(d,i)*lm;
 }
+function sidesOf(i,id){const x=i%W;return (x>0&&owner[i-1]===id)+(x<W-1&&owner[i+1]===id)+(i>=W&&owner[i-W]===id)+(i<N-W&&owner[i+W]===id);}
+// Empty pockets of up to BAL.combat.fillPocket tiles touching only one nation's land join that nation for free
+const pkSeen=new Uint32Array(N);let pkStamp=0;const pkQ=[];
+function fillPockets(){
+  const T=BAL.combat.fillPocket;if(!T)return;pkStamp++;
+  for(let s=0;s<N;s++){
+    if(owner[s]||terr[s]<2||pkSeen[s]===pkStamp)continue;
+    pkQ.length=0;pkQ.push(s);pkSeen[s]=pkStamp;let own=0,mixed=false;
+    for(let h=0;h<pkQ.length;h++){const i=pkQ[h],x=i%W;
+      for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W]){if(j<0||j>=N||terr[j]<2)continue;const o=owner[j];
+        if(o){if(!own)own=o;else if(o!==own)mixed=true;continue;}
+        if(pkSeen[j]!==pkStamp){pkSeen[j]=pkStamp;pkQ.push(j);}}}
+    if(own&&!mixed&&pkQ.length<=T&&NATS[own].alive)for(const i of pkQ){owner[i]=own;markAround(i);}
+  }
+}
 function adjTo(i,id){const x=i%W;return (x>0&&owner[i-1]===id)||(x<W-1&&owner[i+1]===id)||(i>=W&&owner[i-W]===id)||(i<N-W&&owner[i+W]===id);}
 
 function launchAttack(attId,defId,troops,tx,ty,pool=true){
@@ -885,7 +900,11 @@ function stepAttack(a){
   a.acc+=(.5+Math.sqrt(a.troops)/18)*att.m.speed*BAL.combat.attackSpeed;
   let n=Math.floor(a.acc);a.acc-=n;
   while(n-->0){
-    let best=-1,bs=1e12;
+    // Gaps first: a tile with this army's land on 3+ sides is taken before the advance continues
+    let i=-1,best=-1;
+    while(a.pri&&a.pri.length){const j=a.pri.pop();if(owner[j]===a.def&&terr[j]>=2&&sidesOf(j,a.att)>=3){i=j;break;}}
+    if(i<0){
+    let bs=1e12;
     for(let s=0;s<3&&a.front.length;s++){
       const k=(Math.random()*a.front.length)|0,i=a.front[k];
       if(owner[i]!==a.def||!adjTo(i,a.att)){a.front[k]=a.front[a.front.length-1];a.front.pop();a.inF.delete(i);best=-1;bs=1e12;continue;}
@@ -894,17 +913,20 @@ function stepAttack(a){
     }
     if(!a.front.length){a.done=true;break;}
     if(best<0)continue;
-    const i=a.front[best],cost=tileCost(att,a.def,i);
+    i=a.front[best];
+    }
+    const cost=tileCost(att,a.def,i);
     if(a.troops<cost){a.done=true;break;}
     a.troops-=cost;
-    a.front[best]=a.front[a.front.length-1];a.front.pop();a.inF.delete(i);
+    if(best<0)best=a.front.indexOf(i);
+    if(best>=0){a.front[best]=a.front[a.front.length-1];a.front.pop();}a.inF.delete(i);
     const def=a.def;
     if(def){const d=NATS[def];d.troops=Math.max(0,d.troops-cost*BAL.combat.defLoss);}
     capture(i,a.att,def);
     if(a.taken.length<3000)a.taken.push(i);
     if(G.over)return;
     const x=i%W;
-    for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W]){if(j<0||j>=N||a.inF.has(j))continue;if(owner[j]===def&&terr[j]>=2){a.inF.add(j);a.front.push(j);}}
+    for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W]){if(j<0||j>=N||owner[j]!==def||terr[j]<2)continue;if(!a.inF.has(j)){a.inF.add(j);a.front.push(j);}if(sidesOf(j,a.att)>=3)(a.pri||(a.pri=[])).push(j);}
     if(def&&!NATS[def].alive){a.done=true;break;}
   }
 }
@@ -1064,6 +1086,7 @@ function aiBoat(n,cnt){
 }
 
 function econ(init){
+  if(!init)fillPockets();
   const cnt=NATS.map(()=>({t:0,oil:0,coast:0,cities:0,rigs:0,dry:0,ports:0,sx:0,sy:0}));
   for(let i=0;i<N;i++){const o=owner[i];if(!o)continue;const c=cnt[o];c.t++;if(oil[i])c.oil++;if(coast[i])c.coast++;
     const b=bld[i];if(b===1)c.cities++;else if(b===3){if(oil[i])c.rigs++;else c.dry++;}else if(b===4)c.ports++;c.sx+=i%W;c.sy+=(i/W)|0;}
