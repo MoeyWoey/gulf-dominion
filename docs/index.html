@@ -584,7 +584,7 @@ applyOil();
 // Blocs: the six GCC states, and Iraq/Iran/Yemen. AI rarely attacks inside its own bloc.
 const BLOC=[0,1,1,1,1,1,1,2,2,2];
 const sameBloc=(a,b)=>a>0&&b>0&&BLOC[a]===BLOC[b];
-function baseMods(){return {neutral:1,desert:1,mount:1,cap:1,regen:1,atk:1,def:1,oil:1,gold:1,coast:0,speed:1,cityCost:1,cityCap:400,fortR:4,fortPow:0,plunder:0,lion:false,pearl:1,falaj:false,boatSpeed:1,boatPow:1,boats:3,navy:1,patrol:9,reload:1,magD:0,magS:0,magM:0,droneCost:1,missileCost:1,droneN:1,evade:1,samR:7,samPow:1,bunker:0,blast:2,startSilo:false};}
+function baseMods(){return {neutral:1,desert:1,mount:1,cap:1,regen:1,atk:1,def:1,mountDef:1,oil:1,gold:1,coast:0,speed:1,cityCost:1,cityCap:400,fortR:4,fortPow:0,plunder:0,lion:false,pearl:1,falaj:false,boatSpeed:1,boatPow:1,boats:3,navy:1,patrol:9,reload:1,magD:0,magS:0,magM:0,droneCost:1,missileCost:1,droneN:1,evade:1,samR:7,samPow:1,bunker:0,blast:2,startSilo:false};}
 // Nation perks come from BAL.perks (editable in the dashboard): coast and cityCap add, startSilo switches on, the rest multiply
 const PERK_ADD={coast:1,cityCap:1};
 function applyPerk(id,m){
@@ -601,7 +601,7 @@ function perkText(id){
     if(!PERK_ADD[k]&&v===1)continue;
     parts.push(({oil:()=>up(v,'oil income'),cap:()=>up(v,'troop cap'),regen:()=>up(v,'regen'),gold:()=>up(v,'gold'),def:()=>up(v,'defense'),
       cityCost:()=>cheap(v,'cities'),missileCost:()=>cheap(v,'missiles'),atk:()=>cheap(v,'land attacks'),neutral:()=>cheap(v,'expansion'),
-      mount:()=>v===.5?'mountains half cost':cheap(v,'mountains'),coast:()=>v?'coastal gold':'',cityCap:()=>`cities +${v} troop cap`}[k]||(()=>`${k} ×${v}`))());
+      mount:()=>v===.5?'mountains half cost':cheap(v,'mountains'),mountDef:()=>up(v,'mountain defense'),coast:()=>v?'coastal gold':'',cityCap:()=>`cities +${v} troop cap`}[k]||(()=>`${k} ×${v}`))());
   }
   const t=parts.filter(Boolean).join(', ');
   return `${PERK_TITLE[id]}: ${t||'no bonus'}${PERK_EXTRA[id]?'. '+PERK_EXTRA[id]:''}`;
@@ -858,7 +858,7 @@ function tileCost(att,defId,i){
   const C=BAL.combat;
   if(!defId)return C.tileBase*tm*att.m.neutral*lm;
   const d=NATS[defId],dens=d.troops/Math.max(1,d.tiles);
-  return (C.tileBase+dens*C.defDensity)*tm*att.m.atk*d.m.def*fortMul(d,i)*lm;
+  return (C.tileBase+dens*C.defDensity)*tm*att.m.atk*d.m.def*(terr[i]===4?d.m.mountDef:1)*fortMul(d,i)*lm;
 }
 function sidesOf(i,id){const x=i%W;return (x>0&&owner[i-1]===id)+(x<W-1&&owner[i+1]===id)+(i>=W&&owner[i-W]===id)+(i<N-W&&owner[i+W]===id);}
 // Empty pockets of up to BAL.combat.fillPocket tiles touching only one nation's land join that nation for free

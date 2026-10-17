@@ -306,7 +306,7 @@ function editProduct(p){
 /* ---------- balance ---------- */
 const DKEYS=['light','strike','heavy'],MKEYS=['t1','t2','t3','cruise'];
 const COLS={cost:['Cost','gold','1'],radius:['Blast radius','tiles','0.1'],speed:['Speed','tiles/s','0.1'],troops:['Troops hit','%','0.5'],intercept:['Intercept ×','higher = easier to shoot down','0.05'],reload:['Reload ×','silo reload after firing','0.1']};
-const PERK_LABEL={oil:'Oil income ×',cap:'Troop cap ×',regen:'Troop regen ×',coast:'Coastal gold +',gold:'Gold ×',cityCost:'City cost ×',mount:'Mountain cost ×',def:'Defense ×',cityCap:'Troop cap per city +',missileCost:'Missile cost ×',startSilo:'Starts with a silo (1/0)',atk:'Attack cost ×',neutral:'Expansion cost ×'};
+const PERK_LABEL={oil:'Oil income ×',cap:'Troop cap ×',regen:'Troop regen ×',coast:'Coastal gold +',gold:'Gold ×',cityCost:'City cost ×',mount:'Mountain cost ×',def:'Defense ×',cityCap:'Troop cap per city +',missileCost:'Missile cost ×',startSilo:'Starts with a silo (1/0)',atk:'Attack cost ×',neutral:'Expansion cost ×',mountDef:'Mountain defense ×'};
 const numIn=(k,v,step)=>`<input type="number" min="0" step="${step}" data-k="${k}" value="${esc(v)}" style="width:86px">`;
 async function loadBal(){const r=await api('/api/admin/config');renderBal(GD_mergeBalance(GD_BALANCE_DEFAULTS,r.config||{}));$('#balMsg').innerHTML='';}
 function renderBal(B){

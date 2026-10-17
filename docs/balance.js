@@ -68,7 +68,7 @@ window.GD_BALANCE_DEFAULTS = {
   // (0 = off); craterTime: seconds before an empty crater can be auto-claimed (anyone bordering it can still expand into it).
   combat: { attackSpeed: 0.5, tileBase: 4, defDensity: 1.5, defLoss: 0.35, fort: 2.5, capital: 4, capitalRing: 2, regenBase: 30, regenPerTile: 0.3, capPerTile: 10, strikeTroops: 0.5, fillPocket: 30, crater: 0.5, craterTime: 30 },
   // Nation perks. Multipliers: oil (oil income), cap (troop cap), regen (troop regen), gold (all gold), cityCost, mount (cost to
-  // cross mountains), def (defense), missileCost, atk (cost of taking enemy land), neutral (cost of empty land).
+  // cross mountains), def (defense of all its land), mountDef (extra defense of its mountain tiles), missileCost, atk (cost of taking enemy land), neutral (cost of empty land).
   // Added amounts: coast (gold per coastal tile), cityCap (troop cap per city). startSilo: 1 = starts with a missile silo.
   perks: {
     KW: { oil: 1.6 },
@@ -79,7 +79,7 @@ window.GD_BALANCE_DEFAULTS = {
     OM: { mount: 0.5, def: 1.15 },
     IQ: { regen: 1.1, cityCap: 100 },
     IR: { missileCost: 0.7, startSilo: 1 },
-    YE: { atk: 0.75, neutral: 0.85, mount: 0.5, cap: 1.2 },
+    YE: { atk: 0.75, neutral: 0.85, mount: 0.5, cap: 1.2, def: 1.25, mountDef: 1.6, regen: 1.2 },
   },
   // AI targeting. bloc: how much less attractive a same-bloc nation is as a target (GCC vs GCC, Iraq/Iran/Yemen vs each other);
   // blocChance: chance an AI still attacks a same-bloc nation it picked. pile: once an AI nation has recently lost this share of its
