@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `2c4eeac`)_
+_Last updated: 2026-10-17 (after commit `cf26abe`)_
 
 ---
 
@@ -280,6 +280,39 @@ Safety rules we keep:
 - **Hover a build button** to see what the building does, its cost, and whether you can afford it.
 - **The build menu is always visible** in one row in every mode, so you can see what you can afford. Clicking a building switches to Build mode.
 
+### 16. Combat simulation and rebalance — `cf26abe`
+
+- **How it was tested:** ran the real game code in the browser with a temporary test hook (since removed). Iraq attacked Kuwait with neutral stats, no AI and no regen, and each case was repeated. Also measured expansion into empty land, counters, forts, troop regen by nation size and strike damage.
+- **What was wrong:**
+  - empty land costs a steady ~4.4 troops per tile
+  - wars ended in 2–9 seconds, too fast to react to
+  - twice the defender's troops always wiped them out in one wave
+  - 3 border forts only cut losses from 87 tiles to 72
+  - regen grew with every tile, so big nations snowballed
+  - a 45-gold drone killed 3% of a nation's whole army (620 troops of 20,000)
+- **Changes**, all in the new **Combat** card of the Balance tab:
+  - attack speed ×0.5
+  - defender density weight 1.1 → 1.5
+  - defender losses 0.5 → 0.35 × tile cost
+  - fort ×1.8 → ×2.5
+  - ring around the capital ×1.5 → ×2
+  - regen 18 + 0.45/tile → 30 + 0.3/tile
+  - strike troop damage ×0.5
+- **Results after the change:**
+
+  | Situation | Before | After |
+  |---|---|---|
+  | Equal troops | 47% of land lost in ~6s | 39% lost in ~10s |
+  | Equal troops, counter-attack after 2s | — | 19% lost |
+  | Twice the troops | wiped out | 77% lost, survives |
+  | Three times the troops | — | wiped out |
+  | 3 forts, equal troops | 39% lost | 24% lost |
+  | 3 forts and a counter, equal troops | — | 12% lost |
+  | Regen, 50-tile nation | — | +11% |
+  | Regen, 2000-tile nation | — | −29% |
+
+  Empty land still costs ~4.4 troops per tile but takes twice as long to take.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -308,6 +341,7 @@ Safety rules we keep:
 | Diplomacy | Ceasefire 60 s, alliance 180 s, price ×1 |
 | Counter-battery | 55-tile range, silos revealed 30 s |
 | Realistic mode | Gold ×0.5, land ×2 (everyone), pearls ×1.5, diplomacy ×0.75 |
+| Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 |
 | Win condition | 60% of the land, or every rival eliminated |
 
 Every value above can be changed live from the dashboard's **Balance** tab.
