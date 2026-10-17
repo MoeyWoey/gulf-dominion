@@ -656,8 +656,8 @@ const CARDS=[
  {id:'sand',name:'Sandstorm season',r:2,desc:'Every rival regenerates 15% slower',global:()=>{G.sand*=.85}},
  {id:'shura',name:'Shura council',r:2,desc:'Regen +20%, cap +15%, gold +15%',apply:m=>{m.regen*=1.2;m.cap*=1.15;m.gold*=1.15}}
 ];
-const MILESTONES=[2,4,7,11,16,22,30,40,50];
-const WIN_PCT=60;
+const MILESTONES=[2,4,7,11,16,22,30,40,50,60,70];
+const WIN_PCT=80;
 const RANGE={drone:45,missile:95};
 // Magazine per launcher and full-reload time (s) once it runs dry: silo 1 missile / 30s, hangar 4 drones / 35s, air defense 3 interceptors / 18s
 const MAG={5:1,6:4,7:3},RELOAD={5:30,6:35,7:18};
@@ -2390,7 +2390,7 @@ function mpHostMsg(m){
   if(m.t==='need'){MP.needs.add(Number(m.uid));if(n&&n.away){n.away=false;toast(`${G.names[n.id]||'A player'} is back in command of ${n.name}.`);}return;}
   if(m.t==='gone'&&n&&n.alive&&!n.away){n.away=true;toast(`${G.names[n.id]||'A player'} disconnected. The AI runs ${n.name} until they return.`,3500);}
 }
-// Host only: the game ends at 60% of the land, when one player is left, when every player has fallen, or when the host ends it
+// Host only: the game ends at WIN_PCT% of the land, when one player is left, when every player has fallen, or when the host ends it
 function mpCheckEnd(force){
   if(!G||!G.mp||G.over||!MP||!MP.host)return;
   let win=0,why='',top=0,topId=0;
