@@ -213,7 +213,7 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
 .builds button small{font-size:.68rem;color:var(--muted);font-weight:500}
 .builds button.on{border-color:var(--sand);box-shadow:inset 0 0 0 1px var(--sand)}
 .builds button.poor small{color:var(--danger)}
-.toast{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(132px + env(safe-area-inset-bottom,0px));background:var(--panel-a);border:1px solid var(--line-2);padding:7px 12px;border-radius:10px;font-size:.82rem;max-width:min(88vw,420px);text-align:center;pointer-events:none;transition:opacity .3s}
+.toast{position:absolute;z-index:4;left:max(10px,env(safe-area-inset-left,0px));top:calc(96px + env(safe-area-inset-top,0px));box-sizing:border-box;max-width:calc(100vw - 158px);text-align:left;box-shadow:0 6px 18px rgba(0,0,0,.35);background:var(--panel-a);border:1px solid var(--line-2);padding:7px 12px;border-radius:10px;font-size:.82rem;pointer-events:none;transition:opacity .3s}
 
 /* ---------- Modals ---------- */
 .modal{position:fixed;inset:0;background:rgba(4,10,12,.72);display:flex;align-items:center;justify-content:center;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(16px + env(safe-area-inset-top,0px)) calc(16px + env(safe-area-inset-bottom,0px));z-index:10}
@@ -286,7 +286,7 @@ body.pc #buildRow button:last-child:nth-child(3n+1){grid-column:auto}
 body.pc #buildRow.idle button.on{border-color:var(--line-2);box-shadow:none}
 body.pc .seg button[data-key]{position:relative}
 body.pc .seg button[data-key]::after{content:attr(data-key);position:absolute;top:3px;left:6px;font-size:.6rem;font-weight:700;opacity:.55}
-body.pc .toast{bottom:calc(196px + env(safe-area-inset-bottom,0px))}
+body.pc .toast{left:50%;transform:translateX(-50%);text-align:center;max-width:min(60vw,520px)}
 </style>
 
 <div id="home">
@@ -1296,7 +1296,7 @@ let newsTimer=0;
 function showNews(n){
   const el=$('#news');
   el.innerHTML=`<span class="ntag">Breaking · ${esc(n.tag)}</span><b>${esc(n.head)}</b><span>${esc(n.body)}${n.fx?` For ${BAL.news.duration}s.`:''}</span>`;
-  el.hidden=false;el.classList.remove('out');clearTimeout(newsTimer);newsTimer=setTimeout(()=>{el.classList.add('out');setTimeout(()=>{el.hidden=true;},400);},9000);
+  el.hidden=false;el.classList.remove('out');placeTop();clearTimeout(newsTimer);newsTimer=setTimeout(()=>{el.classList.add('out');setTimeout(()=>{el.hidden=true;},400);},9000);
   try{SFX.news();}catch(e){}
 }
 
@@ -1618,7 +1618,9 @@ function render(now){
 
 /* ================= HUD ================= */
 let hudT=0,toastTimer=0;
-function toast(msg,ms=2200){const t=$('#toast');t.textContent=msg;t.style.opacity=1;clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.opacity=0,ms);}
+function toast(msg,ms=2200){const t=$('#toast');t.textContent=msg;t.style.opacity=1;placeTop();clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.style.opacity=0;placeTop();},ms);}
+// Notices sit just under the top bar (in the player's eye line); world news goes below an active notice
+function placeTop(){const hudEl=document.querySelector('.hud');if(!hudEl||screen!=='game')return;const top=hudEl.offsetTop+hudEl.offsetHeight+6,t=$('#toast'),n=$('#news');t.style.top=top+'px';n.style.top=(top+(+t.style.opacity>0?t.offsetHeight+6:0))+'px';}
 function hud(){
   const p=NATS[G.pid];
   $('#hTroops').textContent=fmt(p.troops);$('#hCap').textContent=fmt(p.cap);
@@ -1654,7 +1656,7 @@ function hud(){
   $('#chips').innerHTML=ch;
   const rows=NATS.slice(1).sort((a,b)=>b.tiles-a.tiles);
   $('#lb').innerHTML=`<div class="lbh">${G.mp?'Online · '+esc(MP?MP.code:''):'Tap a nation to negotiate'}</div>`+rows.map(n=>{const t=treaty(n.id),me=n.id===G.pid&&!G.spec;return `<div class="r ${me?'me':''} ${n.alive?'':'dead'} ${!G.mp&&!n.isPlayer&&n.alive?'talk':''}" data-n="${n.id}"><span class="chip d" style="padding:0;border:0;width:8px;height:8px;border-radius:2px;background:${rgb(n.color)}"></span><span>${n.short||NAT[n.id].short}${t?`<em class="tr">${t==='alliance'?'ALLY':'TRUCE'}</em>`:''}${G.mp&&n.human&&!me?`<em class="tr hu">${esc((G.names[n.id]||'').slice(0,10))}</em>`:''}</span><span class="num">${(n.tiles/LANDN*100).toFixed(1)}%</span></div>`;}).join('');
-  const hudEl=document.querySelector('.hud');$('#lb').style.top=(hudEl.offsetTop+hudEl.offsetHeight+4)+'px';
+  const hudEl=document.querySelector('.hud');$('#lb').style.top=(hudEl.offsetTop+hudEl.offsetHeight+4)+'px';placeTop();
   for(const t of ['city','fort','rig','port','ship','silo','hangar','sam','radar','cb']){const c=costOf(p,t),el=$('#c'+t[0].toUpperCase()+t.slice(1));el.textContent=fmt(c)+' g';el.parentElement.classList.toggle('poor',p.gold<c);}
   const rd={5:[0,1e9,false],6:[0,1e9,false]};
   for(const j of blist)if((bld[j]===5||bld[j]===6)&&owner[j]===G.pid){const r=rd[bld[j]];r[2]=true;r[0]+=Math.floor(ammo[j]);if(ammo[j]<1)r[1]=Math.min(r[1],bcool[j]);}
