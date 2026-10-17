@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `715686f`)_
+_Last updated: 2026-10-17 (after commit `01d7052`)_
 
 ---
 
@@ -424,6 +424,26 @@ Safety rules we keep:
 - A campaign (and an online game) is now won at **80%** of the land, up from 60%. Every in-game text uses the new number.
 - Decree milestones were extended with 60% and 70%.
 
+### 27. Steeper heat; no blocs in Realistic — `01d7052`
+
+- **Heat:** each level above 1 now adds roughly twice as much for AI rivals. Heat 1 is unchanged.
+  - regen and troop cap +0.2 per level
+  - starting troops +20% per level
+  - they attack sooner and send bigger waves
+  - they focus on you more
+  - strikes start 20 s earlier per level
+  - all 7 steps are in a new **Heat difficulty** card in the Balance tab
+- **Test** with a scripted player (5 games per heat), average survival out of 8 minutes:
+
+  | Heat | Old steps | New steps |
+  |---|---|---|
+  | 2 | 6.4 min | 5.9 min |
+  | 3 | 5.1 min | 4.2 min |
+  | 5 | 4.8 min | 2.7 min |
+
+  Heat 1 played out identically.
+- **Realistic** turns off bloc loyalty for everyone: the GCC states fight each other, and so do Iraq, Iran and Yemen. In AI-only games, same-bloc attacks went from 8% to 79% of all attacks.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -451,7 +471,8 @@ Safety rules we keep:
 | World news | First at 200 s, then every 280–420 s, effects last 60 s |
 | Diplomacy | Ceasefire 60 s, alliance 180 s, price ×1 |
 | Counter-battery | 55-tile range, silos revealed 30 s |
-| Realistic mode | Gold ×0.5, land ×2 (everyone), pearls ×1.5, diplomacy ×0.75 |
+| Realistic mode | Gold ×0.5, land ×2 (everyone), no bloc loyalty, pearls ×1.5, diplomacy ×0.75 |
+| Heat (per level above 1) | AI regen +0.2, cap +0.2, starting troops +20%, attack threshold −0.1, send share +0.12, player focus +0.12, strikes 20 s earlier |
 | Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 · empty pockets up to 30 tiles auto-claimed · missile craters 0.5 × blast radius, empty for 30 s |
 | Nation perks | KW oil ×1.6 · SA troop cap ×1.2 · BH regen ×1.12, coastal gold · QA gold ×1.4 · AE cities ×0.65 cost · OM mountains ×0.5, defense ×1.15 · IQ regen ×1.1, +100 cap per city · IR missiles ×0.7, starts with a silo · YE attacks ×0.75, expansion ×0.85, mountains ×0.5, cap ×1.2, defense ×1.25, mountain defense ×1.6, regen ×1.2 |
 | AI targeting | Same-bloc target ×6, attacked 5% of the time · breather: no new AI attacks or landings on a nation that lost over 4% of its land recently (fades over 60 s); never shields the player |
