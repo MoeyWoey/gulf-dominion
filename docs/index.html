@@ -17,7 +17,9 @@
 }
 html,body{height:100%}
 [hidden]{display:none!important}
-body{background:var(--night);color:var(--pearl);font-family:var(--f-body);overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+body{background:var(--night);color:var(--pearl);font-family:var(--f-body);overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+input,textarea{user-select:text;-webkit-user-select:text;-webkit-touch-callout:default}
+img,canvas{-webkit-user-drag:none}
 button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-offset:2px}
 .num{font-variant-numeric:tabular-nums}
@@ -2647,6 +2649,9 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 applyCosmetics();renderSound();applyPC();
+// No browser right-click / long-press menu (copy, save image…) anywhere in the game, except text fields so codes can be pasted
+document.addEventListener('contextmenu',e=>{if(!(e.target.closest&&e.target.closest('input,textarea')))e.preventDefault();});
+document.addEventListener('dragstart',e=>{if(e.target.tagName==='IMG'||e.target.tagName==='CANVAS')e.preventDefault();});
 (function buildMenuIcons(){
   const codes={city:1,fort:2,rig:3,port:4,ship:11,silo:5,hangar:6,sam:7,radar:8,cb:9},oc=document.createElement('canvas');oc.width=oc.height=48;const c2=oc.getContext('2d');
   document.querySelectorAll('#buildRow button[data-b]').forEach(b=>{const code=codes[b.dataset.b];if(!code)return;c2.clearRect(0,0,48,48);drawGlyph(c2,code,24,24,21,'#dcb46a');
