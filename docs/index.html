@@ -949,7 +949,7 @@ function stepAttack(a){
 function capture(i,attId,defId){
   owner[i]=attId;const att=NATS[attId];att.tiles++;markAround(i);
   if(!defId)return;
-  const d=NATS[defId];d.tiles--;
+  const d=NATS[defId];d.tiles--;d.press=(d.press||0)+1;
   att.gold+=att.m.plunder;
   if(i===d.capIdx)collapse(d,att);
   else if(d.tiles<=0)eliminate(d,att);
@@ -1095,7 +1095,7 @@ function aiBoat(n,cnt){
   for(let k=0;k<40;k++){
     const j=coastCells[(Math.random()*coastCells.length)|0],o=owner[j];if(o===n.id||cnt.has(o)||(o===G.pid&&treaty(n.id))||(sameBloc(n.id,o)&&Math.random()<.9))continue;
     const dx=j%W-n.cx,dy=((j/W)|0)-n.cy;if(dx*dx+dy*dy>70*70)continue;
-    if(o&&NATS[o].troops>n.troops*.6)continue;
+    if(o&&(NATS[o].troops>n.troops*.6||piled(o)))continue;
     return launchBoat(n.id,j,n.troops*(o?G.aiFrac:.35))==='ok';
   }
   return false;
@@ -1123,9 +1123,13 @@ function regen(n,dt){
   const base=(BAL.combat.regenBase+n.tiles*BAL.combat.regenPerTile+n.cities*6)*n.m.regen*(n.isPlayer?1:G.aiRegen*G.sand)*.65;
   n.regenNow=base*f;
   n.troops+=n.regenNow*dt;
+  if(n.press)n.press*=Math.max(0,1-dt/Math.max(1,BAL.ai.pileTime));
   if(n.troops>n.cap)n.troops-=(n.troops-n.cap)*.02;
 }
 
+// A nation that has recently lost a big share of its land (n.press, decays over BAL.ai.pileTime) gets a breather: AIs don't open
+// new fronts or landings on it, so five GCC AIs can't take turns finishing off the one rival they all border. Never shields the player.
+const piled=o=>BAL.ai.pile>0&&o>0&&!NATS[o].isPlayer&&(NATS[o].press||0)>BAL.ai.pile*Math.max(1,NATS[o].tiles);
 function aiThink(n){
   if(G.t<n.nextAI)return;
   n.nextAI=G.t+1.6+Math.random()*1.6;
@@ -1148,9 +1152,9 @@ function aiThink(n){
   else if(nations.length){
     let best=-1,bs=1e12;
     for(const o of nations){const d=NATS[o];let sc=d.troops/Math.max(1,cnt.get(o))*(.7+Math.random()*.6);
-      if(d.isPlayer)sc*=Math.max(.55,1-.08*G.diff);if(sameBloc(n.id,o))sc*=6;if(pact==='alliance'&&!d.isPlayer&&!treaty(o))sc*=.55;if(d.isPlayer&&dipOf(n.id).hostileUntil>G.t)sc*=.5;if(sc<bs){bs=sc;best=o;}}
+      if(d.isPlayer)sc*=Math.max(.55,1-.08*G.diff);if(sameBloc(n.id,o))sc*=BAL.ai.bloc;if(pact==='alliance'&&!d.isPlayer&&!treaty(o))sc*=.55;if(d.isPlayer&&dipOf(n.id).hostileUntil>G.t)sc*=.5;if(sc<bs){bs=sc;best=o;}}
     const d=NATS[best];
-    if((n.troops*G.aiFrac>d.troops*.35||n.troops>n.cap*.92)&&(!sameBloc(n.id,best)||Math.random()<.05))target=best;
+    if((n.troops*G.aiFrac>d.troops*.35||n.troops>n.cap*.92)&&(!sameBloc(n.id,best)||Math.random()<BAL.ai.blocChance)&&!piled(best))target=best;
     else if(cnt.has(0))target=0;
   }
   if(target<0)return;

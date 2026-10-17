@@ -81,6 +81,11 @@ window.GD_BALANCE_DEFAULTS = {
     IR: { missileCost: 0.7, startSilo: 1 },
     YE: { atk: 0.75, neutral: 0.85, mount: 0.5, cap: 1.2 },
   },
+  // AI targeting. bloc: how much less attractive a same-bloc nation is as a target (GCC vs GCC, Iraq/Iran/Yemen vs each other);
+  // blocChance: chance an AI still attacks a same-bloc nation it picked. pile: once an AI nation has recently lost this share of its
+  // land (losses fade over pileTime seconds), other AIs stop opening new attacks or landings on it until it recovers; 0 = off.
+  // Stops the whole GCC taking turns on Yemen. Never shields the player.
+  ai: { bloc: 6, blocChance: 0.05, pile: 0.04, pileTime: 60 },
   // Realistic mode (switch beside Begin campaign), applied to every nation: gold income and land-cost multipliers, pearl reward and diplomacy price multipliers
   realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75 },
 };
