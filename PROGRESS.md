@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `53ed891`)_
+_Last updated: 2026-10-17 (after commit `1b702c0`)_
 
 ---
 
@@ -363,6 +363,22 @@ Safety rules we keep:
 - **Tested:** Missile I emptied 5/5 core tiles and left the outer 8 owned. The crater was still empty at 25 s and refilled by 35 s. A drone left no crater. A direct hit on a capital kept the capital's tile.
 - **Dashboard:** Balance → Combat → "Missile crater size" (× blast radius, 0 = off) and "Crater stays empty for" (seconds).
 
+### 22. Why Bahrain snowballed; perks in the dashboard — `1b702c0`
+
+- **Test:** all-AI simulations, 8–12 seeded games per variant, 8 minutes each.
+
+  | Variant | Bahrain at 8 min | Biggest nation (games) |
+  |---|---|---|
+  | Old perks | 27% | Bahrain 7 of 8 |
+  | No coastal gold | 26% | Bahrain 6 of 6 |
+  | No regen bonus | 11% | Iraq 4, Iran 3, Bahrain 1 |
+  | Bahrain +12%, Iraq +10% (applied) | 17% | Iran 5, Bahrain 4, UAE 1 |
+
+- **Cause:** Bahrain's +35% troop regen. Regen grows with land, so a percentage bonus compounds. With it removed, Iraq's +25% ran away instead.
+- **Change:** Bahrain regen +35% → +12%, Iraq +25% → +10%.
+- **Dashboard:** a new **Nation perks** card in the Balance tab holds every nation's perk numbers. The nation cards in the game describe the live numbers.
+- **Also found, not fixed yet:** Yemen collapses to 0–2% of the land by 8 minutes in every all-AI simulation.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -392,6 +408,7 @@ Safety rules we keep:
 | Counter-battery | 55-tile range, silos revealed 30 s |
 | Realistic mode | Gold ×0.5, land ×2 (everyone), pearls ×1.5, diplomacy ×0.75 |
 | Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 · empty pockets up to 30 tiles auto-claimed · missile craters 0.5 × blast radius, empty for 30 s |
+| Nation perks | KW oil ×1.6 · SA troop cap ×1.2 · BH regen ×1.12, coastal gold · QA gold ×1.4 · AE cities ×0.65 cost · OM mountains ×0.5, defense ×1.15 · IQ regen ×1.1, +100 cap per city · IR missiles ×0.7, starts with a silo · YE attacks ×0.75, expansion ×0.85, mountains ×0.5, cap ×1.2 |
 | Win condition | 60% of the land, or every rival eliminated |
 
 Every value above can be changed live from the dashboard's **Balance** tab.
@@ -409,6 +426,7 @@ Every value above can be changed live from the dashboard's **Balance** tab.
 - [ ] Deep silos cost isn't dashboard-tunable yet (Majlis upgrade costs are fixed in code).
 - [ ] Existing saves (including yours) also start with tier II/III and abilities locked. There's no admin grant for unlocks yet.
 - [ ] **Online play with real people:** play a full game on two or more phones over mobile data. Check that the game keeps going when the host's screen is on but the tab is in the background.
+- [ ] **Yemen collapses early** in AI-only simulations (0–2% land by 8 min). Likely GCC neighbours (Saudi, Oman) avoid each other and all push into Yemen. Needs a look.
 - [ ] Achievement thresholds for pearl rewards (10%, 30%, 50 interceptions, …) are fixed in code; only the four unlock goals are in the Balance tab.
 
 ## Ideas suggested but not built
