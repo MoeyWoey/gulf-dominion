@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `1b702c0`)_
+_Last updated: 2026-10-17 (after commit `70099a0`)_
 
 ---
 
@@ -379,6 +379,24 @@ Safety rules we keep:
 - **Dashboard:** a new **Nation perks** card in the Balance tab holds every nation's perk numbers. The nation cards in the game describe the live numbers.
 - **Also found, not fixed yet:** Yemen collapses to 0–2% of the land by 8 minutes in every all-AI simulation.
 
+### 23. Why Yemen collapsed; AI breather — `70099a0`
+
+- **Test:** all-AI simulations, 10 seeded games per variant, 8 minutes each (Yemen's land at 8 min).
+
+  | Variant | Yemen average | Yemen eliminated | Side effect |
+  |---|---|---|---|
+  | Old rules (seeds 1–10 / 11–20) | 2.4% / 1.2% | 7 / 8 of 10 | — |
+  | No strike troop damage | 1.3% | 8 of 10 | — |
+  | Yemen defense +40% / +80% | 3.2% / 2.9% | 5 / 6 of 10 | — |
+  | Max 1–2 nations attacking at once | 2.4–2.6% | 5–7 of 10 | — |
+  | Blocs off | 12.9% | 0 of 10 | Kuwait 3.8%, Iraq/Iran 18–21% |
+  | Bloc ×1.5, 50% chance | 10.0% | 0 of 10 | Kuwait 0.6% |
+  | **Breather 4% / 60 s (applied), seeds 1–10 / 11–20** | **7.2% / 6.9%** | **0 of 20** | others 5–19% |
+
+- **Cause:** the bloc rule. AIs treat same-bloc nations as ×6 less attractive and attack them only 5% of the time, so Yemen is the only rival-bloc land target for five GCC AIs (Iran is protected by sea, Iraq only borders Kuwait and Saudi). Once empty land runs out (~300 s), Qatar, Bahrain, UAE, Oman and Saudi attack it one after another. Over 10 games Qatar opened 88 attacks on Yemen, and Bahrain sent 9–11k-troop waves. Yemen's army ended up at ~1 troop per tile, so each tile cost attackers only ~5 troops. Missile and drone losses were normal. The attacks came one after another, not all at once, so capping simultaneous attackers did nothing.
+- **Change:** a nation that has recently lost a big share of its land gets a breather. Once its losses in the last ~60 s pass 4% of its land, other AIs stop opening new attacks and boat landings on it until the losses fade. Attacks already under way carry on. It never protects the player.
+- **Dashboard:** a new **AI targeting** card in the Balance tab holds the same-bloc weight (×6), the same-bloc attack chance (5%), the breather threshold (0.04) and the fade time (60 s).
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -409,6 +427,7 @@ Safety rules we keep:
 | Realistic mode | Gold ×0.5, land ×2 (everyone), pearls ×1.5, diplomacy ×0.75 |
 | Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 · empty pockets up to 30 tiles auto-claimed · missile craters 0.5 × blast radius, empty for 30 s |
 | Nation perks | KW oil ×1.6 · SA troop cap ×1.2 · BH regen ×1.12, coastal gold · QA gold ×1.4 · AE cities ×0.65 cost · OM mountains ×0.5, defense ×1.15 · IQ regen ×1.1, +100 cap per city · IR missiles ×0.7, starts with a silo · YE attacks ×0.75, expansion ×0.85, mountains ×0.5, cap ×1.2 |
+| AI targeting | Same-bloc target ×6, attacked 5% of the time · breather: no new AI attacks or landings on a nation that lost over 4% of its land recently (fades over 60 s); never shields the player |
 | Win condition | 60% of the land, or every rival eliminated |
 
 Every value above can be changed live from the dashboard's **Balance** tab.
@@ -426,7 +445,7 @@ Every value above can be changed live from the dashboard's **Balance** tab.
 - [ ] Deep silos cost isn't dashboard-tunable yet (Majlis upgrade costs are fixed in code).
 - [ ] Existing saves (including yours) also start with tier II/III and abilities locked. There's no admin grant for unlocks yet.
 - [ ] **Online play with real people:** play a full game on two or more phones over mobile data. Check that the game keeps going when the host's screen is on but the tab is in the background.
-- [ ] **Yemen collapses early** in AI-only simulations (0–2% land by 8 min). Likely GCC neighbours (Saudi, Oman) avoid each other and all push into Yemen. Needs a look.
+- [x] **Yemen collapses early** in AI-only simulations (0–2% land by 8 min). Fixed in `70099a0` with the AI breather: Yemen now averages ~7%. It's still the smallest nation on average, so watch it in real games.
 - [ ] Achievement thresholds for pearl rewards (10%, 30%, 50 interceptions, …) are fixed in code; only the four unlock goals are in the Balance tab.
 
 ## Ideas suggested but not built
