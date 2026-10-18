@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-18 (after commit `ad37a21`)_
+_Last updated: 2026-10-18 (after commit `1abdfd2`)_
 
 ---
 
@@ -693,6 +693,15 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
 - **Heat:** per level, regen/cap/troops go up +0.12 (was 0.2), aggression 0.06 (was 0.1), send share and player focus 0.08 (was 0.12), and strikes come 12 s earlier (was 20).
 - **Tribe growth (`ad37a21`):** every 20 s each camp spreads onto one more empty tile, up to 30 tiles (`BAL.tribes.grow`, `maxSize`). In an all-AI test camps grew from 12 to about 17–23 tiles by 5 min, and nations had taken them all by about 6 min.
 - **Live config note:** the saved dashboard config still holds the old heat values, which override the new defaults. Enter the new numbers in the dashboard's Heat card and save.
+
+### 46. Playtest tools — `1abdfd2`
+- **Feedback:** a "Send feedback" link on the home screen and in the pause menu. Categories are Bug, Balance, Idea and Other. The game attaches nation, heat, minute, land %, map, screen size and browser. No sign-in is needed.
+- **Error reports:** browser errors are reported automatically, up to 5 different ones per page load.
+- **Dashboard:** a new Feedback tab lists player feedback and browser errors, with Done and Delete buttons. The overview has tiles for open feedback and browser errors in the last 24 h.
+- **Worker:** `POST /api/feedback` and `/api/error` work without sign-in. The IP is stored only as a short salted hash, with limits of 10 feedback and 40 errors per hour per IP. The `feedback` table is created on first use and is also in `schema.sql`.
+- **Version** is shown on the home screen (`GD_VERSION`, currently 2026.10.18). Bump it when shipping.
+- **Playtest switches** (`BAL.testing`, dashboard Rules card): `hideStore` hides the store everywhere; `banner` shows a "Playtest build" banner with a feedback link.
+- **Demo mode:** open the game with `?demo`. Every nation is AI-run, about 4 minutes are simulated ahead, then everyone gets gold and launchers so strikes fly at once. Nothing is saved, and decree drafts don't open. Use it for recording clips.
 
 ---
 
