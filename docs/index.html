@@ -183,6 +183,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-o
 .chips{display:flex;flex-wrap:wrap;gap:5px;pointer-events:none}
 .chip{font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--panel-a);border:1px solid var(--line);display:flex;align-items:center;gap:5px}
 .chip .d{width:7px;height:7px;border-radius:50%}
+.chip .ret{pointer-events:auto;margin-left:3px;border:1px solid var(--line);background:rgba(255,111,94,.18);color:#ffd2cb;border-radius:999px;font:inherit;font-size:.68rem;line-height:1;padding:3px 6px;cursor:pointer}
+.chip .ret:hover{background:rgba(255,111,94,.4)}
 .chip.warn{border-color:var(--danger);color:#ffd2cb;animation:pulse 1.2s infinite}
 .chip.evt{border-color:var(--sand);color:var(--sand)}
 @keyframes pulse{50%{box-shadow:0 0 0 3px rgba(255,111,94,.25)}}
@@ -872,7 +874,7 @@ const fmt=n=>{n=Math.max(0,n);return n<1000?String(Math.floor(n)):n<1e6?(n/1000)
 const rgb=(c,a=1)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
 
 /* ================= Run state ================= */
-const owner=new Uint8Array(N), bld=new Uint8Array(N), ammo=new Float32Array(N), bcool=new Float32Array(N), bgap=new Float32Array(N), siloSeen=new Float32Array(N), unrest=new Float32Array(N); // bld: 1 city, 2 fort, 3 rig, 4 port, 5 silo, 6 drone hangar, 7 air defense, 8 radar, 9 counter-battery, 10 artillery, 12 coastal battery (11 = warship, tooltips only)
+const owner=new Uint8Array(N), bld=new Uint8Array(N), ammo=new Float32Array(N), bcool=new Float32Array(N), bgap=new Float32Array(N), siloSeen=new Float32Array(N), unrest=new Float32Array(N), tribe=new Uint8Array(N); // bld: 1 city, 2 fort, 3 rig, 4 port, 5 silo, 6 drone hangar, 7 air defense, 8 radar, 9 counter-battery, 10 artillery, 12 coastal battery (11 = warship, tooltips only)
 let blist=[], attacks=[], boats=[], ships=[], shots=[], missiles=[], booms=[], NATS=[null], G=null;
 const dirty=new Uint8Array(N); let dirtyList=[], fullPaint=true, basePaint=true, heroKey=null;
 // shownOwner = the owners currently painted on the map texture. fullPaint asks to repaint whatever changed since; basePaint (colours changed) forces a full repaint
@@ -939,8 +941,9 @@ function startRun(spec){
   for(let id=1;id<=NNAT;id++){const n=NATS[id];
     if(n.m.startSilo)placeNear(n,n.capIdx,'silo',3,true);
     if(n.id===pid&&!mp)for(let k=0;k<lvl('sam')+(owns('founder')&&!DAILY?1:0);k++)placeNear(n,n.capIdx,'sam',3,true);}
+  if(!mp||MP.host)placeTribes();else{tribe.fill(0);G.tribes=[null];} // guests get the camps from the host's first full update
   econ(true);
-  fullPaint=true;heroKey=null;
+  basePaint=true;heroKey=null;
   showScreen('game');
   resize();
   centerOn(NATS[pid].capIdx,Math.max(4,Math.min(7,innerWidth/80)));
@@ -965,7 +968,7 @@ function tileCost(att,defId,i){
   const tm=terrMul(att.m,i);
   const lm=G.real?BAL.realistic.land:1;
   const C=BAL.combat;
-  if(!defId)return C.tileBase*tm*att.m.neutral*lm;
+  if(!defId)return C.tileBase*tm*att.m.neutral*lm*(tribe[i]?BAL.tribes.cost:1);
   const d=NATS[defId],dens=d.troops/Math.max(1,d.tiles);
   return (C.tileBase+dens*C.defDensity)*tm*att.m.atk*d.m.def*(terr[i]===4?d.m.mountDef:1)*fortMul(d,i)*lm*(G.leader&&att.id===G.leader?(G.real?BAL.realistic.leaderDef:BAL.ai.leaderDef):1); // rivals hold out harder against the leader
 }
@@ -973,6 +976,27 @@ function sidesOf(i,id){const x=i%W;return (x>0&&owner[i-1]===id)+(x<W-1&&owner[i
 // Empty pockets of up to BAL.combat.fillPocket tiles touching only one nation's land join that nation for free
 const pkSeen=new Uint32Array(N);let pkStamp=0;const pkQ=[];
 const crater=new Float32Array(N); // game time until which a missile crater stays out of the auto-claim
+// Tribes: small neutral camps, a little harder to take than empty land; winning over the last tile pays gold
+const TRIBE_NAME=i=>terr[i]===4?'mountain clan':coast[i]?'fishing village':'Bedouin tribe';
+function placeTribes(){
+  tribe.fill(0);G.tribes=[null];const T=BAL.tribes;if(!T||T.count<=0)return;
+  const want=Math.min(250,Math.round(T.count*LANDN/28447)),caps=NATS.slice(1).map(n=>n.capIdx),sz=Math.max(3,Math.round(T.size));
+  for(let tries=0;tries<want*80&&G.tribes.length<=want;tries++){
+    const s=(Math.random()*N)|0;if(owner[s]||terr[s]<2||tribe[s])continue;const sx=s%W,sy=(s/W)|0;
+    if(caps.some(c=>(c%W-sx)**2+(((c/W)|0)-sy)**2<100)||G.tribes.some(t=>t&&(t.x-sx)**2+(t.y-sy)**2<144))continue;
+    const k=G.tribes.length,q=[s];tribe[s]=k;
+    for(let h=0;h<q.length&&q.length<sz;h++){const i=q[h],x=i%W;
+      for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W]){if(q.length>=sz)break;if(j<0||j>=N||owner[j]||terr[j]<2||tribe[j])continue;tribe[j]=k;q.push(j);}}
+    if(q.length<3){for(const i of q)tribe[i]=0;continue;}
+    G.tribes.push({x:sx,y:sy,left:q.length,name:TRIBE_NAME(s)});
+  }
+}
+function tribeTaken(i,by){
+  const k=tribe[i];tribe[i]=0;const t=G.tribes&&G.tribes[k];if(!t||t.left<=0)return;
+  if(--t.left>0)return;
+  const n=NATS[by];if(!n)return;const g=Math.round(BAL.tribes.gold*(G.real?BAL.realistic.gold:1));n.gold+=g;
+  if(by===G.pid&&!G.spec)toast(`A ${t.name} joined you: +${g} gold.`,2600);
+}
 function fillPockets(){
   const T=BAL.combat.fillPocket;if(!T)return;pkStamp++;
   for(let s=0;s<N;s++){
@@ -982,7 +1006,7 @@ function fillPockets(){
       for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W]){if(j<0||j>=N||terr[j]<2)continue;const o=owner[j];
         if(o){if(!own)own=o;else if(o!==own)mixed=true;continue;}
         if(pkSeen[j]!==pkStamp){pkSeen[j]=pkStamp;pkQ.push(j);}}}
-    if(own&&!mixed&&pkQ.length<=T&&NATS[own].alive)for(const i of pkQ){owner[i]=own;markAround(i);}
+    if(own&&!mixed&&pkQ.length<=T&&NATS[own].alive)for(const i of pkQ){if(tribe[i])tribeTaken(i,own);owner[i]=own;markAround(i);}
   }
 }
 function adjTo(i,id){const x=i%W;return (x>0&&owner[i-1]===id)||(x<W-1&&owner[i+1]===id)||(i>=W&&owner[i-W]===id)||(i<N-W&&owner[i+W]===id);}
@@ -1057,7 +1081,7 @@ function stepAttack(a){
 }
 function capture(i,attId,defId){
   owner[i]=attId;const att=NATS[attId];att.tiles++;markAround(i);
-  if(!defId)return;
+  if(!defId){if(tribe[i])tribeTaken(i,attId);return;}
   const d=NATS[defId];d.tiles--;d.press=(d.press||0)+1;
   if(G.real)unrest[i]=G.t+BAL.realistic.unrest; // Realistic: conquered land is restless for a while
   att.gold+=att.m.plunder;
@@ -1448,7 +1472,8 @@ function impact(m){
     const j=y*W+x,o=owner[j];if(terr[j]<2||!o||o===m.own)continue;
     if(bld[j]&&(!arty||Math.random()<(m.bh||0))&&destroyBld(j)&&m.own===G.pid)wrecked++;
     victims.set(o,(victims.get(o)||0)+1);}
-  for(const [o,k] of victims){const d=NATS[o];d.troops-=Math.min(d.troops,d.troops*m.tp*BAL.combat.strikeTroops+k*(m.kind==='drone'?4:arty?2:6));hit.add(o);}
+  const noTroops=m.wid==='drone:light'; // light drones only wreck buildings, so they can't bleed a border dry
+  for(const [o,k] of victims){const d=NATS[o];if(!noTroops)d.troops-=Math.min(d.troops,d.troops*m.tp*BAL.combat.strikeTroops+k*(m.kind==='drone'?4:arty?2:6));hit.add(o);}
   // Missiles crater the core of the blast: those tiles go back to empty land (never a capital's own tile)
   const cf=BAL.combat.crater;
   if(m.kind==='missile'&&cf>0){const rc=Math.max(.5,m.r*cf),rc2=rc*rc+.5,rci=Math.ceil(rc),hitN=new Set();
@@ -1665,6 +1690,7 @@ function paintSub(sx,sy){
     let cw=0;for(let k=0;k<9;k++){const c=_c[k];if(terr[c]>=2&&ctry[c]===mc)cw+=_w[k];}
     if((2*cw-lw)/lw<.3){r*=.84;g*=.84;b*=.84;}
   }
+  if(land&&bk===0&&tribe[cy*W+cx]){const st=(sx+sy)%5<2;r=r*.35+(st?150:186)*.65;g=g*.35+(st?70:98)*.65;b=b*.35+(st?44:62)*.65;}
   if(land&&sk===255&&edge<.2){r=r*.75+238*.25;g=g*.75+222*.25;b=b*.75+176*.25;}
   else if(bk===255&&sk>=0&&sk<254&&edge<.22){r=r*.65+54*.35;g=g*.65+128*.35;b=b*.65+138*.35;}
   if(land){r*=THEME[0];g*=THEME[1];b*=THEME[2];}else{r*=THEME[3];g*=THEME[4];b*=THEME[5];}
@@ -1831,6 +1857,11 @@ function render(now){
   for(const [t,lo,la] of OUTS){const [x,y]=geo(lo,la);ctx.fillText(t,x,y);}
   // oil dots
   if(s>=5){ctx.fillStyle='rgba(20,16,12,.55)';for(const i of oilCells){if(bld[i])continue;ctx.beginPath();ctx.arc(view.ox+(i%W+.5)*s,view.oy+(((i/W)|0)+.5)*s,s*.16,0,7);ctx.fill();}}
+  // tribe camps: a small tent at each camp still holding out
+  if(s>=2.5&&G.tribes){const r=Math.max(4,s*.85);ctx.lineWidth=1.4;ctx.strokeStyle='rgba(30,16,10,.85)';ctx.fillStyle='#f4e2bf';
+    for(const t of G.tribes){if(!t||t.left<=0)continue;const x=view.ox+(t.x+.5)*s,y=view.oy+(t.y+.5)*s;if(x<-20||y<-20||x>w+20||y>h+20)continue;
+      ctx.beginPath();ctx.moveTo(x,y-r);ctx.lineTo(x+r,y+r*.7);ctx.lineTo(x-r,y+r*.7);ctx.closePath();ctx.fill();ctx.stroke();
+      ctx.beginPath();ctx.moveTo(x,y-r*.1);ctx.lineTo(x+r*.32,y+r*.7);ctx.lineTo(x-r*.32,y+r*.7);ctx.closePath();ctx.fillStyle='#7a3b22';ctx.fill();ctx.fillStyle='#f4e2bf';}}
   // buildings
   if(s>=3){
     for(const i of blist){const b=bld[i];if(!b||!owner[i]||!bldVisibleTo(G.pid,i))continue;
@@ -1953,7 +1984,7 @@ function hud(){
   const threats=[...new Set(attacks.filter(a=>a.def===G.pid).map(a=>a.att))];
   for(const t of threats){const n=NATS[t];ch+=`<span class="chip warn"><i class="d" style="background:${rgb(n.color)}"></i>${n.name} attacking</span>`;}
   for(const a of attacks.filter(a=>a.att===G.pid)){const nm=a.def?NATS[a.def].name:'Expanding';const col=a.def?rgb(NATS[a.def].color):'#c9a66b';
-    ch+=`<span class="chip"><i class="d" style="background:${col}"></i>${nm} · ${fmt(a.troops)}</span>`;}
+    ch+=`<span class="chip"><i class="d" style="background:${col}"></i>${nm} · ${fmt(a.troops)}${G.spec?'':`<button class="ret" data-ret="${a.def||0}" title="Retreat" aria-label="Retreat from ${esc(nm)}">✕</button>`}</span>`;}
   for(const b of boats){
     if(b.att===G.pid){const o=owner[b.land];ch+=`<span class="chip"><i class="d" style="background:#f2ead9"></i>Dhow to ${o&&o!==G.pid?NATS[o].name:'coast'} · ${fmt(b.troops)}</span>`;}
     else if(owner[b.land]===G.pid)ch+=`<span class="chip warn"><i class="d" style="background:${rgb(NATS[b.att].color)}"></i>${NATS[b.att].name} fleet inbound</span>`;}
@@ -1977,6 +2008,7 @@ function hud(){
   if(G.ms<MILESTONES.length&&!G.mp&&msAt(G.ms)<WIN_PCT)ch+=`<span class="chip">Next decree at ${+msAt(G.ms).toFixed(1)}%</span>`;
   if(G.real&&!G.spec&&NATS[G.pid]&&NATS[G.pid].overF<1)ch+=`<span class="chip">Overextended · regen and cap −${Math.round((1-NATS[G.pid].overF)*100)}%</span>`;
   $('#chips').innerHTML=ch;
+  if(!hud.retOn){hud.retOn=1;$('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-ret]');if(b&&G&&!G.spec&&!G.over)issue({k:'ret',d:+b.dataset.ret});});}
   const rows=NATS.slice(1).sort((a,b)=>b.tiles-a.tiles);
   $('#lb').innerHTML=`<div class="lbh">${G.mp?'Online · '+esc(MP?MP.code:''):'Tap a nation to negotiate'}</div>`+rows.map(n=>{const t=treaty(n.id),me=n.id===G.pid&&!G.spec;return `<div class="r ${me?'me':''} ${n.alive?'':'dead'} ${!G.mp&&!n.isPlayer&&n.alive?'talk':''}" data-n="${n.id}"><span class="chip d" style="padding:0;border:0;width:8px;height:8px;border-radius:2px;background:${rgb(n.color)}"></span><span>${n.short||NAT[n.id].short}${t?`<em class="tr">${t==='alliance'?'ALLY':'TRUCE'}</em>`:''}${G.mp&&n.human&&!me?`<em class="tr hu">${esc((G.names[n.id]||'').slice(0,10))}</em>`:''}</span><span class="num">${(n.tiles/LANDN*100).toFixed(1)}%</span></div>`;}).join('');
   const hudEl=document.querySelector('.hud');$('#lb').style.top=(hudEl.offsetTop+hudEl.offsetHeight+4)+'px';placeTop();
@@ -2135,6 +2167,7 @@ function issue(a,ping){
 function doAction(nid,a){
   const n=NATS[nid],i=Math.floor(Number(a.i)),res={k:a.k,i};
   if(!n||!n.alive){res.r='dead';return res;}
+  if(a.k==='ret'){const d=Math.floor(Number(a.d))||0;let k=0;for(const x of attacks)if(x.att===nid&&(x.def||0)===d&&!x.done){x.done=true;k++;}res.r=k?'ok':'none';return res;} // retreat: the troops come home
   if(a.k==='uav'){const u=BAL.uav;res.dur=u.duration;res.cost=u.cost;
     if(!hasAbility(nid,'uav'))res.r='no';
     else if(nid===G.pid){if(G.uavUntil>G.t){res.r='active';res.left=G.uavUntil-G.t;}else if(G.uavReady>G.t){res.r='cool';res.left=G.uavReady-G.t;}else if(n.gold<u.cost)res.r='gold';else{n.gold-=u.cost;G.uavUntil=G.t+u.duration;G.uavReady=G.t+u.cooldown;res.r='ok';}}
@@ -2171,6 +2204,7 @@ function showResult(res,ping){
   if(!ping)ping=bad=>{if(i>=0)G.pings.push({x:i%W,y:(i/W)|0,t:performance.now(),bad});if(bad)SFX.deny();};
   const bad=res.r!=='ok'&&res.r!=='countered';
   if(res.r==='dead'){toast('Your nation has fallen.');return;}
+  if(res.k==='ret'){if(res.r==='ok'){toast('Retreat: your troops are coming home.',1800);SFX.tap&&SFX.tap();}return;}
   if(res.k==='uav'){
     if(res.r==='ok'){SFX.radar();toast(`UAV overhead: hidden silos and drones revealed for ${res.dur}s.`,2600);}
     else if(res.r==='active')toast(`Your UAV is already overhead (${Math.ceil(res.left)}s left).`);
@@ -2617,12 +2651,12 @@ let resetArmed=false;
 $('#resetBtn').onclick=e=>{if(!resetArmed){resetArmed=true;e.target.textContent='Tap again to erase all pearls and upgrades';setTimeout(()=>{resetArmed=false;e.target.textContent='Reset progress';},4000);return;}S=defSave();if(ACCOUNT)applyEnt(ENT_LIST);save();resetArmed=false;e.target.textContent='Reset progress';renderHome();};
 /* ================= How to play: each section has a small picture drawn with the game's own colours and icons ================= */
 const GUIDE=[
- ['expand','Expand',()=>`Tap sand next to your border to send troops. The slider sets how many go. Deserts and mountains cost more. Small gaps you leave behind fill in automatically.`],
- ['conquer','Conquer',()=>`Tap a rival you border to attack. Taking their capital star costs them troops and gold and forces them to move it; take every tile to finish them.`],
+ ['expand','Expand',()=>`Tap sand next to your border to send troops. The slider sets how many go. Deserts and mountains cost more. Small gaps you leave behind fill in automatically. Striped camps are tribes: they cost a little more to take, and winning over a whole camp pays ${BAL.tribes.gold} gold.`],
+ ['conquer','Conquer',()=>`Tap a rival you border to attack. Taking their capital star costs them troops and gold and forces them to move it; take every tile to finish them. Tap ✕ on an attack's chip at the top to retreat: the troops still in the field come home.`],
  ['counter','Counter',()=>`Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.`],
  ['sail','Sail',()=>`Tap a coast you don't border, or use Boat mode, and dhows carry troops across the water, land, and push inland. Up to 3 fleets at once.`],
  ['build','Build',()=>`Place anything anywhere on your land: cities, forts, oil rigs (best on dark oil fields), ports near water, missile silos, drone hangars, air defense and radars. Some nations also get rocket artillery or coastal batteries.`],
- ['strike','Strike',()=>`Drones are cheap and slow; missiles are fast and costly. Bigger drone types and higher missile tiers blast a wider area. Strikes destroy buildings and kill troops; only ground troops and landings take land. Militia drones (Iraq, Iran, Yemen and, on the Middle East map, Syria and Lebanon) stay hidden until they near your border.`],
+ ['strike','Strike',()=>`Drones are cheap and slow; missiles are fast and costly. Bigger drone types and higher missile tiers blast a wider area. Strikes destroy buildings and kill troops (light drones only hit buildings); only ground troops and landings take land. Militia drones (Iraq, Iran, Yemen and, on the Middle East map, Syria and Lebanon) stay hidden until they near your border.`],
  ['crater','Craters',()=>`A missile empties the core of its blast: those tiles go back to empty land and their buildings are gone. Craters stay empty for ${BAL.combat.craterTime}s, so anyone bordering one can grab it. Drones never crater.`],
  ['defend','Defend',()=>`Air defense batteries shoot down incoming drones (most of the time) and missiles (sometimes). Layer them around your capital and silos. Tap or hover a battery to see its range and ammo; rivals can't see your ranges unless they fly a UAV.`],
  ['radar','Radar',()=>`A radar tracks incoming strikes in its range: red impact zones, a countdown and arrows at the screen edge. It reveals hidden drones early and sharpens air defense inside its coverage. A new radar also shows strikes that were already on the way.`],
@@ -2712,7 +2746,7 @@ function drawHero(force){
   const hc=$('#heroCv'),hx=hc.getContext('2d');
   const save={own:owner.slice(),G,NATS};
   if(!NAT[S.nation])S.nation=1;
-  owner.fill(0);G={pid:S.nation,pings:[]};NATS=[null];
+  owner.fill(0);tribe.fill(0);G={pid:S.nation,pings:[]};NATS=[null];
   for(let id=1;id<=NNAT;id++){NATS.push(newNation(id,id===S.nation,1));claimBlob(id,NATS[id].capIdx,id===S.nation?3:2);}
   fullPaint=true;flushPaint(); // repaints only the tiles that changed since the last paint
   // crop lon 37.5-63, lat 15.8-38.5
@@ -2750,7 +2784,7 @@ const mpNationOf=uid=>NATS.find(n=>n&&n.human&&Number(n.human)===Number(uid));
 function rle(a){const out=[];let v=a[0],c=1;for(let i=1;i<a.length;i++){if(a[i]===v)c++;else{out.push(v,c);v=a[i];c=1;}}out.push(v,c);return out;}
 function mpSnap(full){
   const d={t:'state',seq:MP.seq,gt:r1(G.t)};
-  if(full){d.full=1;d.own=rle(owner);d.m=NATS.slice(1).map(n=>n.m);}
+  if(full){d.full=1;d.own=rle(owner);d.tr=rle(tribe);d.m=NATS.slice(1).map(n=>n.m);}
   else{const od=[];for(let i=0;i<N;i++)if(owner[i]!==OWN_SENT[i]){od.push(i,owner[i]);OWN_SENT[i]=owner[i];}d.od=od;d.ev=MP.evq;MP.evq=[];
     const mj=JSON.stringify(NATS.slice(1).map(n=>n.m));if(mj!==MP.mJson){MP.mJson=mj;d.m=JSON.parse(mj);} /* nation stats: only when they change */}
   // Buildings: [cell, type, ammo, readyAt]. readyAt is the game time a reload finishes (0 when loaded), so it stays constant while
@@ -2811,9 +2845,12 @@ function mpCheckEnd(force){
 /* ---- guests: mirror the host's state ---- */
 function mpApply(d){
   const M=MP;if(!G||!G.mp||G.over)return;
-  if(d.full){let k=0;for(let q=0;q<d.own.length;q+=2){owner.fill(d.own[q],k,k+d.own[q+1]);k+=d.own[q+1];}fullPaint=true;M.base=true;M.lastSeq=d.seq;}
+  if(d.full){let k=0;for(let q=0;q<d.own.length;q+=2){owner.fill(d.own[q],k,k+d.own[q+1]);k+=d.own[q+1];}fullPaint=true;M.base=true;M.lastSeq=d.seq;
+    if(d.tr){k=0;for(let q=0;q<d.tr.length;q+=2){tribe.fill(d.tr[q],k,k+d.tr[q+1]);k+=d.tr[q+1];}basePaint=true;
+      G.tribes=[null];for(let i=0;i<N;i++){const t=tribe[i];if(!t)continue;const o=G.tribes[t]||(G.tribes[t]={x:0,y:0,left:0,sx:0,sy:0});o.left++;o.sx+=i%W;o.sy+=(i/W)|0;}
+      for(const o of G.tribes)if(o){o.x=Math.round(o.sx/o.left);o.y=Math.round(o.sy/o.left);}}}
   else{if(!M.base||d.seq!==M.lastSeq+1){if(M.base)M.syncAsk=0;M.base=false;const t=performance.now();if(t-(M.syncAsk||0)>3000){M.syncAsk=t;netSend({t:'act',a:{k:'sync'}});}return;}M.lastSeq=d.seq;
-    const od=d.od;for(let q=0;q<od.length;q+=2){owner[od[q]]=od[q+1];markAround(od[q]);}}
+    const od=d.od;for(let q=0;q<od.length;q+=2){owner[od[q]]=od[q+1];if(od[q+1]&&tribe[od[q]]){const t=G.tribes&&G.tribes[tribe[od[q]]];if(t)t.left--;tribe[od[q]]=0;}markAround(od[q]);}}
   G.t=d.gt;
   const setB=(j,t,a,rdy)=>{bld[j]=t;ammo[j]=a;if(MAG[t]&&a<1)M.rdy.set(j,rdy);else{M.rdy.delete(j);bcool[j]=0;}};
   if(d.b){M.rdy.clear();for(const j of blist){bld[j]=0;ammo[j]=0;bcool[j]=0;}blist=[];const b=d.b;for(let q=0;q<b.length;q+=4){setB(b[q],b[q+1],b[q+2],b[q+3]);blist.push(b[q]);}}

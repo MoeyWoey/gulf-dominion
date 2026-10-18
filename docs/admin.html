@@ -333,7 +333,7 @@ function renderBal(B){
     <td><input type="checkbox" data-ash="${c}" ${a.antiShip>0?'checked':''} aria-label="${esc(name)} coastal battery"></td></tr>`;}).join('');
   const h=B.droneHandicap;
   $('#balForm').innerHTML=
-    wtable('Drones','drones',DKEYS,['cost','radius','speed','troops','intercept'])+
+    wtable('Drones','drones',DKEYS,['cost','radius','speed','troops','intercept'])+'<p class="hint">Light drones never kill troops (buildings only), whatever their troops value.</p>'+
     wtable('Missiles','missiles',MKEYS,['cost','radius','speed','troops','intercept','reload'])+
     `<div class="card"><h2>Arsenals</h2><p class="hint">Which drones each nation can fly, its highest missile tier, its special abilities, and whether it can build rocket artillery and coastal batteries. Hidden drones only appear when they come near the player's border. The drone handicap applies the multipliers below.</p>
      <div class="tablewrap"><table><thead><tr><th>Nation</th>${DKEYS.map(d=>`<th>${esc(B.drones[d].name)}</th>`).join('')}<th>Max missile tier</th><th>Hidden drones</th><th>Drone handicap</th><th>UAV recon</th><th>Cruise handicap</th><th>Drone rush</th><th>Rocket artillery</th><th>Coastal battery</th></tr></thead><tbody>${nrows}</tbody></table></div></div>
@@ -459,6 +459,10 @@ function renderBal(B){
       <span>Realistic: leader's attacks cost ×</span><span>${numIn('realistic.leaderDef',B.realistic.leaderDef,'0.05')}</span>
       <span>Realistic: decree milestones ×</span><span>${numIn('realistic.decreeGap',B.realistic.decreeGap,'0.1')} <span class="hint">1.5 = decrees at 3%, 6%, 10.5%… instead of 2%, 4%, 7%…</span></span>
       <span>Realistic: choices per decree</span><span>${numIn('realistic.choices',B.realistic.choices,'1')} <span class="hint">normal games offer 3</span></span>
+      <span>Tribes on the map</span><span>${numIn('tribes.count',B.tribes.count,'1')} <span class="hint">Gulf map; the Middle East map gets more by land area. 0 = none</span></span>
+      <span>Tribe size</span><span>${numIn('tribes.size',B.tribes.size,'1')} tiles</span>
+      <span>Tribe land cost ×</span><span>${numIn('tribes.cost',B.tribes.cost,'0.1')} <span class="hint">compared with empty land</span></span>
+      <span>Tribe gold reward</span><span>${numIn('tribes.gold',B.tribes.gold,'10')} gold <span class="hint">paid when the last tile of a camp is taken</span></span>
       <span>Realistic: diplomacy price ×</span><span>${numIn('realistic.diplomacy',B.realistic.diplomacy,'0.05')}</span>
       <span>Extra GCC oil fields</span><span>${numIn('oil.gccExtra',B.oil.gccExtra,'0.01')} <span class="hint">0 = real fields only, 0.05 = default, 0.15 = lots</span></span>
      </div></div>`;
