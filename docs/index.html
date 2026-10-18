@@ -167,6 +167,15 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--sand);outline-o
 .sheetbody{padding-block:14px calc(32px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
 .sheetbody .hint{margin:0}
 .reset{background:none;border:0;color:var(--muted);text-decoration:underline;font-size:.75rem}
+.stats.ver{font-size:.66rem;opacity:.6;margin-top:2px}
+.testbar{border-color:var(--sand)!important;color:var(--sand)}
+.testbar .reset{color:var(--sand);font-size:inherit}
+.fb{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+.fbcat{display:flex;gap:6px;flex-wrap:wrap}
+.fbcat .btn{padding:6px 12px;font-size:.8rem}
+.fbcat .btn.on{border-color:var(--sand);color:var(--sand)}
+.fb textarea{width:100%;box-sizing:border-box;background:rgba(0,0,0,.25);color:inherit;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-size:.9rem;resize:vertical;min-height:110px}
+body.nostore [data-sheet="store"]{display:none!important}
 
 /* ---------- Game ---------- */
 #game{position:fixed;inset:0;background:var(--sea)}
@@ -339,6 +348,7 @@ body.pc .toast{left:50%;transform:translateX(-50%);text-align:center;max-width:m
       <button data-sheet="ach"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v4a5 5 0 0 1-10 0z"/><path d="M4 4h3v3a3 3 0 0 1-3-3zM20 4h-3v3a3 3 0 0 0 3-3z"/><path d="M10 13h4v3h3v3H7v-3h3z"/></svg><span class="lbl"><b>Achievements</b><small>Unlock weapons</small></span><span class="tbadge" id="achBadge" hidden></span></button>
     </nav>
 
+    <div class="notice testbar" id="testBar" hidden>Playtest build. Things may break or change. <button class="reset" id="testFb">Tell me what you find</button></div>
     <div class="notice" id="notice" hidden></div>
     <div class="acct" id="acct" hidden></div>
 
@@ -382,7 +392,8 @@ body.pc .toast{left:50%;transform:translateX(-50%);text-align:center;max-width:m
     </div>
 
     <div class="stats" id="stats"></div>
-    <div class="stats"><button class="reset" id="howBtn">How to play</button> · <button class="reset" id="resetBtn">Reset progress</button></div>
+    <div class="stats"><button class="reset" id="howBtn">How to play</button> · <button class="reset" id="fbBtn">Send feedback</button> · <button class="reset" id="resetBtn">Reset progress</button></div>
+    <div class="stats ver" id="ver"></div>
   </div>
 </div>
 
@@ -800,13 +811,20 @@ function applyEnt(list){
   applyCosmetics();
 }
 function saveLocal(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
-function save(){S.updatedAt=Date.now();saveLocal();pushSave(false);}
+function save(){if(DEMO)return;S.updatedAt=Date.now();saveLocal();pushSave(false);}
 function pushSave(immediate){
   if(!ACCOUNT)return;clearTimeout(syncT);
   syncT=setTimeout(async()=>{try{await api('/api/save',{method:'PUT',body:{data:S,updatedAt:S.updatedAt||Date.now()}});syncState='synced';}catch(e){if(e.status===409){S.updatedAt=0;await loadAccount();showNote('ok','An admin reset part of your progress. Your account has been updated.');return;}syncState='offline';}renderAccount();},immediate?0:1500);
 }
 function logEvent(event,data){if(ACCOUNT)api('/api/log',{method:'POST',body:{event,data}}).catch(()=>{});}
-window.addEventListener('error',e=>{if(errLogged++<5)logEvent('client_error',{msg:String(e.message||'').slice(0,200),line:e.lineno||0});});
+// Browser errors go to the dashboard (Feedback tab, Errors), signed in or not: at most 5 different ones per page load
+const errSeen=new Set();
+function reportError(msg,where){
+  msg=String(msg||'').slice(0,300);if(!API||!msg||errSeen.has(msg)||errSeen.size>=5)return;errSeen.add(msg);
+  try{fetch(API+'/api/error',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({message:msg+(where?' @ '+where:''),version:GD_VERSION,meta:fbMeta()})}).catch(()=>{});}catch(e){}
+}
+window.addEventListener('error',e=>{if(errLogged++<5)logEvent('client_error',{msg:String(e.message||'').slice(0,200),line:e.lineno||0});reportError(e.message,'line '+(e.lineno||0)+':'+(e.colno||0));});
+window.addEventListener('unhandledrejection',e=>{const r=e.reason;if(r&&r.status)return;reportError('Promise: '+((r&&r.message)||r),'');});
 // Session cache: the last account, store and balance replies, shown at once after a reload (e.g. a map switch) while fresh copies load
 const SC={get(k){try{return JSON.parse(sessionStorage.getItem('gd_c_'+k)||'null');}catch(e){return null;}},set(k,v){try{sessionStorage.setItem('gd_c_'+k,JSON.stringify(v));}catch(e){}},del(k){try{sessionStorage.removeItem('gd_c_'+k);}catch(e){}}};
 async function loadAccount(){
@@ -832,7 +850,7 @@ function renderAccount(){
 }
 async function loadBalance(){
   if(!API)return;
-  const use=cfg=>{const oilWas=BAL.oil.gccExtra;BAL=GD_mergeBalance(GD_BALANCE_DEFAULTS,cfg||{});syncProgressBal();if(BAL.oil.gccExtra!==oilWas){applyOil();basePaint=true;heroKey=null;}if(screen==='home')renderHome();};
+  const use=cfg=>{const oilWas=BAL.oil.gccExtra;BAL=GD_mergeBalance(GD_BALANCE_DEFAULTS,cfg||{});syncProgressBal();if(typeof applyTesting==='function')applyTesting();if(BAL.oil.gccExtra!==oilWas){applyOil();basePaint=true;heroKey=null;}if(screen==='home')renderHome();};
   const cached=SC.get('cfg');if(cached)use(cached);
   try{const j=await api('/api/config');SC.set('cfg',j.config||{});use(j.config);}catch(e){}
 }
@@ -867,6 +885,8 @@ function applyCosmetics(){
   if(th.join()!==THEME.join()||gold!==GOLD){THEME=th;GOLD=gold;basePaint=true;heroKey=null;}
 }
 let DAILY=null; // the daily challenge spec while a daily run is active
+const GD_VERSION='2026.10.18'; // shown on the home screen and sent with feedback
+let DEMO=false; // ?demo: an AI-only showcase match for recording clips; nothing is saved
 let MP=null; // online game session (lobby or live game)
 const lvl=k=>{if(DAILY||(MP&&MP.live))return 0;const u=UPG.find(x=>x.k===k);return Math.min(S.upg[k]||0,u?u.max:99);}; // Majlis upgrades don't apply in the daily challenge or online; levels above the current max don't count
 const upgCost=u=>Math.round(u.base*Math.pow(u.grow,lvl(u.k)));
@@ -951,7 +971,7 @@ function startRun(spec){
   if(mp)toast(G.spec?'You are watching this online game.':`Online game: you lead ${NAT[pid].name}. Hold ${WIN_PCT}% of the land or be the last player standing.`,5000);
   else if(spec)toast(`Daily challenge: ${NAT[pid].name}, Heat ${diff}. ${spec.twist.name}: ${spec.twist.desc}`,6000);else toast(S.tut?`Heat ${diff}. Expand from ${NATS[pid].name} and hold ${WIN_PCT}% of the region.`:'Tap sand next to your land to expand. Drag to pan, pinch to zoom.',5000);
   S.tut=1;save();
-  if(!mp)logEvent('run_start',{nation:NAT[pid].name,heat:diff,realistic:!!G.real});
+  if(!mp&&!DEMO)logEvent('run_start',{nation:NAT[pid].name,heat:diff,realistic:!!G.real});
   if(G.real)setTimeout(()=>toast(`Realistic rules: gold ×${BAL.realistic.gold}, land ×${BAL.realistic.land}, weaker bloc loyalty, overextension past ${BAL.realistic.overStart}%, restless conquests. Pearls ×${BAL.realistic.pearls}.`,5000),5200);
 }
 
@@ -2309,10 +2329,38 @@ function openPause(){
    <div class="kv"><span>Land held</span><span class="num">${(p.tiles/LANDN*100).toFixed(1)}%</span><span>Rivals defeated</span><span class="num">${G.kills}</span><span>Decrees</span><span>${G.cards.length?G.cards.map(id=>CARDS.find(c=>c.id===id).name).join(', '):'None yet'}</span></div>
    <div class="mrow"><button class="btn" id="pMus">Music: ${audOpt().music?'On':'Off'}</button><button class="btn" id="pSfx">Effects: ${audOpt().sfx?'On':'Off'}</button></div>
    <div class="mrow"><button class="btn" id="abandon">Retreat</button><button class="btn gold" id="resume">Resume</button></div>
-   <p class="sub" style="margin:0">Retreating ends the campaign. You still keep the pearls earned so far.</p>`);
+   <p class="sub" style="margin:0">Retreating ends the campaign. You still keep the pearls earned so far.</p>
+   <div class="mrow"><button class="btn" id="pFb">Send feedback</button></div>`);
+  $('#pFb').onclick=()=>{closeModal();openFeedback(openPause);};
   $('#pMus').onclick=()=>{const o=audOpt();o.music=!o.music;audApply();$('#pMus').textContent='Music: '+(o.music?'On':'Off');renderSound();save();};
   $('#pSfx').onclick=()=>{const o=audOpt();o.sfx=!o.sfx;audApply();$('#pSfx').textContent='Effects: '+(o.sfx?'On':'Off');renderSound();save();};
   $('#resume').onclick=closeModal;$('#abandon').onclick=()=>{closeModal();endRun(false,true);};
+}
+// Feedback: a short message plus what the game was doing, sent to the dashboard's Feedback tab
+function fbMeta(){
+  const m={map:MAP_ID,screen,w:innerWidth,h:innerHeight,touch:'ontouchstart' in window,ua:navigator.userAgent.slice(0,140),signedIn:!!ACCOUNT};
+  try{if(G&&NATS[G.pid]&&screen==='game'){const p=NATS[G.pid];Object.assign(m,{nation:p.name,heat:G.diff,realistic:!!G.real,online:!!G.mp,min:Math.round(G.t/6)/10,land:+(p.tiles/LANDN*100).toFixed(1),decrees:G.cards&&G.cards.length});}}catch(e){}
+  return m;
+}
+function openFeedback(after){
+  if(!API){toast('Feedback is not available in this copy of the game.',2600);return;}
+  openModal(`<h3>Send feedback</h3><p class="sub">Found a bug, a nation that feels too strong, or have an idea? Tell me. Your current game details are attached automatically.</p>
+   <div class="fb"><div class="fbcat" role="radiogroup" aria-label="Kind of feedback">${[['bug','Bug'],['balance','Balance'],['idea','Idea'],['other','Other']].map(([k,t],i)=>`<button class="btn ${i?'':'on'}" data-cat="${k}" role="radio" aria-checked="${!i}">${t}</button>`).join('')}</div>
+   <textarea id="fbMsg" rows="5" maxlength="2000" placeholder="What happened? What did you expect?"></textarea>
+   <p class="sub" id="fbNote" style="margin:0"></p></div>
+   <div class="mrow"><button class="btn" id="fbCancel">Cancel</button><button class="btn gold" id="fbSend">Send</button></div>`);
+  let cat='bug';
+  document.querySelectorAll('[data-cat]').forEach(b=>b.onclick=()=>{cat=b.dataset.cat;document.querySelectorAll('[data-cat]').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-checked',String(x===b));});});
+  const done=()=>{closeModal();if(after)after();};
+  $('#fbCancel').onclick=done;setTimeout(()=>$('#fbMsg').focus(),50);
+  $('#fbSend').onclick=async()=>{
+    const msg=$('#fbMsg').value.trim();if(msg.length<3){$('#fbNote').textContent='Write a few words first.';return;}
+    $('#fbSend').disabled=true;$('#fbSend').textContent='Sending…';
+    try{const r=await fetch(API+'/api/feedback',{method:'POST',headers:{'content-type':'application/json',...(TOKEN?{authorization:'Bearer '+TOKEN}:{})},body:JSON.stringify({message:msg,category:cat,version:GD_VERSION,meta:fbMeta()})});
+      if(r.status===429){$('#fbNote').textContent='You have sent a lot of feedback this hour. Please try again later.';$('#fbSend').disabled=false;$('#fbSend').textContent='Send';return;}
+      if(!r.ok)throw new Error();done();toast('Thank you! Your feedback was sent.',2600);}
+    catch(e){$('#fbNote').textContent='Could not send. Check your connection and try again.';$('#fbSend').disabled=false;$('#fbSend').textContent='Send';}
+  };
 }
 function pearlsFor(win){
   const p=NATS[G.pid];
@@ -2320,6 +2368,7 @@ function pearlsFor(win){
   return Math.max(1,Math.round(base*(1+.3*(G.diff-1))*p.m.pearl*(1+.15*lvl('fortune'))*(G.real?BAL.realistic.pearls:1)));
 }
 function endRun(win,retreat){
+  if(DEMO){G.over=true;location.href=location.pathname;return;}
   if(G.over)return;G.over=true;
   const earned=pearlsFor(win);
   bump('campaigns');bumpMax('peak',Math.floor(G.peak*10)/10);if(win){bump('wins');bumpMax('heatWin',G.diff);if(G.real)bump('realWins');}
@@ -3089,6 +3138,21 @@ function openMpMenu(){
   $('#mpLeave').onclick=()=>{closeModal();if(M.host)mpCheckEnd(true);else mpQuit();};
 }
 
+// ?demo: every nation is AI-run, a few minutes are simulated ahead, then everyone gets gold and launchers so strikes fly at once
+function startDemo(){
+  DEMO=true;S.realistic=false;startRun();if(!G)return;
+  G.nextNews=1e12;const p=NATS[G.pid];p.away=true;modalOpen=true;
+  for(let k=0;k<2400&&!G.over;k++)tick();
+  modalOpen=false;if(G.over)return;
+  for(const n of NATS.slice(1)){if(!n.alive)continue;n.gold+=40000;n.troops=Math.max(n.troops,n.cap*.9);
+    for(const t of ['silo','hangar','sam','sam','radar'])placeNear(n,n.capIdx,t,6,true);}
+  G.strikeAt=0;fullPaint=true;
+  let best=-1,bd=1e9;const cx=p.capIdx%W,cy=(p.capIdx/W)|0;
+  for(const n of NATS.slice(1)){if(!n.alive||n.id===p.id)continue;const d=(n.capIdx%W-cx)**2+(((n.capIdx/W)|0)-cy)**2;if(d<bd){bd=d;best=n.capIdx;}}
+  centerOn(best>=0?Math.round((((cy+((best/W)|0))/2)|0)*W+(cx+best%W)/2):p.capIdx,Math.max(3.5,Math.min(5.5,innerWidth/140)));
+  toast('Demo: the AI plays every nation. Nothing is saved.',3500);
+}
+
 /* ================= Screens & loop ================= */
 let screen='home';
 function showScreen(s){hideTip();if(s==='home')endDaily();screen=s;$('#home').hidden=s!=='home';$('#game').hidden=s!=='game';if(s==='home')renderHome();}
@@ -3100,13 +3164,18 @@ function frame(now){
   if(screen==='game'&&G&&NATS.length>1){
     if(G.mp){if(MP&&!MP.host)mpReplicaStep(dt,now);}
     else if(!G.over&&!modalOpen){G.acc+=dt*G.speed;let k=0;while(G.acc>=.1&&k<10){G.acc-=.1;tick();k++;if(G.over)break;}
-      if(G.drafts>0&&!G.over&&!modalOpen)openDraft();}
+      if(G.drafts>0&&!G.over&&!modalOpen&&!DEMO)openDraft();}
     render(now);
     if(now-hudT>200){hudT=now;hud();}
   }
   requestAnimationFrame(frame);
 }
 applyCosmetics();renderSound();applyPC();
+$('#fbBtn').onclick=()=>openFeedback();$('#testFb').onclick=()=>openFeedback();$('#ver').textContent='Version '+GD_VERSION;
+// Playtest switches from the dashboard (Balance → Rules)
+function applyTesting(){const t=BAL.testing||{};document.body.classList.toggle('nostore',!!t.hideStore);$('#testBar').hidden=!t.banner;if(t.hideStore&&SHEET==='store'&&!$('#sheet').hidden)closeSheet();}
+applyTesting();
+if(new URLSearchParams(location.search).has('demo'))setTimeout(startDemo,300);
 // No browser right-click / long-press menu (copy, save image…) anywhere in the game, except text fields so codes can be pasted
 document.addEventListener('contextmenu',e=>{if(!(e.target.closest&&e.target.closest('input,textarea')))e.preventDefault();});
 document.addEventListener('dragstart',e=>{if(e.target.tagName==='IMG'||e.target.tagName==='CANVAS')e.preventDefault();});

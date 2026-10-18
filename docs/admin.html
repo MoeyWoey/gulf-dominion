@@ -86,6 +86,7 @@ td.mono,.mono{font-family:var(--f-mono);font-size:.78rem;overflow-wrap:anywhere}
     <h1>Gulf Dominion <span>Admin</span></h1>
     <nav class="tabs" id="tabs">
       <button data-t="overview" class="on">Overview</button>
+      <button data-t="feedback">Feedback</button>
       <button data-t="logs">Logs</button>
       <button data-t="users">Players</button>
       <button data-t="orders">Orders</button>
@@ -103,6 +104,15 @@ td.mono,.mono{font-family:var(--f-mono);font-size:.78rem;overflow-wrap:anywhere}
       <div class="tiles" id="tiles"></div>
       <div class="card"><h2>Campaigns started, last 14 days</h2><div class="bars" id="bars"></div></div>
       <div class="card"><h2>Revenue</h2><div id="revenue"></div></div>
+    </section>
+
+    <section data-p="feedback" hidden>
+      <div class="row">
+        <select id="fbKind"><option value="feedback">Player feedback</option><option value="error">Browser errors</option></select>
+        <label class="hint" style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="fbOpen" checked> Open only</label>
+        <button class="btn" id="fbGo">Refresh</button>
+      </div>
+      <div class="card"><div class="tablewrap"><table><thead><tr><th>When</th><th>Kind</th><th>Message</th><th>Game</th><th>Who</th><th></th></tr></thead><tbody id="fbRows"></tbody></table></div></div>
     </section>
 
     <section data-p="logs" hidden>
@@ -211,7 +221,7 @@ const loaded={};
 function show(t){
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
   document.querySelectorAll('main section').forEach(s=>s.hidden=s.dataset.p!==t);
-  Promise.resolve().then(({overview:loadOverview,logs:()=>loadLogs(false),users:loadUsers,orders:loadOrders,store:loadProducts,balance:loadBal,daily:loadDaily,pay:loadPay})[t]).catch(e=>{const sec=document.querySelector(`main section[data-p="${t}"]`);sec.insertAdjacentHTML('afterbegin',`<div class="msg bad">Could not load: ${esc(e.message)}</div>`);});
+  Promise.resolve().then(({overview:loadOverview,feedback:loadFeedback,logs:()=>loadLogs(false),users:loadUsers,orders:loadOrders,store:loadProducts,balance:loadBal,daily:loadDaily,pay:loadPay})[t]).catch(e=>{const sec=document.querySelector(`main section[data-p="${t}"]`);sec.insertAdjacentHTML('afterbegin',`<div class="msg bad">Could not load: ${esc(e.message)}</div>`);});
   try{history.replaceState(null,'','#'+t);}catch(e){}
 }
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>show(b.dataset.t));
@@ -219,7 +229,7 @@ document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>show(b.datase
 /* ---------- overview ---------- */
 async function loadOverview(){
   const o=await api('/api/admin/overview');
-  const tiles=[['Players',o.users],['Active, 24h',o.active24h],['Campaigns, 24h',o.runs24h],['Errors, 24h',o.errors24h,o.errors24h>0],['Pending orders',o.pendingOrders]];
+  const tiles=[['Players',o.users],['Active, 24h',o.active24h],['Campaigns, 24h',o.runs24h],['Open feedback',o.feedbackOpen||0,o.feedbackOpen>0],['Browser errors, 24h',o.browserErrors24h||0,o.browserErrors24h>0],['Errors, 24h',o.errors24h,o.errors24h>0],['Pending orders',o.pendingOrders]];
   $('#tiles').innerHTML=tiles.map(([k,v,a])=>`<div class="tile ${a?'alert':''}"><div class="k">${k}</div><div class="v num">${v}</div></div>`).join('');
   const today=Math.floor(Date.now()/86400000),map=new Map(o.dailyRuns.map(d=>[d.d,d.n]));
   const days=[];for(let d=today-13;d<=today;d++)days.push(map.get(d)||0);
@@ -227,6 +237,20 @@ async function loadOverview(){
   $('#bars').innerHTML=days.map(n=>`<i style="height:${Math.max(2,n/max*100)}%" title="${n}"><span>${n||''}</span></i>`).join('');
   $('#revenue').innerHTML=o.revenue.length?`<div class="kv">${o.revenue.map(r=>`<span>${r.mode==='live'?'Live':'Test'} · ${r.n} orders</span><span class="num">${money(r.total,r.currency)}</span>`).join('')}</div>`:'<p class="hint">No paid orders yet.</p>';
 }
+
+/* ---------- feedback ---------- */
+async function loadFeedback(){
+  const kind=$('#fbKind').value,q=new URLSearchParams({kind});if($('#fbOpen').checked)q.set('open','1');
+  const r=await api('/api/admin/feedback?'+q);
+  const game=m=>{let o={};try{o=JSON.parse(m||'{}');}catch(e){}
+    return esc([o.nation&&`${o.nation} · Heat ${o.heat}${o.realistic?' · Realistic':''}${o.online?' · online':''}`,o.min!=null&&`${o.min} min, ${o.land}% land`,o.map&&`${o.map} map`,o.w&&`${o.w}×${o.h}${o.touch?' touch':''}`].filter(Boolean).join(' · '))+(o.ua?`<div class="hint mono" style="font-size:.7rem">${esc(o.ua)}</div>`:'');};
+  $('#fbRows').innerHTML=r.items.map(f=>`<tr style="${f.done?'opacity:.5':''}"><td class="num">${when(f.ts)}<div class="hint">v${esc(f.version||'?')}</div></td><td>${esc(f.category||kind)}</td><td style="white-space:pre-wrap;max-width:420px">${esc(f.message)}</td><td style="max-width:280px">${game(f.meta)}</td><td>${esc(f.email||'Guest '+f.ip_hash.slice(0,6))}</td>
+    <td><button class="btn" data-fb="${f.id}" data-act="${f.done?'open':'done'}">${f.done?'Reopen':'Done'}</button> <button class="btn" data-fb="${f.id}" data-act="delete">Delete</button></td></tr>`).join('')||`<tr><td colspan="6" class="hint">Nothing here yet.</td></tr>`;
+  document.querySelectorAll('#fbRows [data-fb]').forEach(b=>b.onclick=async()=>{
+    if(b.dataset.act==='delete'&&!b.dataset.armed){b.dataset.armed='1';b.textContent='Tap again';return;}
+    b.disabled=true;await api(`/api/admin/feedback/${b.dataset.fb}/${b.dataset.act}`,{method:'POST',body:{}});loadFeedback();});
+}
+$('#fbGo').onclick=loadFeedback;$('#fbKind').onchange=loadFeedback;$('#fbOpen').onchange=loadFeedback;
 
 /* ---------- logs ---------- */
 let lgOldest=null;
@@ -459,6 +483,8 @@ function renderBal(B){
       <span>Realistic: leader's attacks cost ×</span><span>${numIn('realistic.leaderDef',B.realistic.leaderDef,'0.05')}</span>
       <span>Realistic: decree milestones ×</span><span>${numIn('realistic.decreeGap',B.realistic.decreeGap,'0.1')} <span class="hint">1.5 = decrees at 3%, 6%, 10.5%… instead of 2%, 4%, 7%…</span></span>
       <span>Realistic: choices per decree</span><span>${numIn('realistic.choices',B.realistic.choices,'1')} <span class="hint">normal games offer 3</span></span>
+      <span>Playtest: hide the store</span><span>${numIn('testing.hideStore',B.testing.hideStore,'1')} <span class="hint">1 = the store disappears from the game for everyone, 0 = shown</span></span>
+      <span>Playtest: home banner</span><span>${numIn('testing.banner',B.testing.banner,'1')} <span class="hint">1 = shows "Playtest build… tell me what you find" on the home screen</span></span>
       <span>Tribes on the map</span><span>${numIn('tribes.count',B.tribes.count,'1')} <span class="hint">Gulf map; the Middle East map gets more by land area. 0 = none</span></span>
       <span>Tribe size</span><span>${numIn('tribes.size',B.tribes.size,'1')} tiles</span>
       <span>Tribe land cost ×</span><span>${numIn('tribes.cost',B.tribes.cost,'0.1')} <span class="hint">compared with empty land</span></span>

@@ -116,6 +116,23 @@ function isAdminEmail(env, email) {
   return (env.ADMIN_EMAILS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean).includes((email || '').toLowerCase());
 }
 
+// Feedback table, created on first use so no manual migration is needed
+let feedbackReady = false;
+async function ensureFeedback(env) {
+  if (feedbackReady) return;
+  await env.DB.batch([
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEGER NOT NULL, user_id INTEGER, ip_hash TEXT NOT NULL, kind TEXT NOT NULL, category TEXT, message TEXT NOT NULL, meta TEXT, version TEXT, done INTEGER NOT NULL DEFAULT 0)'),
+    env.DB.prepare('CREATE INDEX IF NOT EXISTS feedback_ts ON feedback(kind, ts)'),
+    env.DB.prepare('CREATE INDEX IF NOT EXISTS feedback_ip ON feedback(ip_hash, ts)'),
+  ]);
+  feedbackReady = true;
+}
+async function ipHash(req, env) {
+  const ip = req.headers.get('CF-Connecting-IP') || 'unknown';
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('gd-ip:' + (env.SESSION_SECRET || '') + ':' + ip));
+  return [...new Uint8Array(h)].slice(0, 8).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function log(env, userId, level, event, data) {
   try {
     await env.DB.prepare('INSERT INTO logs (ts, user_id, level, event, data) VALUES (?, ?, ?, ?, ?)')
@@ -338,6 +355,23 @@ async function api(req, env, url, path) {
     });
   }
 
+  if ((path === '/api/feedback' || path === '/api/error') && method === 'POST') {
+    // Anyone can send feedback or an error report; each IP (stored only as a short salted hash) is rate limited
+    const kind = path === '/api/feedback' ? 'feedback' : 'error';
+    const message = String(body.message || '').trim().slice(0, kind === 'feedback' ? 2000 : 600);
+    if (!message) return json({ error: 'empty' }, 400);
+    await ensureFeedback(env);
+    const ih = await ipHash(req, env);
+    const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM feedback WHERE ip_hash = ? AND kind = ? AND ts > ?').bind(ih, kind, now() - 3600).first();
+    if (recent.n >= (kind === 'feedback' ? 10 : 40)) return json({ error: 'slow_down' }, 429);
+    const viewer = await currentUser(req, env);
+    const category = kind === 'feedback' && ['bug', 'balance', 'idea', 'other'].includes(body.category) ? body.category : null;
+    const meta = body.meta && typeof body.meta === 'object' ? JSON.stringify(body.meta).slice(0, 2000) : null;
+    await env.DB.prepare('INSERT INTO feedback (ts, user_id, ip_hash, kind, category, message, meta, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(now(), viewer ? viewer.id : null, ih, kind, category, message, meta, String(body.version || '').slice(0, 20)).run();
+    return json({ ok: true });
+  }
+
   const user = await currentUser(req, env);
   if (!user) return json({ error: 'auth' }, 401);
 
@@ -481,7 +515,10 @@ async function admin(req, env, url, path, method, body, me) {
     const pending = await one("SELECT COUNT(*) AS n FROM orders WHERE status = 'pending'");
     const revenue = await env.DB.prepare("SELECT currency, mode, SUM(amount) AS total, COUNT(*) AS n FROM orders WHERE status = 'paid' GROUP BY currency, mode").all();
     const daily = await env.DB.prepare("SELECT (ts / 86400) AS d, COUNT(*) AS n FROM logs WHERE event = 'run_start' AND ts > ? GROUP BY d ORDER BY d").bind(now() - 14 * 86400).all();
-    return json({ users: users.n, active24h: active.n, runs24h: runs.n, errors24h: errors.n, pendingOrders: pending.n, revenue: revenue.results, dailyRuns: daily.results });
+    await ensureFeedback(env);
+    const fb = await one("SELECT COUNT(*) AS n FROM feedback WHERE kind = 'feedback' AND done = 0");
+    const ce = await one("SELECT COUNT(*) AS n FROM feedback WHERE kind = 'error' AND ts > ?", day);
+    return json({ users: users.n, active24h: active.n, runs24h: runs.n, errors24h: errors.n, pendingOrders: pending.n, revenue: revenue.results, dailyRuns: daily.results, feedbackOpen: fb.n, browserErrors24h: ce.n });
   }
   if (path === '/logs') {
     const where = [], b = [];
@@ -493,6 +530,21 @@ async function admin(req, env, url, path, method, body, me) {
     const r = await env.DB.prepare(`SELECT l.id, l.ts, l.level, l.event, l.data, u.email FROM logs l LEFT JOIN users u ON u.id = l.user_id ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY l.id DESC LIMIT ${limit}`).bind(...b).all();
     const events = await env.DB.prepare('SELECT DISTINCT event FROM logs ORDER BY event').all();
     return json({ logs: r.results, events: events.results.map((e) => e.event) });
+  }
+  if (path === '/feedback' && method === 'GET') {
+    await ensureFeedback(env);
+    const kind = q.get('kind') === 'error' ? 'error' : 'feedback', where = ['f.kind = ?'], b = [kind];
+    if (q.get('open') === '1') where.push('f.done = 0');
+    if (q.get('before')) { where.push('f.id < ?'); b.push(Number(q.get('before'))); }
+    const r = await env.DB.prepare(`SELECT f.id, f.ts, f.category, f.message, f.meta, f.version, f.done, f.ip_hash, u.email FROM feedback f LEFT JOIN users u ON u.id = f.user_id WHERE ${where.join(' AND ')} ORDER BY f.id DESC LIMIT 100`).bind(...b).all();
+    return json({ items: r.results });
+  }
+  const fm = path.match(/^\/feedback\/(\d+)\/(done|open|delete)$/);
+  if (fm && method === 'POST') {
+    await ensureFeedback(env);
+    if (fm[2] === 'delete') await env.DB.prepare('DELETE FROM feedback WHERE id = ?').bind(Number(fm[1])).run();
+    else await env.DB.prepare('UPDATE feedback SET done = ? WHERE id = ?').bind(fm[2] === 'done' ? 1 : 0, Number(fm[1])).run();
+    return json({ ok: true });
   }
   if (path === '/users' && method === 'GET') {
     const like = '%' + (q.get('q') || '') + '%';

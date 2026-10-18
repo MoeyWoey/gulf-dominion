@@ -73,6 +73,22 @@ CREATE TABLE IF NOT EXISTS logs (
 CREATE INDEX IF NOT EXISTS logs_ts ON logs(ts);
 CREATE INDEX IF NOT EXISTS logs_event ON logs(event, ts);
 
+-- Player feedback and browser errors, sent from the game without needing to sign in
+CREATE TABLE IF NOT EXISTS feedback (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts INTEGER NOT NULL,
+  user_id INTEGER,
+  ip_hash TEXT NOT NULL,
+  kind TEXT NOT NULL,   -- feedback | error
+  category TEXT,
+  message TEXT NOT NULL,
+  meta TEXT,
+  version TEXT,
+  done INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS feedback_ts ON feedback(kind, ts);
+CREATE INDEX IF NOT EXISTS feedback_ip ON feedback(ip_hash, ts);
+
 -- Daily challenge: best score per player per UTC day
 CREATE TABLE IF NOT EXISTS daily_scores (
   date TEXT NOT NULL,
