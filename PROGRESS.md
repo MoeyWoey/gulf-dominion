@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-17 (after commit `0f6438e`)_
+_Last updated: 2026-10-18 (after commit `b8cdadc`)_
 
 ---
 
@@ -685,6 +685,14 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
 - **Runaway test (double decrees, 30 min, 3 seeds):** final land fell from 63 / 44 / 47% to 22 / 20 / 19%. Other AI nations still reached 24–30%.
 - **Watch:** this may make an 80% Realistic win very hard. It needs a playtest; ease `overPer`, `overMin` or `realistic.leaderPct` if so.
 
+### 45. Gold check, light drones, retreat, tribes, softer heat — `b8cdadc`
+- **Gold sim (10 normal + 10 Realistic all-AI games, 15 min):** the AI doesn't hoard. It holds about 10–16 s of income (1–2 cities' worth), spends about 94% on buildings and only 3% on strikes (8% in Realistic).
+- **Light drones:** they only wreck buildings now; no troop losses. This stops border drone spam from draining a nation's army.
+- **Retreat:** a ✕ on each of your attack chips pulls the troops still in the field back home. It also works for online guests.
+- **Tribes:** 14 camps of 12 tiles on the Gulf map (more on the Middle East map, by land area). They show as striped terracotta land with a tent marker, cost 2.5× empty land to take, and the last tile pays 250 gold (× Realistic gold). Online, camps travel in full snapshots. Settings are in `BAL.tribes` (dashboard Rules card).
+- **Heat:** per level, regen/cap/troops go up +0.12 (was 0.2), aggression 0.06 (was 0.1), send share and player focus 0.08 (was 0.12), and strikes come 12 s earlier (was 20).
+- **Live config note:** the saved dashboard config still holds the old heat values, which override the new defaults. Enter the new numbers in the dashboard's Heat card and save.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -715,7 +723,9 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
 | Diplomacy | Ceasefire 60 s, alliance 180 s, price ×1 |
 | Counter-battery | 55-tile range, silos revealed 30 s |
 | Realistic mode | Gold ×0.5, land ×2 (everyone), per-bloc Realistic loyalty (default 0.6), pearls ×1.5, diplomacy ×0.75 · overextension from 20% (−2% regen/cap per %, floor 0.4) · unrest 60 s, capital revolt below 35% cap (5 tiles) · coalition from 20%, attacks ×1.8 · decree milestones ×1.5, 2 choices |
-| Heat (per level above 1) | AI regen +0.2, cap +0.2, starting troops +20%, attack threshold −0.1, send share +0.12, player focus +0.12, strikes 20 s earlier |
+| Heat (per level above 1) | AI regen +0.12, cap +0.12, starting troops +12%, attack threshold −0.06, send share +0.08, player focus +0.08, strikes 12 s earlier |
+| Tribes | 14 camps × 12 tiles (Gulf), land cost ×2.5, 250 gold for the last tile |
+| Light drones | Buildings only, no troop losses |
 | Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 · empty pockets up to 30 tiles auto-claimed · missile craters 0.5 × blast radius, empty for 30 s |
 | Nation perks | KW Diplomacy ×2, oil ×1.6, defense ×1.6, cap ×1.25, regen ×1.08 · SA cap ×1.25, expansion ×0.8, defense ×1.15, regen ×1.05 · BH regen ×1.12, coastal gold · QA gold ×1.4 · AE cities ×0.65 cost · OM mountains ×0.5, defense ×1.15 · IQ regen ×1.1, +100 cap per city · IR missiles ×0.7, starts with a silo · YE attacks ×0.75, expansion ×0.85, mountains ×0.5, cap ×1.2, defense ×1.25, mountain defense ×1.6, regen ×1.2 |
 | AI targeting | Same-bloc target ×6, attacked 5% of the time · breather: no new AI attacks or landings on a nation that lost over 4% of its land recently (fades over 60 s); never shields the player |
