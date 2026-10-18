@@ -188,8 +188,9 @@ window.GD_BALANCE_DEFAULTS = {
   // per level; playerFocus: how much more they pick on you per level; strikesEarlier: seconds earlier strikes begin per level.
   heat: { regen: 0.12, cap: 0.12, troops: 0.12, aggression: 0.06, sendMore: 0.08, playerFocus: 0.08, strikesEarlier: 12 },
   // Tribes: small neutral camps scattered over the map (count is for the Gulf map; the Middle East map gets more by land area).
-  // Each holds about `size` tiles that cost `cost`× normal empty land to take; taking the last tile pays `gold` (× Realistic gold).
-  tribes: { count: 14, size: 12, cost: 2.5, gold: 250 },
+  // Each starts with about `size` tiles that cost `cost`× normal empty land to take; taking the last tile pays `gold` (× Realistic gold).
+  // Every `grow` seconds each camp spreads onto one more empty tile next to it, up to `maxSize` tiles (grow 0 = camps never grow).
+  tribes: { count: 14, size: 12, cost: 2.5, gold: 250, grow: 20, maxSize: 30 },
   // Realistic mode (switch beside Begin campaign), applied to every nation: gold income and land-cost multipliers, pearl reward and diplomacy price multipliers,
   // Realistic extras: overextension (past overStart% of the land, regen and troop cap drop overPer per extra %, down to overMin),
   // unrest (land taken from a nation gives no gold or regen for unrest seconds; a taken capital rebels back to its old owner if the

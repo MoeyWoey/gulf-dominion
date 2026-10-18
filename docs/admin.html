@@ -463,6 +463,8 @@ function renderBal(B){
       <span>Tribe size</span><span>${numIn('tribes.size',B.tribes.size,'1')} tiles</span>
       <span>Tribe land cost ×</span><span>${numIn('tribes.cost',B.tribes.cost,'0.1')} <span class="hint">compared with empty land</span></span>
       <span>Tribe gold reward</span><span>${numIn('tribes.gold',B.tribes.gold,'10')} gold <span class="hint">paid when the last tile of a camp is taken</span></span>
+      <span>Tribe growth: one tile every</span><span>${numIn('tribes.grow',B.tribes.grow,'1')} seconds <span class="hint">0 = camps never grow</span></span>
+      <span>Tribe max size</span><span>${numIn('tribes.maxSize',B.tribes.maxSize,'1')} tiles</span>
       <span>Realistic: diplomacy price ×</span><span>${numIn('realistic.diplomacy',B.realistic.diplomacy,'0.05')}</span>
       <span>Extra GCC oil fields</span><span>${numIn('oil.gccExtra',B.oil.gccExtra,'0.01')} <span class="hint">0 = real fields only, 0.05 = default, 0.15 = lots</span></span>
      </div></div>`;
