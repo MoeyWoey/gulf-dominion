@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-19 (after commit `ef582fa`)_
+_Last updated: 2026-10-19 (after commit `59a1db7`)_
 
 ---
 
@@ -752,6 +752,19 @@ All three steps are Realistic only, and every value is in `BAL.realistic` (dashb
   - `attackPace: 0.6` and `attackMax: 6` tiles/s: a steady pace, so a bigger army goes further, not faster. Before, 28–51 tiles/s.
   - `focusGrow: 0.6`: the front widens with depth, so it fans out in the general direction instead of a spear. It reached 9–10 tiles either side, against 5.
   - Tiles are picked by distance plus own neighbours, so the front fills out as one mass.
+
+### 50. Fix: nations that couldn't be finished off — `59a1db7`
+- **Reported:** in a real game, a nation kept taking land back, and its last capital tile couldn't be taken.
+- **Cause 1, endless revolts:** the Realistic revolt fired whenever the attacker's troops were below 35% of its cap. An attacking army sits around 5%, so almost every capture revolted. In a staged 5-minute assault Bahrain revolted 38–59 times and was never eliminated.
+- **Cause 2, the last capital tile:** troops are spread over a nation's tiles, so a remnant of 1–3 tiles packed its whole army into them. With live capital ×5, fort ×3 and Realistic ×3, one tile cost thousands of troops.
+- **Fixes:**
+  - Revolts need the old owner to hold 60 tiles (`realistic.revoltMinTiles`), at most once per nation every 120 s (`revoltCooldown`). The default trigger is now 15%; the live config still saves 0.35, so lower it in the dashboard.
+  - Defenders' troops count as spread over at least 40 tiles (`combat.minDefTiles`, all modes).
+  - A nation's last surrounded pocket of 12 tiles or fewer surrenders even with its capital (`combat.enclaveLast`, all modes).
+- **Results:**
+  - The same staged assault eliminated Bahrain in 98–151 s with 1 revolt per game.
+  - A 9-tile surrounded remnant with its capital surrendered on the next second.
+  - Its capital tile now costs 1,770 troops instead of 6,583.
 
 ---
 
