@@ -895,7 +895,7 @@ const fmt=n=>{n=Math.max(0,n);return n<1000?String(Math.floor(n)):n<1e6?(n/1000)
 const rgb=(c,a=1)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
 
 /* ================= Run state ================= */
-const owner=new Uint8Array(N), bld=new Uint8Array(N), ammo=new Float32Array(N), bcool=new Float32Array(N), bgap=new Float32Array(N), siloSeen=new Float32Array(N), unrest=new Float32Array(N), tribe=new Uint8Array(N); // bld: 1 city, 2 fort, 3 rig, 4 port, 5 silo, 6 drone hangar, 7 air defense, 8 radar, 9 counter-battery, 10 artillery, 12 coastal battery (11 = warship, tooltips only)
+const owner=new Uint8Array(N), bld=new Uint8Array(N), ammo=new Float32Array(N), bcool=new Float32Array(N), bgap=new Float32Array(N), siloSeen=new Float32Array(N), unrest=new Float32Array(N), tribe=new Uint8Array(N), bnext=new Uint8Array(N), bdone=new Float32Array(N); // bld: 1 city, 2 fort, 3 rig, 4 port, 5 silo, 6 drone hangar, 7 air defense, 8 radar, 9 counter-battery, 10 artillery, 12 coastal battery (11 = warship, tooltips only)
 let blist=[], attacks=[], boats=[], ships=[], shots=[], missiles=[], booms=[], NATS=[null], G=null;
 const dirty=new Uint8Array(N); let dirtyList=[], fullPaint=true, basePaint=true, heroKey=null;
 // shownOwner = the owners currently painted on the map texture. fullPaint asks to repaint whatever changed since; basePaint (colours changed) forces a full repaint
@@ -951,7 +951,7 @@ function startRun(spec){
   if(!spec||mp)endDaily();
   closeSheet();
   const pid=mp?mp.nation:spec?spec.nation:S.nation,diff=mp?mp.room.heat:spec?spec.heat:S.diff,isH=id=>mp?!!mp.humans[id]:id===pid;
-  owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);siloSeen.fill(0);crater.fill(0);unrest.fill(0);
+  owner.fill(0);bld.fill(0);blist=[];attacks=[];boats=[];ships=[];shots=[];missiles=[];booms=[];ammo.fill(0);bcool.fill(0);bgap.fill(0);siloSeen.fill(0);crater.fill(0);unrest.fill(0);bnext.fill(0);bdone.fill(0);
   G={revolts:[],pid,diff,daily:mp?null:spec||null,mp:mp?1:0,spec:mp?!!mp.spec:false,names:mp?mp.names:{},real:mp?!!mp.room.realistic:!spec&&!!S.realistic,caps:0,t:0,speed:1,paused:false,over:false,acc:0,econAcc:0,
      aiRegen:heatOf(diff).regen,aiCap:heatOf(diff).cap,aiThresh:heatOf(diff).thresh,aiFrac:heatOf(diff).frac,aiFocus:heatOf(diff).focus,strikeAt:heatOf(diff).strikeAt,
      sand:1,kills:0,peak:0,ms:0,drafts:0,rerolls:lvl('reroll'),cards:[],nextNews:BAL.news.first,news:null,newsEnd:0,fx:fxBase(),ssel:'',cbSeen:{},dip:{},trustUntil:0,breakArm:0,breakArmUntil:0,rushReady:0,aiRushReady:{},focus:-1,focusUntil:0,hover:-1,uavUntil:0,uavReady:0,aiUav:{},aiUavReady:{},evt:null,evtEnd:0,oilBoost:1,sandstorm:1,
@@ -1276,7 +1276,7 @@ function aiBoat(n,cnt){
 }
 
 function econ(init){
-  if(!init){fillPockets();growTribes();}
+  if(!init){fillPockets();growTribes();stepSites();}
   const cnt=NATS.map(()=>({t:0,oil:0,coast:0,cities:0,rigs:0,dry:0,ports:0,sx:0,sy:0,u:0,uo:0,uc:0}));
   if(!init&&G.real)checkRevolts();
   const RL=G.real?BAL.realistic:null;
@@ -1391,32 +1391,32 @@ function aiBuild(n){
   if(n.stuck){
     const spot=ownFreeCell(n,i=>!oil[i]);
     if(spot>=0&&n.gold>=costOf(n,'city')){place(n,spot,'city');return;}
-    let s=0;for(const j of blist)if(bld[j]===7&&owner[j]===n.id)s++;
-    if(s<2+Math.floor(n.tiles/250)&&n.gold>=costOf(n,'sam')){const anchors=[n.capIdx,...blist.filter(j=>owner[j]===n.id&&(bld[j]===1||bld[j]===5||bld[j]===6))];if(placeNear(n,anchors[(Math.random()*anchors.length)|0],'sam',4))return;}
+    let s=0;for(const j of blist)if(btype(j)===7&&owner[j]===n.id)s++;
+    if(s<2+Math.floor(n.tiles/250)&&n.gold>=costOf(n,'sam')){const anchors=[n.capIdx,...blist.filter(j=>owner[j]===n.id&&(btype(j)===1||btype(j)===5||btype(j)===6))];if(placeNear(n,anchors[(Math.random()*anchors.length)|0],'sam',4))return;}
     if(spot>=0&&n.gold>=costOf(n,'city')*.6)return; // a city is within reach (and there is room): save up for it instead of spending elsewhere
   }
   // Forts on a threatened border; more willing at higher heat
-  if(G.t>45){let f=0;for(const j of blist)if(bld[j]===2&&owner[j]===n.id)f++;
+  if(G.t>45){let f=0;for(const j of blist)if(btype(j)===2&&owner[j]===n.id)f++;
     if(f<1+Math.floor(n.tiles/Math.max(20,BAL.ai.fortTiles))+(G.diff>=3?1:0)&&n.gold>=costOf(n,'fort')*Math.max(1,1.4-.1*(G.diff-1))){const i=aiFortSpot(n);if(i>=0){place(n,i,'fort');return;}}}
-  if(acadOn()&&needAcad(n.id)&&G.t>BAL.realistic.academyAI){if(n.gold>=costOf(n,'academy')*1.1&&placeNear(n,n.capIdx,'academy',5))return;if(n.gold>=costOf(n,'academy')*.5)return;} // save up for the academy
+  if(acadOn()&&needAcad(n.id)&&!acadPending(n.id)&&G.t>BAL.realistic.academyAI){if(n.gold>=costOf(n,'academy')*1.1&&placeNear(n,n.capIdx,'academy',5))return;if(n.gold>=costOf(n,'academy')*.5)return;} // save up for the academy
   const rc=costOf(n,'rig');
   // Oil rigs first, but in proportion to cities (oil-rich nations used to build nothing but rigs)
   if(n.gold>=rc&&n.rigs+n.rigsDry<6+3*n.cities){for(const i of oilCells){if(owner[i]===n.id&&!bld[i]){place(n,i,'rig');return;}}}
-  let sams=0,hang=0,silo=0;for(const j of blist){if(owner[j]!==n.id)continue;if(bld[j]===7)sams++;else if(bld[j]===6)hang++;else if(bld[j]===5)silo++;}
+  let sams=0,hang=0,silo=0;for(const j of blist){if(owner[j]!==n.id)continue;if(btype(j)===7)sams++;else if(btype(j)===6)hang++;else if(btype(j)===5)silo++;}
   if(sams<1+Math.floor(n.tiles/350)&&n.gold>=costOf(n,'sam')&&(G.t>40||sams===0&&G.t>20)){
-    const anchors=[n.capIdx,...blist.filter(j=>owner[j]===n.id&&(bld[j]===1||bld[j]===5||bld[j]===6))];
+    const anchors=[n.capIdx,...blist.filter(j=>owner[j]===n.id&&(btype(j)===1||btype(j)===5||btype(j)===6))];
     if(placeNear(n,anchors[(Math.random()*anchors.length)|0],'sam',4))return;}
-  if(acadOn()&&needAcad(n.id)){if(G.t>BAL.realistic.academyAI&&n.gold>=costOf(n,'academy')*1.1&&placeNear(n,n.capIdx,'academy',5))return;}
+  if(acadOn()&&needAcad(n.id)){if(G.t>BAL.realistic.academyAI&&!acadPending(n.id)&&n.gold>=costOf(n,'academy')*1.1&&placeNear(n,n.capIdx,'academy',5))return;}
   else{
   if(!hang&&G.t>60&&n.gold>=costOf(n,'hangar')*1.1&&placeNear(n,n.capIdx,'hangar',5))return;
   if(!silo&&G.t>120&&n.gold>=costOf(n,'silo')*1.2&&placeNear(n,n.capIdx,'silo',5))return;
-  if(silo&&G.t>150&&!blist.some(j=>bld[j]===9&&owner[j]===n.id)&&blist.some(j=>bld[j]===8&&owner[j]===n.id)&&n.gold>=costOf(n,'cb')*1.3&&placeNear(n,n.capIdx,'cb',4))return;
-  if(hasArty(n.id)&&G.t>80&&Math.random()<.5){const k=blist.filter(j=>bld[j]===10&&owner[j]===n.id).length;
+  if(silo&&G.t>150&&!blist.some(j=>btype(j)===9&&owner[j]===n.id)&&blist.some(j=>btype(j)===8&&owner[j]===n.id)&&n.gold>=costOf(n,'cb')*1.3&&placeNear(n,n.capIdx,'cb',4))return;
+  if(hasArty(n.id)&&G.t>80&&Math.random()<.5){const k=blist.filter(j=>btype(j)===10&&owner[j]===n.id).length;
     if(k<1+Math.floor(n.tiles/450)&&n.gold>=costOf(n,'arty')*1.2){const f=aiFront(n);if(f>=0&&placeNear(n,f,'arty',2))return;}}
   }
-  if(hasAntiShip(n.id)&&n.coastT&&G.t>100&&Math.random()<.4){const k=blist.filter(j=>bld[j]===12&&owner[j]===n.id).length;
+  if(hasAntiShip(n.id)&&n.coastT&&G.t>100&&Math.random()<.4){const k=blist.filter(j=>btype(j)===12&&owner[j]===n.id).length;
     if(k<1+Math.floor(n.coastT/120)&&n.gold>=costOf(n,'coastal')*1.25){const i=ownFreeCell(n,()=>true,coastCells);if(i>=0){place(n,i,'coastal');return;}}}
-  if(sams>0&&G.t>90&&!blist.some(j=>bld[j]===8&&owner[j]===n.id)&&n.gold>=costOf(n,'radar')*1.2&&placeNear(n,n.capIdx,'radar',4))return;
+  if(sams>0&&G.t>90&&!blist.some(j=>btype(j)===8&&owner[j]===n.id)&&n.gold>=costOf(n,'radar')*1.2&&placeNear(n,n.capIdx,'radar',4))return;
   if(n.coastT&&Math.random()<.35){
     const myPorts=blist.filter(i=>bld[i]===4&&owner[i]===n.id);
     const free=myPorts.find(i=>ships.filter(w=>w.port===i).length<2);
@@ -1457,9 +1457,20 @@ const BKEY={city:'citiesBuilt',fort:'fortsBuilt',rig:'rigsBuilt',port:'portsBuil
 // Realistic v2: strikes (and silos, hangars, artillery) need a Military academy you own
 const acadOn=()=>!!(G&&G.real&&BAL.realistic.academy);
 const needAcad=nid=>acadOn()&&!blist.some(j=>bld[j]===13&&owner[j]===nid);
+const acadPending=nid=>blist.some(j=>bld[j]===14&&bnext[j]===13&&owner[j]===nid);
+// Realistic v2 build timers: a new building is a site (bld 14) that turns into the real one when its timer runs out
+const BNAME_OF={};for(const t in BCODE)BNAME_OF[BCODE[t]]=t;
+const buildSecs=code=>{if(!(G&&G.real)||!(BAL.realistic.buildTime>0))return 0;const v=BAL.realistic.build&&BAL.realistic.build[BNAME_OF[code]];return Math.max(0,(v||0)*BAL.realistic.buildTime);};
+const btype=j=>bld[j]===14?bnext[j]:bld[j]; // what a cell is or will be
+function finishBld(i){const c=bnext[i];bld[i]=c;bnext[i]=0;bdone[i]=0;const n=NATS[owner[i]];if(MAG[c]){ammo[i]=n?magOf(n,c):MAG[c];bcool[i]=0;bgap[i]=0;}
+  if(owner[i]===G.pid&&!G.spec&&sfxOK('built',1500))toast(`${bldInfo(c)[0]} finished.`,1800);}
+function stepSites(){for(const i of blist)if(bld[i]===14&&G.t>=bdone[i])finishBld(i);}
 function place(n,i,t,free){
   const c=costOf(n,t);if(!free&&n.gold<c)return false;
-  if(!free)n.gold-=c;bld[i]=BCODE[t];blist.push(i);n[BKEY[t]]++;
+  if(!free)n.gold-=c;blist.push(i);n[BKEY[t]]++;
+  const secs=free?0:buildSecs(BCODE[t]);
+  if(secs>0){bld[i]=14;bnext[i]=BCODE[t];bdone[i]=G.t+secs;return true;}
+  bld[i]=BCODE[t];
   if(MAG[bld[i]]){ammo[i]=magOf(n,bld[i]);bcool[i]=0;bgap[i]=0;}
   return true;
 }
@@ -1510,7 +1521,7 @@ function launchStrikeInner(attId,wid,i){
 }
 // A building destroyed by a strike lowers its owner's price counter by one (prices rise with each one built; capture doesn't refund)
 const BUILT_KEY={};for(const t in BCODE)BUILT_KEY[BCODE[t]]=BKEY[t];
-function refundBuilt(j){const o=owner[j],k=BUILT_KEY[bld[j]];if(o&&k&&NATS[o][k]>0)NATS[o][k]--;}
+function refundBuilt(j){const o=owner[j],k=BUILT_KEY[btype(j)];if(o&&k&&NATS[o][k]>0)NATS[o][k]--;}
 function destroyBld(j){const o=owner[j];if(o&&NATS[o].m.bunker&&Math.random()<NATS[o].m.bunker)return false;refundBuilt(j);bld[j]=0;return true;}
 function impact(m){
   const cx=Math.round(m.tx),cy=Math.round(m.ty);if(cx<0||cy<0||cx>=W||cy>=H)return;
@@ -1815,7 +1826,7 @@ function spotLaunch(L,att){
   }
 }
 function bldVisibleTo(viewer,i){
-  if(bld[i]!==5||owner[i]===viewer)return true;
+  if(btype(i)!==5||owner[i]===viewer)return true;
   if(siloSeen[i]>G.t)return true;
   const cb=G.cbSeen&&G.cbSeen[viewer];if(cb&&cb.get(i)>G.t)return true;
   return viewer===G.pid?G.uavUntil>G.t:(G.aiUav[viewer]||0)>G.t;
@@ -1926,6 +1937,8 @@ function render(now){
         ctx.setLineDash(b===8?[7,6]:[]);ctx.strokeStyle=`rgba(${rc},${sa})`;ctx.lineWidth=focused?2.4:1.3;ctx.stroke();ctx.setLineDash([]);
         if(b===8&&mine){const a=now/700%(Math.PI*2),g=ctx.createRadialGradient(x,y,0,x,y,RR);g.addColorStop(0,'rgba(140,230,180,.3)');g.addColorStop(1,'rgba(140,230,180,0)');ctx.beginPath();ctx.moveTo(x,y);ctx.arc(x,y,RR,a-.4,a);ctx.closePath();ctx.fillStyle=g;ctx.fill();}
       }
+      if(b===14){const tot=Math.max(1,buildSecs(bnext[i])),f=Math.max(0,Math.min(1,1-(bdone[i]-G.t)/tot));ctx.globalAlpha=.45;drawGlyph(ctx,bnext[i],x,y,r,rgb(c));ctx.globalAlpha=1;
+        ctx.beginPath();ctx.arc(x,y,r*1.22,-Math.PI/2,-Math.PI/2+f*Math.PI*2);ctx.strokeStyle='rgba(240,200,120,.95)';ctx.lineWidth=Math.max(2,r*.24);ctx.stroke();continue;}
       drawGlyph(ctx,b,x,y,r,rgb(c));
       if(b===5&&!mine){const pulse=.5+.5*Math.sin(now/160);ctx.beginPath();ctx.arc(x,y,r*1.6,0,7);ctx.setLineDash([3,3]);ctx.strokeStyle=`rgba(255,111,94,${.5+.4*pulse})`;ctx.lineWidth=1.8;ctx.stroke();ctx.setLineDash([]);}
       if(MAG[b]&&s>=4){
@@ -2139,7 +2152,7 @@ function bldInfo(code,n){
   return ['',''];
 }
 function bldStatus(i){
-  const b=bld[i];if(!MAG[b])return '';
+  const b=bld[i];if(b===14)return `Under construction · ready in ${Math.max(1,Math.ceil(bdone[i]-G.t))}s`;if(!MAG[b])return '';
   if(ammo[i]<1)return `Reloading · ready in ${Math.max(1,Math.ceil(bcool[i]))}s`;
   return `${Math.floor(ammo[i])}/${magOf(NATS[owner[i]],b)} ${({5:'missiles',6:'drones',7:'interceptors',10:'salvo',12:'anti-ship missiles'})[b]} ready`;
 }
@@ -2159,7 +2172,7 @@ function mapTip(){
   let best=-1,bd=rad*rad;
   if(s>=3)for(const j of blist){if(!bld[j]||!owner[j]||!bldVisibleTo(G.pid,j))continue;const dx=j%W+.5-mx,dy=((j/W)|0)+.5-my,d=dx*dx+dy*dy;if(d<=bd){bd=d;best=j;}}
   if(best<0){hideTip();return;}
-  const o=owner[best],n=NATS[o],[nm,desc]=bldInfo(bld[best],n),st=bldStatus(best);
+  const o=owner[best],n=NATS[o],[nm,desc]=bldInfo(btype(best),n),st=bldStatus(best);
   const who=o===G.pid&&!G.spec?'Yours':esc(G.mp&&G.names&&G.names[o]?`${n.name} (${G.names[o]})`:n.name);
   placeTip(`<b>${nm}</b><span class="own"><i style="background:${rgb(n.color)}"></i>${who}</span><p>${desc}</p>${st?`<em>${st}</em>`:''}`,TIP.x,TIP.y);
 }
@@ -2244,7 +2257,7 @@ function doAction(nid,a){
     if(!BCODE[t]){res.r='bad';return res;}
     const c=costOf(n,t);res.cost=c;res.oil=oil[i]?1:0;
     res.r=owner[i]!==nid?'notown':bld[i]?'built':(t==='arty'&&!hasArty(nid))||(t==='coastal'&&!hasAntiShip(nid))||(t==='academy'&&!acadOn())?'noarsenal':(t==='silo'||t==='hangar'||t==='arty')&&needAcad(nid)?'academy':(t==='port'&&nearWater(i,3)<0)||(t==='coastal'&&nearWater(i,2)<0)?'nowater':n.gold<c?'gold':'ok';
-    if(res.r==='ok'){place(n,i,t);econ(true);}return res;}
+    if(res.r==='ok'){place(n,i,t);res.secs=bld[i]===14?bdone[i]-G.t:0;econ(true);}return res;}
   if(a.k==='atk'||a.k==='boat'){
     const o=owner[i];if(terr[i]<2){res.r='bad';return res;}if(o===nid){res.r='own';return res;}
     res.o=o;const troops=n.troops*Math.max(.05,Math.min(1,Number(a.f)||.4));
@@ -2283,6 +2296,7 @@ function showResult(res,ping){
       cooldown:k==='drone'?`All hangars in range are rearming. Next drones in ${Math.ceil(res.wait)}s.`:art?`Artillery in range is reloading. Next salvo in ${Math.ceil(res.wait)}s.`:`All silos in range are reloading. Next missile in ${Math.ceil(res.wait)}s.`,
       gold:`Need ${fmt(res.cost)} gold.`,academy:'Build a Military academy first: it unlocks missiles, drones and artillery.'}[res.r]);return;}
   if(res.k==='bld'){
+    if(res.r==='ok'&&res.secs)toast(`${bldInfo(BCODE[res.b])[0]} under construction: ready in ${Math.round(res.secs)}s.`,2200);
     if(res.r!=='ok'){ping(true);toast({notown:'You can only build on your own land.',built:'Something is already built here.',noarsenal:'Your nation cannot build that.',academy:'Build a Military academy first: it unlocks silos, drone hangars and artillery.',nowater:res.b==='coastal'?'Coastal batteries need open water within 2 tiles.':'Ports need open water within 3 tiles.',gold:`Need ${fmt(res.cost)} gold.`}[res.r]);return;}
     ping(false);if(res.b==='radar'){SFX.radar();bump('radars');
       // A new radar reveals strikes that were already on the way; say so, so it doesn't look like the radar provoked them
@@ -2752,7 +2766,7 @@ const GUIDE=[
  ['reload','Reload',()=>`Silos hold 1 missile, hangars 4 drones, air defense 3 interceptors. Blue pips show what is ready; a red ring shows reloading.`],
  ['navy','Navy',()=>`Launch warships from a port. They patrol nearby waters and sink enemy dhows and warships.`],
  ['keys','Keyboard and mouse',()=>`On a PC, press 1, 2, 3 or 4 for Attack, Boat, Strike and Build. Hover any building to see what it does, and the build menu stays on screen so you always know what you can afford.`],
- ['realistic','Realistic mode',()=>`${BAL.realistic.academy?`Realistic is a slower war: every nation starts with a ${BAL.realistic.startLand}× bigger home region, and missiles, drones and artillery stay locked until you build a Military academy (${fmt(BAL.realistic.academyCost)} gold). Lose every academy and they lock again. `:''}The switch beside Begin campaign halves gold income and doubles the cost of taking land for every nation, and weakens bloc loyalty so neighbours fight each other more. It is also harder to hold what you take: past ${BAL.realistic.overStart}% of the land your regen and troop cap shrink (overextension); land taken from a nation gives no gold or regen for ${BAL.realistic.unrest} s, and a captured capital rises back to its old owner if your troops drop below ${Math.round(BAL.realistic.revoltBelow*100)}% of your cap in that time. Rivals unite against any nation past ${BAL.realistic.leaderPct}% of the land, and decrees come less often with ${BAL.realistic.choices} choices each. Deals are cheaper and campaigns pay ${BAL.realistic.pearls}× pearls. Not used in the daily challenge.`],
+ ['realistic','Realistic mode',()=>`${BAL.realistic.academy?`Realistic is a slower war: every nation starts with a ${BAL.realistic.startLand}× bigger home region, and missiles, drones and artillery stay locked until you build a Military academy (${fmt(BAL.realistic.academyCost)} gold). Lose every academy and they lock again. `:''}${BAL.realistic.buildTime>0?`Buildings take time to finish (a city ${Math.round(BAL.realistic.build.city*BAL.realistic.buildTime)}s, a silo ${Math.round(BAL.realistic.build.silo*BAL.realistic.buildTime)}s, an academy ${Math.round(BAL.realistic.build.academy*BAL.realistic.buildTime)}s) and do nothing until then; a gold ring shows progress. `:''}The switch beside Begin campaign halves gold income and doubles the cost of taking land for every nation, and weakens bloc loyalty so neighbours fight each other more. It is also harder to hold what you take: past ${BAL.realistic.overStart}% of the land your regen and troop cap shrink (overextension); land taken from a nation gives no gold or regen for ${BAL.realistic.unrest} s, and a captured capital rises back to its old owner if your troops drop below ${Math.round(BAL.realistic.revoltBelow*100)}% of your cap in that time. Rivals unite against any nation past ${BAL.realistic.leaderPct}% of the land, and decrees come less often with ${BAL.realistic.choices} choices each. Deals are cheaper and campaigns pay ${BAL.realistic.pearls}× pearls. Not used in the daily challenge.`],
  ['diplomacy','Diplomacy',()=>`Tap a nation in the list at the top right to offer gold for a ceasefire or an alliance. Stronger, angrier nations charge more and refuse more often. Attacking a partner breaks the deal and everyone trusts you less.`],
  ['online','Play online',()=>`Sign in, create a game and share the code or invite link. Up to 9 players each pick a nation; the AI runs the rest. Everyone starts equal. The host's device runs the game, so the host keeps the tab open. Win with ${WIN_PCT}% of the land or as the last player standing.`],
  ['daily','Daily challenge',()=>`Every day everyone plays the same nation, heat and twist with the same random seed and no upgrades. Your score counts land, rivals eliminated, capitals taken and a fast win. Signed-in players appear on the leaderboard.`],
@@ -2829,7 +2843,7 @@ function drawHero(force){
   const hc=$('#heroCv'),hx=hc.getContext('2d');
   const save={own:owner.slice(),G,NATS};
   if(!NAT[S.nation])S.nation=1;
-  owner.fill(0);tribe.fill(0);G={pid:S.nation,pings:[]};NATS=[null];
+  owner.fill(0);tribe.fill(0);bnext.fill(0);bdone.fill(0);G={pid:S.nation,pings:[]};NATS=[null];
   for(let id=1;id<=NNAT;id++){NATS.push(newNation(id,id===S.nation,1));claimBlob(id,NATS[id].capIdx,id===S.nation?3:2);}
   fullPaint=true;flushPaint(); // repaints only the tiles that changed since the last paint
   // crop lon 37.5-63, lat 15.8-38.5
@@ -2873,7 +2887,7 @@ function mpSnap(full){
   // Buildings: [cell, type, ammo, readyAt]. readyAt is the game time a reload finishes (0 when loaded), so it stays constant while
   // reloading; broadcasts carry only buildings that changed (bc) or vanished (br), full snapshots carry all of them (b)
   const seen=new Set(),b=[],ss=[],cur=new Map();
-  for(const j of blist){if(!bld[j]||seen.has(j))continue;seen.add(j);const mag=!!MAG[bld[j]],rec=[j,bld[j],mag?r1(ammo[j]):0,mag&&ammo[j]<1?r1(G.t+bcool[j]):0];cur.set(j,rec);if(bld[j]===5&&siloSeen[j]>G.t)ss.push(j,r1(siloSeen[j]));}
+  for(const j of blist){if(!bld[j]||seen.has(j))continue;seen.add(j);const mag=!!MAG[bld[j]],rec=bld[j]===14?[j,14,bnext[j],r1(bdone[j])]:[j,bld[j],mag?r1(ammo[j]):0,mag&&ammo[j]<1?r1(G.t+bcool[j]):0];cur.set(j,rec);if(bld[j]===5&&siloSeen[j]>G.t)ss.push(j,r1(siloSeen[j]));}
   if(full){for(const r of cur.values())b.push(...r);d.b=b;}
   else{const bc=[],br=[];for(const [j,r] of cur){const o=MP.bSent.get(j);if(!o||o[1]!==r[1]||o[2]!==r[2]||o[3]!==r[3])bc.push(...r);}for(const j of MP.bSent.keys())if(!cur.has(j))br.push(j);MP.bSent=cur;d.bc=bc;d.br=br;}
   d.ss=ss;
@@ -2936,7 +2950,7 @@ function mpApply(d){
     const od=d.od;for(let q=0;q<od.length;q+=2){owner[od[q]]=od[q+1];if(od[q+1]&&tribe[od[q]]){const t=G.tribes&&G.tribes[tribe[od[q]]];if(t)t.left--;tribe[od[q]]=0;}markAround(od[q]);}
     if(d.tg)for(let q=0;q<d.tg.length;q+=2){const c=d.tg[q],k=d.tg[q+1];if(!tribe[c]&&!owner[c]){tribe[c]=k;const t=G.tribes&&G.tribes[k];if(t)t.left++;markAround(c);}}}
   G.t=d.gt;
-  const setB=(j,t,a,rdy)=>{bld[j]=t;ammo[j]=a;if(MAG[t]&&a<1)M.rdy.set(j,rdy);else{M.rdy.delete(j);bcool[j]=0;}};
+  const setB=(j,t,a,rdy)=>{if(t===14){bld[j]=14;bnext[j]=a;bdone[j]=rdy;ammo[j]=0;M.rdy.delete(j);return;}bld[j]=t;ammo[j]=a;if(MAG[t]&&a<1)M.rdy.set(j,rdy);else{M.rdy.delete(j);bcool[j]=0;}};
   if(d.b){M.rdy.clear();for(const j of blist){bld[j]=0;ammo[j]=0;bcool[j]=0;}blist=[];const b=d.b;for(let q=0;q<b.length;q+=4){setB(b[q],b[q+1],b[q+2],b[q+3]);blist.push(b[q]);}}
   else if(d.bc){const gone=new Set(d.br);for(const j of gone){bld[j]=0;ammo[j]=0;bcool[j]=0;M.rdy.delete(j);}
     const add=[];const bc=d.bc;for(let q=0;q<bc.length;q+=4){const j=bc[q];if(!bld[j])add.push(j);setB(j,bc[q+1],bc[q+2],bc[q+3]);}

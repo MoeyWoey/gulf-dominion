@@ -207,7 +207,9 @@ window.GD_BALANCE_DEFAULTS = {
     leaderPct: 20, leaderDef: 1.8, decreeGap: 1.5, choices: 2,
     // Realistic v2: every nation starts with startLand× the usual home region; missiles, drones and artillery need a Military academy
     // (academy 1 = on). It costs academyCost (×1.5 for each further one); AI nations start building one after academyAI seconds.
-    startLand: 5, academy: 1, academyCost: 1500, academyAI: 240 },
+    startLand: 5, academy: 1, academyCost: 1500, academyAI: 240,
+    // Build timers (seconds) in Realistic; buildTime scales them all (0 = build instantly). A building under construction does nothing yet.
+    buildTime: 1, build: { city: 15, fort: 20, rig: 15, port: 25, sam: 30, radar: 30, cb: 35, arty: 45, coastal: 45, hangar: 75, silo: 90, academy: 120 } },
 };
 
 // Merge saved overrides over the defaults, keeping only known keys and sane values.
