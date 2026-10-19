@@ -411,11 +411,14 @@ function renderBal(B){
       <span>Fort radius</span><span>${numIn('combat.fortRadius',B.combat.fortRadius,'1')} tiles <span class="hint">land this close to a fort costs the Fort × above to take</span></span>
       <span>Strike troop damage ×</span><span>${numIn('combat.strikeTroops',B.combat.strikeTroops,'0.05')} <span class="hint">scales the % of a nation's army each drone or missile kills</span></span>
      </div></div>
-     <div class="card"><h2>AI targeting</h2><p class="hint">How computer nations pick who to attack. Blocs are the GCC on one side and Iraq, Iran and Yemen on the other. The breather stops every AI taking turns on the same collapsing nation. It never protects the player.</p><div class="kv" style="align-items:center">
+     <div class="card"><h2>AI targeting</h2><p class="hint">How computer nations pick who to attack. Blocs are the GCC on one side and Iraq, Iran and Yemen on the other. The breather stops every AI taking turns on the same collapsing nation. The anti-pile-on settings stop several AIs ganging up on one nation (usually the player).</p><div class="kv" style="align-items:center">
       <span>Same-bloc target ×</span><span>${numIn('ai.bloc',B.ai.bloc,'0.5')} <span class="hint">how much less attractive a same-bloc nation looks; 1 = blocs ignored</span></span>
       <span>Same-bloc attack chance</span><span>${numIn('ai.blocChance',B.ai.blocChance,'0.01')} <span class="hint">chance an AI still attacks a same-bloc nation it picked (0–1)</span></span>
       <span>Breather after losing</span><span>${numIn('ai.pile',B.ai.pile,'0.01')} × its land <span class="hint">recent losses above this share stop new AI attacks and landings on it; 0 = off</span></span>
       <span>Losses fade over</span><span>${numIn('ai.pileTime',B.ai.pileTime,'5')} seconds <span class="hint">longer = longer breathers</span></span>
+      <span>Breather protects the player</span><span>${numIn('ai.pilePlayer',B.ai.pilePlayer,'1')} <span class="hint">1 = yes, 0 = only AI nations get a breather</span></span>
+      <span>Max nations attacking one target</span><span>${numIn('ai.gang',B.ai.gang,'1')} <span class="hint">an AI won't open a new attack on a nation this many others are already attacking; counter-attacks are never blocked; 0 = no limit</span></span>
+      <span>Heat player focus floor</span><span>${numIn('ai.focusFloor',B.ai.focusFloor,'0.05')} <span class="hint">1 = AIs judge the player fairly; lower lets high Heat make the player look weaker (targeted more)</span></span>
       <span>Leader coalition from</span><span>${numIn('ai.leaderPct',B.ai.leaderPct,'1')}% of the land <span class="hint">the biggest nation past this becomes the rivals' main target (player included)</span></span>
       <span>Leader target weight ×</span><span>${numIn('ai.leaderFocus',B.ai.leaderFocus,'0.1')} <span class="hint">how much more the AI picks the leader to attack and strike</span></span>
       <span>Bloc loyalty toward leader ×</span><span>${numIn('ai.leaderLoyalty',B.ai.leaderLoyalty,'0.05')} <span class="hint">0 = even its own bloc turns on it</span></span>

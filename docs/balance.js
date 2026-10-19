@@ -172,7 +172,11 @@ window.GD_BALANCE_DEFAULTS = {
   // Stops the whole GCC taking turns on Yemen. Never shields the player.
   // fortTiles: AI nations may keep one fort per this many tiles (on threatened borders); stuckTime: seconds at its troop cap
   // before an AI puts cities and air defense first
-  ai: { bloc: 6, blocChance: 0.05, pile: 0.04, pileTime: 60, fortTiles: 300, stuckTime: 25, leaderPct: 30, leaderFocus: 3, leaderLoyalty: 0.3, leaderDef: 1.6 },
+  ai: { bloc: 6, blocChance: 0.05, pile: 0.04, pileTime: 60, fortTiles: 300, stuckTime: 25, leaderPct: 30, leaderFocus: 3, leaderLoyalty: 0.3, leaderDef: 1.6,
+    gang: 2, pilePlayer: 1, focusFloor: 0.75 },
+  // Anti-pile-on: an AI won't open a new attack on a nation that `gang` other nations are already attacking (0 = no limit; counter-attacks
+  // are never blocked); pilePlayer 1 = the breather also protects the player; focusFloor = the lowest Heat player focus (1 = the AI
+  // sees the player as it really is, lower = the player looks weaker, so it is targeted more).
   // Leader coalition: once the biggest nation holds leaderPct% of the land, AI rivals see it as leaderFocus× more attractive
   // to attack and strike, their bloc loyalty toward it is multiplied by leaderLoyalty, and the leader's attacks on nations cost leaderDef× more.
   // Blocs: nations in the same bloc mostly spare each other. loyalty (normal games) and realistic (Realistic mode) run from

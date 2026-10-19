@@ -913,7 +913,7 @@ function claimBlob(id,center,r){
 
 // Heat difficulty for AI rivals; Heat 1 is the baseline and each level above adds BAL.heat steps
 function heatOf(d){const h=BAL.heat,k=Math.max(0,d-1);
-  return {regen:.92+h.regen*k,cap:1+h.cap*k,troops:300*(1+h.troops*k),thresh:Math.max(.2,.56-h.aggression*k),frac:Math.min(.85,.37+h.sendMore*k),focus:Math.max(.3,.92-h.playerFocus*k),strikeAt:Math.max(40,150-h.strikesEarlier*k)};}
+  return {regen:.92+h.regen*k,cap:1+h.cap*k,troops:300*(1+h.troops*k),thresh:Math.max(.2,.56-h.aggression*k),frac:Math.min(.85,.37+h.sendMore*k),focus:Math.max(BAL.ai.focusFloor,.92-h.playerFocus*k),strikeAt:Math.max(40,150-h.strikesEarlier*k)};}
 function newNation(id,isPlayer,diff){
   const d=NAT[id],m=baseMods();applyPerk(id,m);
   if(isPlayer){m.magM=lvl('siloMag');m.regen*=1+.08*lvl('regen');m.neutral*=Math.pow(.94,lvl('cost'));}
@@ -1306,6 +1306,8 @@ function checkRevolts(){
       if(a.tiles<=0)eliminate(a,d);}
     return false;});
 }
+// Anti-pile-on: true when enough other nations are already attacking `o` that this AI should not open another front on it
+function ganged(me,o){const g=BAL.ai.gang;if(!(g>0))return false;const s=new Set();for(const a of attacks)if(!a.done&&a.def===o&&a.att!==me)s.add(a.att);return s.size>=g;}
 function regen(n,dt){
   if(!n.alive)return;
   const ratio=n.troops/n.cap;
@@ -1318,8 +1320,8 @@ function regen(n,dt){
 }
 
 // A nation that has recently lost a big share of its land (n.press, decays over BAL.ai.pileTime) gets a breather: AIs don't open
-// new fronts or landings on it, so five GCC AIs can't take turns finishing off the one rival they all border. Never shields the player.
-const piled=o=>BAL.ai.pile>0&&o>0&&!NATS[o].isPlayer&&(NATS[o].press||0)>BAL.ai.pile*Math.max(1,NATS[o].tiles);
+// new fronts or landings on it, so five GCC AIs can't take turns finishing off the one rival they all border. Shields the player too when BAL.ai.pilePlayer is on.
+const piled=o=>BAL.ai.pile>0&&o>0&&(BAL.ai.pilePlayer||!NATS[o].isPlayer)&&(NATS[o].press||0)>BAL.ai.pile*Math.max(1,NATS[o].tiles);
 function aiThink(n){
   if(G.t<n.nextAI)return;
   n.nextAI=G.t+1.6+Math.random()*1.6;
@@ -1348,7 +1350,7 @@ function aiThink(n){
     for(const o of nations){const d=NATS[o];let sc=d.troops/Math.max(1,cnt.get(o))*(.7+Math.random()*.6);
       if(d.isPlayer)sc*=G.aiFocus;sc*=1+(BAL.ai.bloc-1)*blocL(n.id,o);sc*=d.m.respect||1;if(G.leader===o)sc/=BAL.ai.leaderFocus;if(pact==='alliance'&&!d.isPlayer&&!treaty(o))sc*=.55;if(d.isPlayer&&dipOf(n.id).hostileUntil>G.t)sc*=.5;if(sc<bs){bs=sc;best=o;}}
     const d=NATS[best];
-    if((n.troops*G.aiFrac>d.troops*.35||n.troops>n.cap*.92)&&Math.random()>=blocL(n.id,best)*(1-BAL.ai.blocChance)&&Math.random()<1/(d.m.respect||1)&&!piled(best))target=best;
+    if((n.troops*G.aiFrac>d.troops*.35||n.troops>n.cap*.92)&&Math.random()>=blocL(n.id,best)*(1-BAL.ai.blocChance)&&Math.random()<1/(d.m.respect||1)&&!piled(best)&&!ganged(n.id,best))target=best;
     else if(cnt.has(0))target=0;
   }
   if(target<0)return;
@@ -2712,7 +2714,7 @@ $('#resetBtn').onclick=e=>{if(!resetArmed){resetArmed=true;e.target.textContent=
 const GUIDE=[
  ['expand','Expand',()=>`Tap sand next to your border to send troops. The slider sets how many go. Deserts and mountains cost more. Small gaps you leave behind fill in automatically. Striped camps with a tent are tribes: they cost a little more to take, slowly spread over nearby sand if left alone, and winning over a whole camp pays ${BAL.tribes.gold} gold.`],
  ['conquer','Conquer',()=>`Tap a rival you border to attack. Taking their capital star costs them troops and gold and forces them to move it; take every tile to finish them. Tap ✕ on an attack's chip at the top to retreat: the troops still in the field come home.`],
- ['counter','Counter',()=>`Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.`],
+ ['counter','Counter',()=>`Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.${BAL.ai.gang>0?` Rivals rarely gang up: once ${BAL.ai.gang} nations are attacking someone, others wait their turn${BAL.ai.pilePlayer?', and a nation losing land fast gets a short breather':''}.`:''}`],
  ['sail','Sail',()=>`Tap a coast you don't border, or use Boat mode, and dhows carry troops across the water, land, and push inland. Up to 3 fleets at once.`],
  ['build','Build',()=>`Place anything anywhere on your land: cities, forts, oil rigs (best on dark oil fields), ports near water, missile silos, drone hangars, air defense and radars. Some nations also get rocket artillery or coastal batteries.`],
  ['strike','Strike',()=>`Drones are cheap and slow; missiles are fast and costly. Bigger drone types and higher missile tiers blast a wider area. Strikes destroy buildings and kill troops (light drones only hit buildings); only ground troops and landings take land. Militia drones (Iraq, Iran, Yemen and, on the Middle East map, Syria and Lebanon) stay hidden until they near your border.`],
