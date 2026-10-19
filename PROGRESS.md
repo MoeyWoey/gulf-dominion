@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-18 (after commit `1abdfd2`)_
+_Last updated: 2026-10-19 (after commit `160f0c9`)_
 
 ---
 
@@ -703,6 +703,23 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
 - **Playtest switches** (`BAL.testing`, dashboard Rules card): `hideStore` hides the store everywhere; `banner` shows a "Playtest build" banner with a feedback link.
 - **Demo mode:** open the game with `?demo`. Every nation is AI-run, about 4 minutes are simulated ahead, then everyone gets gold and launchers so strikes fly at once. Nothing is saved, and decree drafts don't open. Use it for recording clips.
 
+### 47. Anti-pile-on at high Heat — `160f0c9`
+- **Problem (Heat 4 simulation):** a nation flagged as the player at minute 5, with the same strength as the AIs plus a full army and 5,000 gold, died in 6 of 10 games. As an ordinary AI the same nation survived. Up to 3–4 nations attacked it at once, and AI-vs-AI attacks halved.
+- **Causes (rules that apply only to the player):**
+  - Heat player focus made the player look 44% weaker at Heat 4 (live heat values).
+  - The breather never shielded the player, so AIs left a struggling AI alone and turned on the player.
+  - Strikes are also weighted 1.6× toward the player at Heat 4. This was left unchanged.
+- **Fixes (`BAL.ai`, dashboard AI targeting):**
+  - `gang: 2`: an AI won't open a new attack on a nation 2 others are already attacking. Counter-attacks are never blocked.
+  - `pilePlayer: 1`: the breather protects the player too.
+  - `focusFloor: 0.75`: the lowest Heat player focus (was a hard-coded 0.3).
+- **Result (10 seeds):**
+  - Live heat without the fixes: 4/10 survive, 0.46 attackers on the player at once, 3 games with 3+ at once, 2.3 AI-vs-AI attacks per nation.
+  - Live heat with the fixes: 10/10 survive, 0.11 at once (the AI average is 0.12), 0 games with 3+, 4.4 AI-vs-AI attacks per nation.
+  - New heat with the fixes: 10/10 survive, 9.9% average land.
+  - Strikes on the player went up (12 → 19–29), because it survives longer.
+- These three keys aren't in the saved live config yet, so their defaults apply live at once. The old heat values in the saved config still apply until they're re-saved.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -738,7 +755,7 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
 | Light drones | Buildings only, no troop losses |
 | Combat | Attack speed ×0.5 · tile cost 4 + 1.5 × defender troops per tile · defender loses 0.35 × cost · fort ×2.5 · capital ×4, ring ×2 · regen 30 + 0.3/tile · cap 300 + 10/tile · strike troop damage ×0.5 · empty pockets up to 30 tiles auto-claimed · missile craters 0.5 × blast radius, empty for 30 s |
 | Nation perks | KW Diplomacy ×2, oil ×1.6, defense ×1.6, cap ×1.25, regen ×1.08 · SA cap ×1.25, expansion ×0.8, defense ×1.15, regen ×1.05 · BH regen ×1.12, coastal gold · QA gold ×1.4 · AE cities ×0.65 cost · OM mountains ×0.5, defense ×1.15 · IQ regen ×1.1, +100 cap per city · IR missiles ×0.7, starts with a silo · YE attacks ×0.75, expansion ×0.85, mountains ×0.5, cap ×1.2, defense ×1.25, mountain defense ×1.6, regen ×1.2 |
-| AI targeting | Same-bloc target ×6, attacked 5% of the time · breather: no new AI attacks or landings on a nation that lost over 4% of its land recently (fades over 60 s); never shields the player |
+| AI targeting | Anti-pile-on: at most 2 nations open fronts on one target, breather protects the player, Heat focus floor 0.75 · Same-bloc target ×6, attacked 5% of the time · breather: no new AI attacks or landings on a nation that lost over 4% of its land recently (fades over 60 s); never shields the player |
 | Decrees | Common and Rare decrees carry a drawback (`BAL.decrees`); Epic ones don't |
 | Leader coalition | From 30% land: AI target weight ×3, bloc loyalty toward the leader ×0.3, the leader's attacks cost ×1.6 |
 | Win condition | 80% of the land, or every rival eliminated (online: or last player standing) |
