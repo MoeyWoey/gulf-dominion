@@ -999,7 +999,7 @@ function tileCost(att,defId,i){
   const C=BAL.combat;
   if(!defId)return C.tileBase*tm*att.m.neutral*lm*(tribe[i]?BAL.tribes.cost:1);
   const d=NATS[defId],dens=d.troops/Math.max(1,d.tiles);
-  return (C.tileBase+dens*C.defDensity)*tm*att.m.atk*d.m.def*(terr[i]===4?d.m.mountDef:1)*fortMul(d,i)*lm*(G.leader&&att.id===G.leader?(G.real?BAL.realistic.leaderDef:BAL.ai.leaderDef):1); // rivals hold out harder against the leader
+  return (C.tileBase+dens*C.defDensity)*tm*att.m.atk*d.m.def*(terr[i]===4?d.m.mountDef:1)*fortMul(d,i)*lm*(G.real?BAL.realistic.attackCost:1)*(G.leader&&att.id===G.leader?(G.real?BAL.realistic.leaderDef:BAL.ai.leaderDef):1); // rivals hold out harder against the leader
 }
 function sidesOf(i,id){const x=i%W;return (x>0&&owner[i-1]===id)+(x<W-1&&owner[i+1]===id)+(i>=W&&owner[i-W]===id)+(i<N-W&&owner[i+W]===id);}
 // Empty pockets of up to BAL.combat.fillPocket tiles touching only one nation's land join that nation for free
@@ -1050,6 +1050,15 @@ function fillPockets(){
 }
 function adjTo(i,id){const x=i%W;return (x>0&&owner[i-1]===id)||(x<W-1&&owner[i+1]===id)||(i>=W&&owner[i-W]===id)||(i<N-W&&owner[i+W]===id);}
 
+// Realistic v2 focused attacks: an attack on a nation advances only inside corridors (segments [x0,y0,x1,y1] widened by focusR)
+const focusOn=defId=>!!(G&&G.real&&defId&&BAL.realistic.focusR>0);
+const segD2=(x,y,s)=>{const dx=s[2]-s[0],dy=s[3]-s[1],l=dx*dx+dy*dy;let t=l?((x-s[0])*dx+(y-s[1])*dy)/l:0;t=t<0?0:t>1?1:t;const px=s[0]+t*dx-x,py=s[1]+t*dy-y;return px*px+py*py;};
+function inFocus(a,j){if(!a.segs)return true;const x=j%W,y=(j/W)|0,R2=BAL.realistic.focusR*BAL.realistic.focusR;for(const s of a.segs)if(segD2(x,y,s)<=R2)return true;return false;}
+function addSeg(a,tx,ty){ // a new tap on the same rival: another corridor from the border tile nearest to it
+  let c=-1,bd=1e9;for(let i=0;i<N;i++){if(owner[i]!==a.def||terr[i]<2||!adjTo(i,a.att))continue;const d=(i%W-tx)**2+(((i/W)|0)-ty)**2;if(d<bd){bd=d;c=i;}}
+  if(c<0)return;a.segs.push([c%W,(c/W)|0,tx,ty]);
+  for(let i=0;i<N;i++){if(owner[i]!==a.def||terr[i]<2||a.inF.has(i)||!adjTo(i,a.att)||!inFocus(a,i))continue;a.inF.add(i);a.front.push(i);}
+}
 function launchAttack(attId,defId,troops,tx,ty,pool=true){
   const n=NATS[attId];if(defId&&NATS[defId]&&G)NATS[defId].lastHit={by:attId,t:G.t};if(pool){troops=Math.min(troops,n.troops);if(troops<3)return 'few';}
   const inc=defId?attacks.find(a=>a.att===defId&&a.def===attId&&!a.done):null;
@@ -1071,14 +1080,17 @@ function launchAttack(attId,defId,troops,tx,ty,pool=true){
     }
   }
   const ex=attacks.find(a=>a.att===attId&&a.def===defId&&!a.done);
-  if(ex){ex.troops+=troops;if(pool)n.troops-=troops;ex.tx=tx;ex.ty=ty;return 'ok';}
+  if(ex){ex.troops+=troops;if(pool)n.troops-=troops;ex.tx=tx;ex.ty=ty;if(ex.segs)addSeg(ex,tx,ty);return 'ok';}
   const front=[],inF=new Set();
   for(let i=0;i<N;i++){if(owner[i]!==attId)continue;const x=i%W;
     const nb=[x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W];
     for(const j of nb){if(j<0||j>=N||inF.has(j))continue;if(owner[j]===defId&&terr[j]>=2){inF.add(j);front.push(j);}}}
   if(!front.length)return 'noborder';
+  let segs=null;
+  if(focusOn(defId)){let c=front[0],bd=1e9;for(const j of front){const d=(j%W-tx)**2+(((j/W)|0)-ty)**2;if(d<bd){bd=d;c=j;}}
+    segs=[[c%W,(c/W)|0,tx,ty]];const keep=front.filter(j=>inFocus({segs},j));front.length=0;inF.clear();for(const j of keep){front.push(j);inF.add(j);}}
   if(pool)n.troops-=troops;
-  attacks.push({att:attId,def:defId,troops,tx,ty,front,inF,acc:0,done:false,taken:[]});
+  attacks.push({att:attId,def:defId,troops,tx,ty,front,inF,acc:0,done:false,taken:[],segs});
   if(G&&defId&&defId===G.pid)SFX.alarm();
   return 'ok';
 }
@@ -1114,7 +1126,7 @@ function stepAttack(a){
     if(a.taken.length<3000)a.taken.push(i);
     if(G.over)return;
     const x=i%W;
-    for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W]){if(j<0||j>=N||owner[j]!==def||terr[j]<2)continue;if(!a.inF.has(j)){a.inF.add(j);a.front.push(j);}if(sidesOf(j,a.att)>=3)(a.pri||(a.pri=[])).push(j);}
+    for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W]){if(j<0||j>=N||owner[j]!==def||terr[j]<2||!inFocus(a,j))continue;if(!a.inF.has(j)){a.inF.add(j);a.front.push(j);}if(sidesOf(j,a.att)>=3)(a.pri||(a.pri=[])).push(j);}
     if(def&&!NATS[def].alive){a.done=true;break;}
   }
 }
@@ -2749,7 +2761,7 @@ $('#resetBtn').onclick=e=>{if(!resetArmed){resetArmed=true;e.target.textContent=
 /* ================= How to play: each section has a small picture drawn with the game's own colours and icons ================= */
 const GUIDE=[
  ['expand','Expand',()=>`Tap sand next to your border to send troops. The slider sets how many go. Deserts and mountains cost more. Small gaps you leave behind fill in automatically. Striped camps with a tent are tribes: they cost a little more to take, slowly spread over nearby sand if left alone, and winning over a whole camp pays ${BAL.tribes.gold} gold.`],
- ['conquer','Conquer',()=>`Tap a rival you border to attack. Taking their capital star costs them troops and gold and forces them to move it; take every tile to finish them. Tap ✕ on an attack's chip at the top to retreat: the troops still in the field come home.`],
+ ['conquer','Conquer',()=>`Tap a rival you border to attack. Taking their capital star costs them troops and gold and forces them to move it; take every tile to finish them.${BAL.realistic.focusR>0?` In Realistic, attacks on a nation push only where you aim: a strip about ${BAL.realistic.focusR*2} tiles wide from your border to the spot you tap, so tap deeper to drive further.`:''} Tap ✕ on an attack's chip at the top to retreat: the troops still in the field come home.`],
  ['counter','Counter',()=>`Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.${BAL.ai.gang>0?` Rivals rarely gang up: once ${BAL.ai.gang} nations are attacking someone, others wait their turn${BAL.ai.pilePlayer?', and a nation losing land fast gets a short breather':''}.`:''}`],
  ['sail','Sail',()=>`Tap a coast you don't border, or use Boat mode, and dhows carry troops across the water, land, and push inland. Up to 3 fleets at once.`],
  ['build','Build',()=>`Place anything anywhere on your land: cities, forts, oil rigs (best on dark oil fields), ports near water, missile silos, drone hangars, air defense and radars. Some nations also get rocket artillery or coastal batteries.`],

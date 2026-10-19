@@ -209,6 +209,9 @@ window.GD_BALANCE_DEFAULTS = {
     // (academy 1 = on). It costs academyCost (×1.5 for each further one); AI nations start building one after academyAI seconds.
     startLand: 5, academy: 1, academyCost: 1500, academyAI: 240,
     // Build timers (seconds) in Realistic; buildTime scales them all (0 = build instantly). A building under construction does nothing yet.
+    // Focused attacks: an attack on a nation only advances in a corridor focusR tiles either side of the line from the nearest border
+    // tile to where you tapped (0 = whole border, as in normal games); attackCost multiplies the cost of taking a nation's land.
+    focusR: 5, attackCost: 1.5,
     buildTime: 1, build: { city: 15, fort: 20, rig: 15, port: 25, sam: 30, radar: 30, cb: 35, arty: 45, coastal: 45, hangar: 75, silo: 90, academy: 120 } },
 };
 
