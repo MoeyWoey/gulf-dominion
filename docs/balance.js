@@ -204,7 +204,10 @@ window.GD_BALANCE_DEFAULTS = {
   // leader coalition (leaderPct, leaderDef replace the AI targeting values), decree milestones × decreeGap and choices per decree.
   realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75,
     overStart: 20, overPer: 0.02, overMin: 0.4, unrest: 60, revoltBelow: 0.35, revoltR: 5,
-    leaderPct: 20, leaderDef: 1.8, decreeGap: 1.5, choices: 2 },
+    leaderPct: 20, leaderDef: 1.8, decreeGap: 1.5, choices: 2,
+    // Realistic v2: every nation starts with startLand× the usual home region; missiles, drones and artillery need a Military academy
+    // (academy 1 = on). It costs academyCost (×1.5 for each further one); AI nations start building one after academyAI seconds.
+    startLand: 5, academy: 1, academyCost: 1500, academyAI: 240 },
 };
 
 // Merge saved overrides over the defaults, keeping only known keys and sane values.

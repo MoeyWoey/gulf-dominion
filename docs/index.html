@@ -482,6 +482,7 @@ body.pc .toast{left:50%;transform:translateX(-50%);text-align:center;max-width:m
         <button data-b="cb">Counter-battery<small id="cCb">160</small></button>
         <button data-b="arty">Artillery<small id="cArty">140</small></button>
         <button data-b="coastal">Coastal battery<small id="cCoastal">170</small></button>
+        <button data-b="academy">Military academy<small id="cAcademy">1500</small></button>
       </div>
     </div>
   </div>
@@ -903,12 +904,13 @@ const shownOwner=new Uint8Array(N);
 function markDirty(i){if(!dirty[i]){dirty[i]=1;dirtyList.push(i);}}
 function markAround(i){const x=i%W,y=(i/W)|0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const xx=x+dx,yy=y+dy;if(xx>=0&&yy>=0&&xx<W&&yy<H)markDirty(yy*W+xx);}}
 
-function claimBlob(id,center,r){
-  const q=[center],seen=new Set([center]);const cx=center%W,cy=(center/W)|0;
-  while(q.length){const i=q.shift();if(owner[i]&&owner[i]!==id)continue;owner[i]=id;
+function claimBlob(id,center,r,avoid,limit,dry){
+  const q=[center],seen=new Set([center]);const cx=center%W,cy=(center/W)|0;let n=0;
+  while(q.length){const i=q.shift();if(owner[i]&&owner[i]!==id)continue;if(!dry)owner[i]=id;if(limit&&++n>=limit)return n;else if(!limit)n++;
     const x=i%W,y=(i/W)|0;
     for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W]){if(j<0||j>=N||seen.has(j))continue;seen.add(j);
-      const dx=j%W-cx,dy=((j/W)|0)-cy;if(terr[j]>=2&&dx*dx+dy*dy<=r*r+.5)q.push(j);}}
+      const dx=j%W-cx,dy=((j/W)|0)-cy;if(terr[j]>=2&&dx*dx+dy*dy<=r*r+.5&&!(avoid&&avoid.has(j)))q.push(j);}}
+  return n;
 }
 
 // Heat difficulty for AI rivals; Heat 1 is the baseline and each level above adds BAL.heat steps
@@ -919,7 +921,7 @@ function newNation(id,isPlayer,diff){
   if(isPlayer){m.magM=lvl('siloMag');m.regen*=1+.08*lvl('regen');m.neutral*=Math.pow(.94,lvl('cost'));}
   return {id,name:d.name,color:d.color,isPlayer,alive:true,m,capIdx:cellAt(d.cap[0],d.cap[1]),
     troops:isPlayer?300*(1+.2*lvl('troops')):heatOf(diff).troops,gold:isPlayer?100+60*lvl('gold'):100,
-    tiles:0,peak:0,kills:0,cap:300,cities:0,rigs:0,oilT:0,coastT:0,cx:0,cy:0,citiesBuilt:0,fortsBuilt:0,rigsBuilt:0,portsBuilt:0,shipsBuilt:0,silosBuilt:0,hangarsBuilt:0,samsBuilt:0,radarsBuilt:0,cbBuilt:0,artyBuilt:0,coastalBuilt:0,ports:0,rigsDry:0,nextAI:2+Math.random()*3,regenNow:0,goldNow:0};
+    tiles:0,peak:0,kills:0,cap:300,cities:0,rigs:0,oilT:0,coastT:0,cx:0,cy:0,academyBuilt:0,citiesBuilt:0,fortsBuilt:0,rigsBuilt:0,portsBuilt:0,shipsBuilt:0,silosBuilt:0,hangarsBuilt:0,samsBuilt:0,radarsBuilt:0,cbBuilt:0,artyBuilt:0,coastalBuilt:0,ports:0,rigsDry:0,nextAI:2+Math.random()*3,regenNow:0,goldNow:0};
 }
 
 /* ---- Daily challenge: one shared setup per UTC day (nation, heat, twist) and a seeded random stream ---- */
@@ -956,8 +958,15 @@ function startRun(spec){
      mode:'attack',bsel:'city',ratio:+$('#ratio').value/100,pings:[]};
   NATS=[null];
   for(let id=1;id<=NNAT;id++){NATS.push(newNation(id,isH(id),diff));if(mp&&mp.humans[id])NATS[id].human=mp.humans[id];}
-  for(let id=1;id<=NNAT;id++)if(isH(id))claimBlob(id,NATS[id].capIdx,2+lvl('home')+(BIG_START(id)?1:0));
-  for(let id=1;id<=NNAT;id++)if(!isH(id))claimBlob(id,NATS[id].capIdx,2+(diff>=3?1:0)+(BIG_START(id)?1:0));
+  // Realistic v2: home regions startLand× bigger (radius × its square root), keeping clear of other capitals
+  const sf=G.real?Math.sqrt(Math.max(1,BAL.realistic.startLand)):1,av=id=>{if(sf===1)return null;const s=new Set();
+    for(let q=1;q<=NNAT;q++){if(q===id)continue;const c=NATS[q].capIdx,x0=c%W,y0=(c/W)|0;for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++){const x=x0+dx,y=y0+dy;if(x>=0&&y>=0&&x<W&&y<H&&dx*dx+dy*dy<=16)s.add(y*W+x);}}return s;};
+  // each nation grows to startLand× the tiles its normal home region would have, so coastal nations reach further inland
+  // (Yemen's and Lebanon's bigger start is added on top, not multiplied)
+  const home=(id,r)=>{const big=BIG_START(id)?1:0,c=NATS[id].capIdx;if(sf===1){claimBlob(id,c,r+big);return;}
+    const base=claimBlob(id,c,r,null,0,true),extra=big?claimBlob(id,c,r+big,null,0,true)-base:0;claimBlob(id,c,(r+big)*sf*2.5,av(id),Math.round(base*sf*sf+extra));};
+  for(let id=1;id<=NNAT;id++)if(isH(id))home(id,2+lvl('home'));
+  for(let id=1;id<=NNAT;id++)if(!isH(id))home(id,2+(diff>=3?1:0));
   for(let id=1;id<=NNAT;id++){const n=NATS[id];
     if(n.m.startSilo)placeNear(n,n.capIdx,'silo',3,true);
     if(n.id===pid&&!mp)for(let k=0;k<lvl('sam')+(owns('founder')&&!DAILY?1:0);k++)placeNear(n,n.capIdx,'sam',3,true);}
@@ -972,7 +981,7 @@ function startRun(spec){
   else if(spec)toast(`Daily challenge: ${NAT[pid].name}, Heat ${diff}. ${spec.twist.name}: ${spec.twist.desc}`,6000);else toast(S.tut?`Heat ${diff}. Expand from ${NATS[pid].name} and hold ${WIN_PCT}% of the region.`:'Tap sand next to your land to expand. Drag to pan, pinch to zoom.',5000);
   S.tut=1;save();
   if(!mp&&!DEMO)logEvent('run_start',{nation:NAT[pid].name,heat:diff,realistic:!!G.real});
-  if(G.real)setTimeout(()=>toast(`Realistic rules: gold ×${BAL.realistic.gold}, land ×${BAL.realistic.land}, weaker bloc loyalty, overextension past ${BAL.realistic.overStart}%, restless conquests. Pearls ×${BAL.realistic.pearls}.`,5000),5200);
+  if(G.real)setTimeout(()=>toast(`Realistic rules: bigger home regions${BAL.realistic.academy?', strikes locked until you build a Military academy':''}, gold ×${BAL.realistic.gold}, land ×${BAL.realistic.land}, overextension past ${BAL.realistic.overStart}%. Pearls ×${BAL.realistic.pearls}.`,5500),5200);
 }
 
 /* ================= Simulation ================= */
@@ -1389,6 +1398,7 @@ function aiBuild(n){
   // Forts on a threatened border; more willing at higher heat
   if(G.t>45){let f=0;for(const j of blist)if(bld[j]===2&&owner[j]===n.id)f++;
     if(f<1+Math.floor(n.tiles/Math.max(20,BAL.ai.fortTiles))+(G.diff>=3?1:0)&&n.gold>=costOf(n,'fort')*Math.max(1,1.4-.1*(G.diff-1))){const i=aiFortSpot(n);if(i>=0){place(n,i,'fort');return;}}}
+  if(acadOn()&&needAcad(n.id)&&G.t>BAL.realistic.academyAI){if(n.gold>=costOf(n,'academy')*1.1&&placeNear(n,n.capIdx,'academy',5))return;if(n.gold>=costOf(n,'academy')*.5)return;} // save up for the academy
   const rc=costOf(n,'rig');
   // Oil rigs first, but in proportion to cities (oil-rich nations used to build nothing but rigs)
   if(n.gold>=rc&&n.rigs+n.rigsDry<6+3*n.cities){for(const i of oilCells){if(owner[i]===n.id&&!bld[i]){place(n,i,'rig');return;}}}
@@ -1396,11 +1406,14 @@ function aiBuild(n){
   if(sams<1+Math.floor(n.tiles/350)&&n.gold>=costOf(n,'sam')&&(G.t>40||sams===0&&G.t>20)){
     const anchors=[n.capIdx,...blist.filter(j=>owner[j]===n.id&&(bld[j]===1||bld[j]===5||bld[j]===6))];
     if(placeNear(n,anchors[(Math.random()*anchors.length)|0],'sam',4))return;}
+  if(acadOn()&&needAcad(n.id)){if(G.t>BAL.realistic.academyAI&&n.gold>=costOf(n,'academy')*1.1&&placeNear(n,n.capIdx,'academy',5))return;}
+  else{
   if(!hang&&G.t>60&&n.gold>=costOf(n,'hangar')*1.1&&placeNear(n,n.capIdx,'hangar',5))return;
   if(!silo&&G.t>120&&n.gold>=costOf(n,'silo')*1.2&&placeNear(n,n.capIdx,'silo',5))return;
   if(silo&&G.t>150&&!blist.some(j=>bld[j]===9&&owner[j]===n.id)&&blist.some(j=>bld[j]===8&&owner[j]===n.id)&&n.gold>=costOf(n,'cb')*1.3&&placeNear(n,n.capIdx,'cb',4))return;
   if(hasArty(n.id)&&G.t>80&&Math.random()<.5){const k=blist.filter(j=>bld[j]===10&&owner[j]===n.id).length;
     if(k<1+Math.floor(n.tiles/450)&&n.gold>=costOf(n,'arty')*1.2){const f=aiFront(n);if(f>=0&&placeNear(n,f,'arty',2))return;}}
+  }
   if(hasAntiShip(n.id)&&n.coastT&&G.t>100&&Math.random()<.4){const k=blist.filter(j=>bld[j]===12&&owner[j]===n.id).length;
     if(k<1+Math.floor(n.coastT/120)&&n.gold>=costOf(n,'coastal')*1.25){const i=ownFreeCell(n,()=>true,coastCells);if(i>=0){place(n,i,'coastal');return;}}}
   if(sams>0&&G.t>90&&!blist.some(j=>bld[j]===8&&owner[j]===n.id)&&n.gold>=costOf(n,'radar')*1.2&&placeNear(n,n.capIdx,'radar',4))return;
@@ -1434,12 +1447,16 @@ function costOf(n,t){
   if(t==='cb')return Math.round(160*Math.pow(1.3,n.cbBuilt));
   if(t==='arty')return Math.round(BAL.artillery.bldCost*Math.pow(1.3,n.artyBuilt));
   if(t==='coastal')return Math.round(BAL.antiShip.bldCost*Math.pow(1.3,n.coastalBuilt));
+  if(t==='academy')return Math.round(BAL.realistic.academyCost*Math.pow(1.5,n.academyBuilt||0));
   if(t==='drone')return Math.round(45*n.m.droneCost*(n.m.droneN>1?1.5:1));
   if(t==='missile')return Math.round(200*n.m.missileCost);
   return Math.round(150*Math.pow(1.15,n.rigsBuilt));
 }
-const BCODE={city:1,fort:2,rig:3,port:4,silo:5,hangar:6,sam:7,radar:8,cb:9,arty:10,coastal:12};
-const BKEY={city:'citiesBuilt',fort:'fortsBuilt',rig:'rigsBuilt',port:'portsBuilt',silo:'silosBuilt',hangar:'hangarsBuilt',sam:'samsBuilt',radar:'radarsBuilt',cb:'cbBuilt',arty:'artyBuilt',coastal:'coastalBuilt'};
+const BCODE={city:1,fort:2,rig:3,port:4,silo:5,hangar:6,sam:7,radar:8,cb:9,arty:10,coastal:12,academy:13};
+const BKEY={city:'citiesBuilt',fort:'fortsBuilt',rig:'rigsBuilt',port:'portsBuilt',silo:'silosBuilt',hangar:'hangarsBuilt',sam:'samsBuilt',radar:'radarsBuilt',cb:'cbBuilt',arty:'artyBuilt',coastal:'coastalBuilt',academy:'academyBuilt'};
+// Realistic v2: strikes (and silos, hangars, artillery) need a Military academy you own
+const acadOn=()=>!!(G&&G.real&&BAL.realistic.academy);
+const needAcad=nid=>acadOn()&&!blist.some(j=>bld[j]===13&&owner[j]===nid);
 function place(n,i,t,free){
   const c=costOf(n,t);if(!free&&n.gold<c)return false;
   if(!free)n.gold-=c;bld[i]=BCODE[t];blist.push(i);n[BKEY[t]]++;
@@ -1472,6 +1489,7 @@ function launchStrike(attId,wid,i){
 function launchStrikeInner(attId,wid,i){
   const n=NATS[attId],o=owner[i];
   if(i<0||terr[i]<2||!o||o===attId)return 'target';
+  if(needAcad(attId))return 'academy';
   const w=weapon(attId,wid);if(!w||!weaponsOf(attId).includes(wid))return 'locked';
   const kind=w.kind;
   const code=LAUNCHER[kind],R2=RANGE[kind]*RANGE[kind],x0=i%W,y0=(i/W)|0;
@@ -1602,7 +1620,7 @@ function stepMissiles(dt){
     bcool[j]-=dt;if(bcool[j]<=0){bcool[j]=0;ammo[j]=magOf(NATS[owner[j]],b);}}
 }
 function aiStrike(n){
-  if(G.t<G.strikeAt)return;
+  if(G.t<G.strikeAt||needAcad(n.id))return;
   if(hasAbility(n.id,'droneRush')&&(G.aiRushReady[n.id]||0)<=G.t&&readyDrones(n.id)>=3&&n.gold>250&&Math.random()<.18){
     const r=droneRush(n.id);if(r.n){G.aiRushReady[n.id]=G.t+BAL.droneRush.cooldown*1.3;return;}
   }
@@ -1622,7 +1640,7 @@ function aiStrike(n){
   const kind=wid.split(':')[0];
   const code=LAUNCHER[kind],cands=[];let tot=0;
   for(const j of blist){const o=owner[j];if(!bld[j]||!o||o===n.id||!bldVisibleTo(n.id,j)||(o===G.pid&&treaty(n.id)))continue;if(nearestLauncher(n,code,j,RANGE[kind])<0)continue;
-    let w=bld[j]===7?3:bld[j]===5||bld[j]===6?2.5:1;if(NATS[o].isPlayer)w*=1+.15*G.diff;w*=1-.94*blocL(n.id,o);w/=NATS[o].m.respect||1;if(G.leader===o)w*=BAL.ai.leaderFocus;cands.push([j,w]);tot+=w;}
+    let w=bld[j]===7||bld[j]===13?3:bld[j]===5||bld[j]===6?2.5:1;if(NATS[o].isPlayer)w*=1+.15*G.diff;w*=1-.94*blocL(n.id,o);w/=NATS[o].m.respect||1;if(G.leader===o)w*=BAL.ai.leaderFocus;cands.push([j,w]);tot+=w;}
   let tgt=-1;
   if(cands.length){let r=Math.random()*tot;for(const [j,w] of cands){r-=w;if(r<=0){tgt=j;break;}}if(tgt<0)tgt=cands[0][0];}
   else for(let k=0;k<40;k++){const j=(Math.random()*N)|0,o=owner[j];if(!o||o===n.id||terr[j]<2||(o===G.pid&&treaty(n.id))||Math.random()<.92*blocL(n.id,o)||Math.random()>1/(NATS[o].m.respect||1))continue;if(nearestLauncher(n,code,j,RANGE[kind])>=0){tgt=j;break;}}
@@ -1774,6 +1792,7 @@ function drawGlyph(c2,type,x,y,r,col){
   else if(type===9){c2.moveTo(-k*.9,k*.85);c2.lineTo(0,-k*.15);c2.lineTo(k*.9,k*.85);c2.stroke();c2.beginPath();c2.arc(0,-k*.15,k*.62,Math.PI*1.15,Math.PI*1.85);c2.stroke();c2.beginPath();c2.arc(0,-k*.15,k*.95,Math.PI*1.2,Math.PI*1.8);c2.stroke();c2.beginPath();c2.arc(0,-k*.15,k*.16,0,7);c2.fill();}
   else if(type===10){c2.fillRect(-k*.95,k*.42,k*1.9,k*.38);c2.save();c2.rotate(-.62);for(const o of [-.32,0,.32])c2.fillRect(-k*.55,-k*.2+o*k,k*1.45,k*.2);c2.restore();c2.beginPath();c2.arc(-k*.55,k*.95,k*.16,0,7);c2.arc(k*.55,k*.95,k*.16,0,7);c2.fill();}
   else if(type===12){c2.moveTo(-k,k*.62);c2.quadraticCurveTo(-k*.5,k*.3,0,k*.62);c2.quadraticCurveTo(k*.5,k*.94,k,k*.62);c2.stroke();c2.beginPath();c2.moveTo(k*.05,-k);c2.lineTo(k*.32,-k*.55);c2.lineTo(k*.22,k*.2);c2.lineTo(-k*.12,k*.2);c2.lineTo(-k*.22,-k*.55);c2.closePath();c2.fill();c2.beginPath();c2.moveTo(-k*.12,k*.05);c2.lineTo(-k*.42,k*.3);c2.lineTo(-k*.08,k*.2);c2.moveTo(k*.22,k*.05);c2.lineTo(k*.5,k*.3);c2.lineTo(k*.18,k*.2);c2.fill();}
+  else if(type===13){for(const o of [-.42,.12]){c2.moveTo(-k*.85,o*k+k*.2);c2.lineTo(0,o*k-k*.32);c2.lineTo(k*.85,o*k+k*.2);}c2.lineWidth=Math.max(1.6,r*.2);c2.stroke();c2.beginPath();c2.arc(0,k*.78,k*.2,0,7);c2.fill();}
   else if(type===11){c2.moveTo(-k,k*.1);c2.lineTo(k,k*.1);c2.lineTo(k*.7,k*.6);c2.lineTo(-k*.75,k*.6);c2.closePath();c2.fill();c2.fillRect(-k*.35,-k*.35,k*.6,k*.45);c2.fillRect(-k*.05,-k*.8,k*.12,k*.5);}
   c2.restore();
 }
@@ -2006,6 +2025,7 @@ function toast(msg,ms=2200){const t=$('#toast');t.textContent=msg;t.style.opacit
 function placeTop(){const hudEl=document.querySelector('.hud');if(!hudEl||screen!=='game')return;const top=hudEl.offsetTop+hudEl.offsetHeight+6,t=$('#toast'),n=$('#news');t.style.top=top+'px';n.style.top=(top+(+t.style.opacity>0?t.offsetHeight+6:0))+'px';}
 function hud(){
   const p=NATS[G.pid];
+  if(acadOn()&&G.acadSeen!==!needAcad(G.pid)){const had=G.acadSeen;renderStrikeRow();if(had===false&&G.acadSeen&&!G.spec)toast('Military academy ready: missiles, drones and artillery unlocked.',3200);}
   $('#hTroops').textContent=fmt(p.troops);$('#hCap').textContent=fmt(p.cap);
   $('#hTbar').style.width=Math.min(100,p.troops/p.cap*100)+'%';
   $('#hRegen').textContent='+'+fmt(p.regenNow)+'/s';
@@ -2045,7 +2065,7 @@ function hud(){
   $('#lb').innerHTML=`<div class="lbh">${G.mp?'Online · '+esc(MP?MP.code:''):'Tap a nation to negotiate'}</div>`+rows.map(n=>{const t=treaty(n.id),me=n.id===G.pid&&!G.spec;return `<div class="r ${me?'me':''} ${n.alive?'':'dead'} ${!G.mp&&!n.isPlayer&&n.alive?'talk':''}" data-n="${n.id}"><span class="chip d" style="padding:0;border:0;width:8px;height:8px;border-radius:2px;background:${rgb(n.color)}"></span><span>${n.short||NAT[n.id].short}${t?`<em class="tr">${t==='alliance'?'ALLY':'TRUCE'}</em>`:''}${G.mp&&n.human&&!me?`<em class="tr hu">${esc((G.names[n.id]||'').slice(0,10))}</em>`:''}</span><span class="num">${(n.tiles/LANDN*100).toFixed(1)}%</span></div>`;}).join('');
   const hudEl=document.querySelector('.hud');$('#lb').style.top=(hudEl.offsetTop+hudEl.offsetHeight+4)+'px';placeTop();
   renderDecs();
-  for(const t of ['city','fort','rig','port','ship','silo','hangar','sam','radar','cb','arty','coastal']){const c=costOf(p,t),el=$('#c'+t[0].toUpperCase()+t.slice(1));el.textContent=fmt(c)+' g';el.parentElement.classList.toggle('poor',p.gold<c);}
+  for(const t of ['city','fort','rig','port','ship','silo','hangar','sam','radar','cb','arty','coastal','academy']){const c=costOf(p,t),el=$('#c'+t[0].toUpperCase()+t.slice(1));el.textContent=fmt(c)+' g';el.parentElement.classList.toggle('poor',p.gold<c);}
   const rd={5:[0,1e9,false],6:[0,1e9,false],10:[0,1e9,false]};
   for(const j of blist)if(rd[bld[j]]&&owner[j]===G.pid){const r=rd[bld[j]];r[2]=true;r[0]+=Math.floor(ammo[j]);if(ammo[j]<1)r[1]=Math.min(r[1],bcool[j]);}
   document.querySelectorAll('#strikeRow small[data-c]').forEach(el=>{const w=weapon(G.pid,el.dataset.c);if(!w)return;const r=rd[LAUNCHER[w.kind]];
@@ -2069,8 +2089,8 @@ document.addEventListener('keydown',e=>{
 $('#mStk').onclick=()=>{setMode('strike');toast('Tap enemy territory. Drones fly from your hangars, missiles from your silos.');};
 // Artillery and coastal batteries only appear in the build menu for nations whose arsenal has them
 function renderBuildRow(){
-  const row=$('#buildRow');row.querySelector('[data-b="arty"]').hidden=!hasArty(G.pid);row.querySelector('[data-b="coastal"]').hidden=!hasAntiShip(G.pid);
-  if(['arty','coastal'].includes(G.bsel)&&row.querySelector(`[data-b="${G.bsel}"]`).hidden)G.bsel='city';
+  const row=$('#buildRow');row.querySelector('[data-b="arty"]').hidden=!hasArty(G.pid);row.querySelector('[data-b="coastal"]').hidden=!hasAntiShip(G.pid);row.querySelector('[data-b="academy"]').hidden=!acadOn();
+  if(['arty','coastal','academy'].includes(G.bsel)&&row.querySelector(`[data-b="${G.bsel}"]`).hidden)G.bsel='city';
   row.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.b===G.bsel));
   const vis=[...row.querySelectorAll('button:not([hidden])')];row.style.setProperty('--bcols',vis.length);
   row.querySelectorAll('button').forEach(x=>x.classList.remove('wide'));if(vis.length%3===1)vis[vis.length-1].classList.add('wide');
@@ -2080,6 +2100,7 @@ function renderStrikeRow(){
   const abil=[abilityOwned(G.pid,'uav')?'uav':null,abilityOwned(G.pid,'droneRush')?'droneRush':null].filter(Boolean);
   const n=all.length+abil.length||1;row.style.gridTemplateColumns=`repeat(${n<=4?n:3},1fr)`;
   const locked=(name,key)=>`<button disabled class="locked">${esc(name)}<small>Locked · ${esc(LOCK_ACH[REQ[key]])}</small></button>`;
+  G.acadSeen=!needAcad(G.pid);if(!G.acadSeen&&all.length){row.style.gridTemplateColumns='1fr';row.innerHTML='<button disabled class="locked">Missiles and drones are locked<small>Build a Military academy (Build menu) to unlock them</small></button>';return;}
   row.innerHTML=all.map(wid=>{const w=weapon(G.pid,wid);if(!isUnlocked(wid))return locked(w.name,wid);return `<button data-s="${wid}" class="${wid===G.ssel?'on':''}">${esc(w.name)}<small data-c="${wid}">${w.cost} g</small></button>`;}).join('')
     +(abil.includes('uav')?(isUnlocked('uav')?'<button class="uav" id="uavBtn">UAV recon<small id="uavInfo"></small></button>':locked('UAV recon','uav')):'')
     +(abil.includes('droneRush')?(isUnlocked('droneRush')?'<button class="uav rush" id="rushBtn">Drone rush<small id="rushInfo"></small></button>':locked('Drone rush','droneRush')):'')
@@ -2112,6 +2133,7 @@ function bldInfo(code,n){
     case 9:return ['Counter-battery radar',`Enemy silos that fire within ${BAL.counterBattery.range} tiles stay revealed to you for ${BAL.counterBattery.reveal}s.`];
     case 10:{const a=BAL.artillery;return ['Rocket artillery',`Strike mode: fires a salvo of ${a.rockets} rockets up to ${RANGE.artillery} tiles for ${fmt(Math.round(a.cost*m.artyCost))} gold. Rockets scatter, kill troops and rarely wreck buildings; no craters. Air defense shoots few down. Reloads in ${rl(10)}s.`];}
     case 12:{const a=BAL.antiShip;return ['Coastal battery',`Fires anti-ship missiles by itself at hostile warships, dhows and ports within ${RANGE.antiship} tiles. A hit sinks a ship or dhow; ports are wrecked ${Math.round(a.portHit*100)}% of the time. Holds ${mag(12)}, reloads in ${rl(12)}s. Build it near water.`];}
+    case 13:return ['Military academy','Realistic mode: unlocks missiles, drones and artillery (and building silos, hangars and artillery) while you hold at least one. Rivals target it; if every academy you own is destroyed or captured, your strikes lock again.'];
     case 11:return ['Warship',`Tap one of your ports to launch it. Patrols ${m.patrol} tiles around the port, sinks enemy dhows and warships and shoots at drones.`];
   }
   return ['',''];
@@ -2221,7 +2243,7 @@ function doAction(nid,a){
   if(a.k==='bld'){const t=String(a.b);res.b=t;
     if(!BCODE[t]){res.r='bad';return res;}
     const c=costOf(n,t);res.cost=c;res.oil=oil[i]?1:0;
-    res.r=owner[i]!==nid?'notown':bld[i]?'built':(t==='arty'&&!hasArty(nid))||(t==='coastal'&&!hasAntiShip(nid))?'noarsenal':(t==='port'&&nearWater(i,3)<0)||(t==='coastal'&&nearWater(i,2)<0)?'nowater':n.gold<c?'gold':'ok';
+    res.r=owner[i]!==nid?'notown':bld[i]?'built':(t==='arty'&&!hasArty(nid))||(t==='coastal'&&!hasAntiShip(nid))||(t==='academy'&&!acadOn())?'noarsenal':(t==='silo'||t==='hangar'||t==='arty')&&needAcad(nid)?'academy':(t==='port'&&nearWater(i,3)<0)||(t==='coastal'&&nearWater(i,2)<0)?'nowater':n.gold<c?'gold':'ok';
     if(res.r==='ok'){place(n,i,t);econ(true);}return res;}
   if(a.k==='atk'||a.k==='boat'){
     const o=owner[i];if(terr[i]<2){res.r='bad';return res;}if(o===nid){res.r='own';return res;}
@@ -2259,9 +2281,9 @@ function showResult(res,ping){
       nolauncher:k==='drone'?'Build a drone hangar first.':art?'Build an artillery battery first, close to the front.':'Build a missile silo first.',
       range:k==='drone'?`Out of range. Drones reach ${RANGE.drone} tiles from a hangar.`:art?`Out of range. Rockets reach ${RANGE.artillery} tiles from your artillery.`:`Out of range. Missiles reach ${RANGE.missile} tiles from a silo.`,
       cooldown:k==='drone'?`All hangars in range are rearming. Next drones in ${Math.ceil(res.wait)}s.`:art?`Artillery in range is reloading. Next salvo in ${Math.ceil(res.wait)}s.`:`All silos in range are reloading. Next missile in ${Math.ceil(res.wait)}s.`,
-      gold:`Need ${fmt(res.cost)} gold.`}[res.r]);return;}
+      gold:`Need ${fmt(res.cost)} gold.`,academy:'Build a Military academy first: it unlocks missiles, drones and artillery.'}[res.r]);return;}
   if(res.k==='bld'){
-    if(res.r!=='ok'){ping(true);toast({notown:'You can only build on your own land.',built:'Something is already built here.',noarsenal:'Your nation cannot build that.',nowater:res.b==='coastal'?'Coastal batteries need open water within 2 tiles.':'Ports need open water within 3 tiles.',gold:`Need ${fmt(res.cost)} gold.`}[res.r]);return;}
+    if(res.r!=='ok'){ping(true);toast({notown:'You can only build on your own land.',built:'Something is already built here.',noarsenal:'Your nation cannot build that.',academy:'Build a Military academy first: it unlocks silos, drone hangars and artillery.',nowater:res.b==='coastal'?'Coastal batteries need open water within 2 tiles.':'Ports need open water within 3 tiles.',gold:`Need ${fmt(res.cost)} gold.`}[res.r]);return;}
     ping(false);if(res.b==='radar'){SFX.radar();bump('radars');
       // A new radar reveals strikes that were already on the way; say so, so it doesn't look like the radar provoked them
       const rx=i%W,ry=(i/W)|0,already=missiles.filter(m=>!m.done&&!m.cruise&&targetsPlayer(m)&&Math.hypot(m.tx-rx,m.ty-ry)<=BAL.radar.range).length;
@@ -2730,7 +2752,7 @@ const GUIDE=[
  ['reload','Reload',()=>`Silos hold 1 missile, hangars 4 drones, air defense 3 interceptors. Blue pips show what is ready; a red ring shows reloading.`],
  ['navy','Navy',()=>`Launch warships from a port. They patrol nearby waters and sink enemy dhows and warships.`],
  ['keys','Keyboard and mouse',()=>`On a PC, press 1, 2, 3 or 4 for Attack, Boat, Strike and Build. Hover any building to see what it does, and the build menu stays on screen so you always know what you can afford.`],
- ['realistic','Realistic mode',()=>`The switch beside Begin campaign halves gold income and doubles the cost of taking land for every nation, and weakens bloc loyalty so neighbours fight each other more. It is also harder to hold what you take: past ${BAL.realistic.overStart}% of the land your regen and troop cap shrink (overextension); land taken from a nation gives no gold or regen for ${BAL.realistic.unrest} s, and a captured capital rises back to its old owner if your troops drop below ${Math.round(BAL.realistic.revoltBelow*100)}% of your cap in that time. Rivals unite against any nation past ${BAL.realistic.leaderPct}% of the land, and decrees come less often with ${BAL.realistic.choices} choices each. Deals are cheaper and campaigns pay ${BAL.realistic.pearls}× pearls. Not used in the daily challenge.`],
+ ['realistic','Realistic mode',()=>`${BAL.realistic.academy?`Realistic is a slower war: every nation starts with a ${BAL.realistic.startLand}× bigger home region, and missiles, drones and artillery stay locked until you build a Military academy (${fmt(BAL.realistic.academyCost)} gold). Lose every academy and they lock again. `:''}The switch beside Begin campaign halves gold income and doubles the cost of taking land for every nation, and weakens bloc loyalty so neighbours fight each other more. It is also harder to hold what you take: past ${BAL.realistic.overStart}% of the land your regen and troop cap shrink (overextension); land taken from a nation gives no gold or regen for ${BAL.realistic.unrest} s, and a captured capital rises back to its old owner if your troops drop below ${Math.round(BAL.realistic.revoltBelow*100)}% of your cap in that time. Rivals unite against any nation past ${BAL.realistic.leaderPct}% of the land, and decrees come less often with ${BAL.realistic.choices} choices each. Deals are cheaper and campaigns pay ${BAL.realistic.pearls}× pearls. Not used in the daily challenge.`],
  ['diplomacy','Diplomacy',()=>`Tap a nation in the list at the top right to offer gold for a ceasefire or an alliance. Stronger, angrier nations charge more and refuse more often. Attacking a partner breaks the deal and everyone trusts you less.`],
  ['online','Play online',()=>`Sign in, create a game and share the code or invite link. Up to 9 players each pick a nation; the AI runs the rest. Everyone starts equal. The host's device runs the game, so the host keeps the tab open. Win with ${WIN_PCT}% of the land or as the last player standing.`],
  ['daily','Daily challenge',()=>`Every day everyone plays the same nation, heat and twist with the same random seed and no upgrades. Your score counts land, rivals eliminated, capitals taken and a fast win. Signed-in players appear on the leaderboard.`],

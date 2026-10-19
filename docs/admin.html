@@ -485,6 +485,10 @@ function renderBal(B){
       <span>Realistic: leader coalition from</span><span>${numIn('realistic.leaderPct',B.realistic.leaderPct,'1')}% of the land <span class="hint">replaces the AI targeting value in Realistic</span></span>
       <span>Realistic: leader's attacks cost ×</span><span>${numIn('realistic.leaderDef',B.realistic.leaderDef,'0.05')}</span>
       <span>Realistic: decree milestones ×</span><span>${numIn('realistic.decreeGap',B.realistic.decreeGap,'0.1')} <span class="hint">1.5 = decrees at 3%, 6%, 10.5%… instead of 2%, 4%, 7%…</span></span>
+      <span>Realistic: starting land ×</span><span>${numIn('realistic.startLand',B.realistic.startLand,'0.5')} <span class="hint">size of every nation's home region compared with normal games</span></span>
+      <span>Realistic: Military academy</span><span>${numIn('realistic.academy',B.realistic.academy,'1')} <span class="hint">1 = missiles, drones and artillery (and silos, hangars, artillery buildings) need an academy; 0 = off</span></span>
+      <span>Realistic: academy cost</span><span>${numIn('realistic.academyCost',B.realistic.academyCost,'50')} gold <span class="hint">×1.5 for each further academy</span></span>
+      <span>Realistic: AI builds its academy after</span><span>${numIn('realistic.academyAI',B.realistic.academyAI,'10')} seconds</span>
       <span>Realistic: choices per decree</span><span>${numIn('realistic.choices',B.realistic.choices,'1')} <span class="hint">normal games offer 3</span></span>
       <span>Playtest: hide the store</span><span>${numIn('testing.hideStore',B.testing.hideStore,'1')} <span class="hint">1 = the store disappears from the game for everyone, 0 = shown</span></span>
       <span>Playtest: home banner</span><span>${numIn('testing.banner',B.testing.banner,'1')} <span class="hint">1 = shows "Playtest build… tell me what you find" on the home screen</span></span>
