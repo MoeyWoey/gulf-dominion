@@ -1048,12 +1048,31 @@ function fillPockets(){
     if(own&&!mixed&&pkQ.length<=T&&NATS[own].alive)for(const i of pkQ){if(tribe[i])tribeTaken(i,own);owner[i]=own;markAround(i);}
   }
 }
+// A piece of a nation cut off and enclosed by one other nation's land (sea allowed, no empty land) surrenders to it at once,
+// as long as it holds no capital and is at most BAL.combat.enclave tiles
+const encSeen=new Uint32Array(N),encQ=[];let encStamp=0;
+function absorbEnclaves(){
+  const T=BAL.combat.enclave;if(!(T>0))return;encStamp++;
+  for(let s=0;s<N;s++){const o=owner[s];if(!o||encSeen[s]===encStamp)continue;
+    encQ.length=0;encQ.push(s);encSeen[s]=encStamp;let enc=0,mixed=false,cap=false;const capI=NATS[o]?NATS[o].capIdx:-1;
+    for(let h=0;h<encQ.length;h++){const i=encQ[h],x=i%W;if(i===capI)cap=true;
+      for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W]){if(j<0||j>=N||terr[j]<2)continue;const q=owner[j];
+        if(q===o){if(encSeen[j]!==encStamp){encSeen[j]=encStamp;encQ.push(j);}continue;}
+        if(!q||(enc&&q!==enc))mixed=true;else enc=q;}}
+    if(cap||mixed||!enc||encQ.length>T||!NATS[enc].alive)continue;
+    const k=encQ.length,cells=encQ.slice();for(const i of cells){capture(i,enc,o);if(G.over)return;}
+    if(!G.spec&&sfxOK('enclave',2500)){if(enc===G.pid)toast(`${k} cut-off ${NATS[o].name} tiles surrendered to you.`,2200);else if(o===G.pid)toast(`${k} of your tiles were cut off and surrendered to ${NATS[enc].name}.`,2600);}
+  }
+}
 function adjTo(i,id){const x=i%W;return (x>0&&owner[i-1]===id)||(x<W-1&&owner[i+1]===id)||(i>=W&&owner[i-W]===id)||(i<N-W&&owner[i+W]===id);}
 
 // Realistic v2 focused attacks: an attack on a nation advances only inside corridors (segments [x0,y0,x1,y1] widened by focusR)
 const focusOn=defId=>!!(G&&G.real&&defId&&BAL.realistic.focusR>0);
 const segD2=(x,y,s)=>{const dx=s[2]-s[0],dy=s[3]-s[1],l=dx*dx+dy*dy;let t=l?((x-s[0])*dx+(y-s[1])*dy)/l:0;t=t<0?0:t>1?1:t;const px=s[0]+t*dx-x,py=s[1]+t*dy-y;return px*px+py*py;};
-function inFocus(a,j){if(!a.segs)return true;const x=j%W,y=(j/W)|0,R2=BAL.realistic.focusR*BAL.realistic.focusR;for(const s of a.segs)if(segD2(x,y,s)<=R2)return true;return false;}
+// the strip widens with depth (focusGrow per tile from the border), so an attack fans out in the general direction instead of a spear
+function inFocus(a,j){if(!a.segs)return true;const x=j%W,y=(j/W)|0,R=BAL.realistic.focusR,g=BAL.realistic.focusGrow||0;
+  for(const s of a.segs){const dx=s[2]-s[0],dy=s[3]-s[1],l=dx*dx+dy*dy;let t=l?((x-s[0])*dx+(y-s[1])*dy)/l:0;t=t<0?0:t>1?1:t;
+    const px=s[0]+t*dx-x,py=s[1]+t*dy-y,w=R+g*t*Math.sqrt(l);if(px*px+py*py<=w*w)return true;}return false;}
 function addSeg(a,tx,ty){ // a new tap on the same rival: another corridor from the border tile nearest to it
   let c=-1,bd=1e9;for(let i=0;i<N;i++){if(owner[i]!==a.def||terr[i]<2||!adjTo(i,a.att))continue;const d=(i%W-tx)**2+(((i/W)|0)-ty)**2;if(d<bd){bd=d;c=i;}}
   if(c<0)return;a.segs.push([c%W,(c/W)|0,tx,ty]);
@@ -1097,7 +1116,7 @@ function launchAttack(attId,defId,troops,tx,ty,pool=true){
 function stepAttack(a){
   const att=NATS[a.att];
   if(!att.alive||(a.def&&!NATS[a.def].alive)){a.done=true;return;}
-  a.acc+=(.5+Math.sqrt(a.troops)/18)*att.m.speed*BAL.combat.attackSpeed;
+  {let r=(.5+Math.sqrt(a.troops)/18)*att.m.speed*BAL.combat.attackSpeed;if(a.segs){r*=BAL.realistic.attackPace;if(BAL.realistic.attackMax>0)r=Math.min(r,BAL.realistic.attackMax*.1);}a.acc+=r;} // focused attacks: a steady army pace
   let n=Math.floor(a.acc);a.acc-=n;
   while(n-->0){
     // Gaps first: a tile with this army's land on 3+ sides is taken before the advance continues
@@ -1108,7 +1127,7 @@ function stepAttack(a){
     for(let s=0;s<3&&a.front.length;s++){
       const k=(Math.random()*a.front.length)|0,i=a.front[k];
       if(owner[i]!==a.def||!adjTo(i,a.att)){a.front[k]=a.front[a.front.length-1];a.front.pop();a.inF.delete(i);best=-1;bs=1e12;continue;}
-      const dx=i%W-a.tx,dy=((i/W)|0)-a.ty,sc=(dx*dx+dy*dy)*.5+Math.random()*60+terr[i]*8-(a.counter&&a.counter.has(i)?1e6:0);
+      const dx=i%W-a.tx,dy=((i/W)|0)-a.ty,sc=(a.segs?Math.sqrt(dx*dx+dy*dy)*3-sidesOf(i,a.att)*7+Math.random()*24:(dx*dx+dy*dy)*.5+Math.random()*60)+terr[i]*8-(a.counter&&a.counter.has(i)?1e6:0); // focused attacks fill out their front as one mass
       if(sc<bs){bs=sc;best=k;}
     }
     if(!a.front.length){a.done=true;break;}
@@ -1288,7 +1307,7 @@ function aiBoat(n,cnt){
 }
 
 function econ(init){
-  if(!init){fillPockets();growTribes();stepSites();}
+  if(!init){fillPockets();absorbEnclaves();if(G.over)return;growTribes();stepSites();}
   const cnt=NATS.map(()=>({t:0,oil:0,coast:0,cities:0,rigs:0,dry:0,ports:0,sx:0,sy:0,u:0,uo:0,uc:0}));
   if(!init&&G.real)checkRevolts();
   const RL=G.real?BAL.realistic:null;
@@ -1333,7 +1352,7 @@ function regen(n,dt){
   if(!n.alive)return;
   const ratio=n.troops/n.cap;
   const f=n.m.falaj?Math.max(0,1-ratio*.55):Math.max(0,1-ratio);
-  const base=(BAL.combat.regenBase+(n.tiles-(n.unrestT||0))*BAL.combat.regenPerTile+n.cities*6)*n.m.regen*(n.isPlayer?1:G.aiRegen*G.sand)*.65*(n.overF||1);
+  const base=(BAL.combat.regenBase+(n.tiles-(n.unrestT||0))*BAL.combat.regenPerTile+n.cities*6)*n.m.regen*(n.isPlayer?1:G.aiRegen*G.sand)*.65*(n.overF||1)*(G.real?BAL.realistic.regen:1);
   n.regenNow=base*f;
   n.troops+=n.regenNow*dt;
   if(n.press)n.press*=Math.max(0,1-dt/Math.max(1,BAL.ai.pileTime));
@@ -2760,8 +2779,8 @@ let resetArmed=false;
 $('#resetBtn').onclick=e=>{if(!resetArmed){resetArmed=true;e.target.textContent='Tap again to erase all pearls and upgrades';setTimeout(()=>{resetArmed=false;e.target.textContent='Reset progress';},4000);return;}S=defSave();if(ACCOUNT)applyEnt(ENT_LIST);save();resetArmed=false;e.target.textContent='Reset progress';renderHome();};
 /* ================= How to play: each section has a small picture drawn with the game's own colours and icons ================= */
 const GUIDE=[
- ['expand','Expand',()=>`Tap sand next to your border to send troops. The slider sets how many go. Deserts and mountains cost more. Small gaps you leave behind fill in automatically. Striped camps with a tent are tribes: they cost a little more to take, slowly spread over nearby sand if left alone, and winning over a whole camp pays ${BAL.tribes.gold} gold.`],
- ['conquer','Conquer',()=>`Tap a rival you border to attack. Taking their capital star costs them troops and gold and forces them to move it; take every tile to finish them.${BAL.realistic.focusR>0?` In Realistic, attacks on a nation push only where you aim: a strip about ${BAL.realistic.focusR*2} tiles wide from your border to the spot you tap, so tap deeper to drive further.`:''} Tap ✕ on an attack's chip at the top to retreat: the troops still in the field come home.`],
+ ['expand','Expand',()=>`Tap sand next to your border to send troops. The slider sets how many go. Deserts and mountains cost more. Small gaps you leave behind fill in automatically, and a piece of a rival you cut off and surround surrenders to you at once. Striped camps with a tent are tribes: they cost a little more to take, slowly spread over nearby sand if left alone, and winning over a whole camp pays ${BAL.tribes.gold} gold.`],
+ ['conquer','Conquer',()=>`Tap a rival you border to attack. Taking their capital star costs them troops and gold and forces them to move it; take every tile to finish them.${BAL.realistic.focusR>0?` In Realistic, attacks on a nation push only where you aim: a front about ${BAL.realistic.focusR*2} tiles wide at your border that widens as it pushes toward the spot you tap, so tap deeper to drive further. Armies advance more slowly there.`:''} Tap ✕ on an attack's chip at the top to retreat: the troops still in the field come home.`],
  ['counter','Counter',()=>`Send troops at a rival who is attacking you and they meet that army head-on, then retake the same ground first.${BAL.ai.gang>0?` Rivals rarely gang up: once ${BAL.ai.gang} nations are attacking someone, others wait their turn${BAL.ai.pilePlayer?', and a nation losing land fast gets a short breather':''}.`:''}`],
  ['sail','Sail',()=>`Tap a coast you don't border, or use Boat mode, and dhows carry troops across the water, land, and push inland. Up to 3 fleets at once.`],
  ['build','Build',()=>`Place anything anywhere on your land: cities, forts, oil rigs (best on dark oil fields), ports near water, missile silos, drone hangars, air defense and radars. Some nations also get rocket artillery or coastal batteries.`],

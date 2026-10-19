@@ -406,6 +406,7 @@ function renderBal(B){
       <span>Troop regen per tile</span><span>${numIn('combat.regenPerTile',B.combat.regenPerTile,'0.01')} per second <span class="hint">lower = less snowballing for big nations</span></span>
       <span>Troop cap per tile</span><span>${numIn('combat.capPerTile',B.combat.capPerTile,'1')}</span>
       <span>Auto-claim empty pockets up to</span><span>${numIn('combat.fillPocket',B.combat.fillPocket,'1')} tiles <span class="hint">empty land enclosed by one nation joins it for free; 0 = off</span></span>
+      <span>Cut-off pockets surrender up to</span><span>${numIn('combat.enclave',B.combat.enclave,'5')} tiles <span class="hint">a piece of a nation (no capital) surrounded by one other nation joins it at once; 0 = off</span></span>
       <span>Missile crater size</span><span>${numIn('combat.crater',B.combat.crater,'0.05')} × blast radius <span class="hint">tiles there become empty land; 0 = off. Drones never crater</span></span>
       <span>Crater stays empty for</span><span>${numIn('combat.craterTime',B.combat.craterTime,'5')} seconds <span class="hint">before the auto-claim can refill it</span></span>
       <span>Fort radius</span><span>${numIn('combat.fortRadius',B.combat.fortRadius,'1')} tiles <span class="hint">land this close to a fort costs the Fort × above to take</span></span>
@@ -490,6 +491,10 @@ function renderBal(B){
       <span>Realistic: academy cost</span><span>${numIn('realistic.academyCost',B.realistic.academyCost,'50')} gold <span class="hint">×1.5 for each further academy</span></span>
       <span>Realistic: AI builds its academy after</span><span>${numIn('realistic.academyAI',B.realistic.academyAI,'10')} seconds</span>
       <span>Realistic: focused attack width</span><span>${numIn('realistic.focusR',B.realistic.focusR,'1')} tiles each side <span class="hint">attacks on nations advance only in a strip from the border to the tap; 0 = whole border</span></span>
+      <span>Realistic: attack front widens by</span><span>${numIn('realistic.focusGrow',B.realistic.focusGrow,'0.1')} tiles per tile of depth <span class="hint">0 = a straight strip (spear); higher = a wider fan</span></span>
+      <span>Realistic: attack pace ×</span><span>${numIn('realistic.attackPace',B.realistic.attackPace,'0.05')} <span class="hint">how fast attacks on nations advance</span></span>
+      <span>Realistic: attack top speed</span><span>${numIn('realistic.attackMax',B.realistic.attackMax,'0.5')} tiles/s <span class="hint">a bigger army pushes further, not faster; 0 = no cap</span></span>
+      <span>Realistic: troop regen ×</span><span>${numIn('realistic.regen',B.realistic.regen,'0.05')} <span class="hint">every nation</span></span>
       <span>Realistic: taking a nation's land ×</span><span>${numIn('realistic.attackCost',B.realistic.attackCost,'0.1')} <span class="hint">on top of the land cost above; empty land is unaffected</span></span>
       <span>Realistic: build timers ×</span><span>${numIn('realistic.buildTime',B.realistic.buildTime,'0.1')} <span class="hint">scales every build time below; 0 = build instantly</span></span>
       <span>Realistic: build times (s)</span><span>${Object.keys(B.realistic.build).map(k=>`<label style="display:inline-flex;align-items:center;gap:4px;margin:0 10px 4px 0">${esc(k)} ${numIn(`realistic.build.${k}`,B.realistic.build[k],'5')}</label>`).join('')}</span>

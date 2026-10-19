@@ -144,7 +144,7 @@ window.GD_BALANCE_DEFAULTS = {
   // nation's whole army that a drone or missile hit kills. fillPocket: empty pockets up to this many tiles that touch only one
   // nation's land are claimed by it automatically (0 = off). crater: missile hits empty the tiles within crater × blast radius
   // (0 = off); craterTime: seconds before an empty crater can be auto-claimed (anyone bordering it can still expand into it).
-  combat: { attackSpeed: 0.5, tileBase: 4, defDensity: 1.5, defLoss: 0.35, fort: 2.5, capital: 4, capitalRing: 2, regenBase: 30, regenPerTile: 0.3, capPerTile: 10, strikeTroops: 0.5, fortRadius: 4, fillPocket: 30, crater: 0.5, craterTime: 30 },
+  combat: { attackSpeed: 0.5, tileBase: 4, defDensity: 1.5, defLoss: 0.35, fort: 2.5, capital: 4, capitalRing: 2, regenBase: 30, regenPerTile: 0.3, capPerTile: 10, strikeTroops: 0.5, fortRadius: 4, fillPocket: 30, enclave: 150, crater: 0.5, craterTime: 30 },
   // Nation perks. Multipliers: oil (oil income), cap (troop cap), regen (troop regen), gold (all gold), cityCost, mount (cost to
   // cross mountains), def (defense of all its land), mountDef (extra defense of its mountain tiles), missileCost, atk (cost of taking enemy land), neutral (cost of empty land).
   // Added amounts: coast (gold per coastal tile), cityCap (troop cap per city). startSilo: 1 = starts with a missile silo.
@@ -211,7 +211,10 @@ window.GD_BALANCE_DEFAULTS = {
     // Build timers (seconds) in Realistic; buildTime scales them all (0 = build instantly). A building under construction does nothing yet.
     // Focused attacks: an attack on a nation only advances in a corridor focusR tiles either side of the line from the nearest border
     // tile to where you tapped (0 = whole border, as in normal games); attackCost multiplies the cost of taking a nation's land.
-    focusR: 5, attackCost: 1.5,
+    // focusR is the strip's half-width at the border; it widens by focusGrow per tile of depth, so attacks fan out in the general direction.
+    // attackPace slows how fast attacks on nations advance. regen multiplies every nation's troop regen.
+    // attackMax caps a focused attack's advance in tiles per second, so a bigger army pushes further, not faster.
+    focusR: 5, focusGrow: 0.6, attackPace: 0.6, attackMax: 6, attackCost: 1.5, regen: 0.6,
     buildTime: 1, build: { city: 15, fort: 20, rig: 15, port: 25, sam: 30, radar: 30, cb: 35, arty: 45, coastal: 45, hangar: 75, silo: 90, academy: 120 } },
 };
 
