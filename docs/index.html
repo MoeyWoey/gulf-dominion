@@ -998,7 +998,7 @@ function tileCost(att,defId,i){
   const lm=G.real?BAL.realistic.land:1;
   const C=BAL.combat;
   if(!defId)return C.tileBase*tm*att.m.neutral*lm*(tribe[i]?BAL.tribes.cost:1);
-  const d=NATS[defId],dens=d.troops/Math.max(1,d.tiles);
+  const d=NATS[defId],dens=d.troops/Math.max(1,d.tiles,BAL.combat.minDefTiles||1); // a tiny remnant can't stack its whole army on one tile
   return (C.tileBase+dens*C.defDensity)*tm*att.m.atk*d.m.def*(terr[i]===4?d.m.mountDef:1)*fortMul(d,i)*lm*(G.real?BAL.realistic.attackCost:1)*(G.leader&&att.id===G.leader?(G.real?BAL.realistic.leaderDef:BAL.ai.leaderDef):1); // rivals hold out harder against the leader
 }
 function sidesOf(i,id){const x=i%W;return (x>0&&owner[i-1]===id)+(x<W-1&&owner[i+1]===id)+(i>=W&&owner[i-W]===id)+(i<N-W&&owner[i+W]===id);}
@@ -1059,7 +1059,8 @@ function absorbEnclaves(){
       for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,i-W,i+W]){if(j<0||j>=N||terr[j]<2)continue;const q=owner[j];
         if(q===o){if(encSeen[j]!==encStamp){encSeen[j]=encStamp;encQ.push(j);}continue;}
         if(!q||(enc&&q!==enc))mixed=true;else enc=q;}}
-    if(cap||mixed||!enc||encQ.length>T||!NATS[enc].alive)continue;
+    if(mixed||!enc||encQ.length>T||!NATS[enc].alive)continue;
+    if(cap&&!(encQ.length<=(BAL.combat.enclaveLast||0)&&encQ.length>=NATS[o].tiles))continue; // a capital only falls this way when it is the nation's last small pocket
     const k=encQ.length,cells=encQ.slice();for(const i of cells){capture(i,enc,o);if(G.over)return;}
     if(!G.spec&&sfxOK('enclave',2500)){if(enc===G.pid)toast(`${k} cut-off ${NATS[o].name} tiles surrendered to you.`,2200);else if(o===G.pid)toast(`${k} of your tiles were cut off and surrendered to ${NATS[enc].name}.`,2600);}
   }
@@ -1335,11 +1336,13 @@ function checkRevolts(){
   G.revolts=G.revolts.filter(v=>{
     const d=NATS[v.from],a=NATS[v.by];
     if(G.t>v.until||!d||!d.alive||!a||!a.alive||owner[v.cell]!==v.by)return false;
+    if(d.tiles<(R.revoltMinTiles||0))return false; // a nation that is almost gone can't rise up
+    if(G.t<(d.revoltReady||0))return true;
     if(a.troops>=a.cap*R.revoltBelow)return true;
     const cx=v.cell%W,cy=(v.cell/W)|0,r=Math.max(1,R.revoltR)|0;let k=0;
     for(let y=Math.max(0,cy-r);y<=Math.min(H-1,cy+r);y++)for(let x=Math.max(0,cx-r);x<=Math.min(W-1,cx+r);x++){const i=y*W+x;
       if(owner[i]!==v.by||i===a.capIdx||(x-cx)**2+(y-cy)**2>r*r)continue;owner[i]=v.from;a.tiles--;d.tiles++;unrest[i]=0;markAround(i);k++;}
-    if(k){d.troops+=k*4;if(G.mp)fullPaint=true;
+    if(k){d.troops+=k*4;d.revoltReady=G.t+(R.revoltCooldown||0);if(G.mp)fullPaint=true;
       if(a.id===G.pid)toast(`${d.name}'s old capital rose up against your thin garrison. ${k} tiles lost.`,4000);
       else if(d.id===G.pid)toast(`Your old capital rose up against ${a.name}. ${k} tiles back.`,4000);
       else toast(`${d.name}'s old capital rebelled against ${a.name}.`,3000);
@@ -2797,7 +2800,7 @@ const GUIDE=[
  ['reload','Reload',()=>`Silos hold 1 missile, hangars 4 drones, air defense 3 interceptors. Blue pips show what is ready; a red ring shows reloading.`],
  ['navy','Navy',()=>`Launch warships from a port. They patrol nearby waters and sink enemy dhows and warships.`],
  ['keys','Keyboard and mouse',()=>`On a PC, press 1, 2, 3 or 4 for Attack, Boat, Strike and Build. Hover any building to see what it does, and the build menu stays on screen so you always know what you can afford.`],
- ['realistic','Realistic mode',()=>`${BAL.realistic.academy?`Realistic is a slower war: every nation starts with a ${BAL.realistic.startLand}× bigger home region, and missiles, drones and artillery stay locked until you build a Military academy (${fmt(BAL.realistic.academyCost)} gold). Lose every academy and they lock again. `:''}${BAL.realistic.buildTime>0?`Buildings take time to finish (a city ${Math.round(BAL.realistic.build.city*BAL.realistic.buildTime)}s, a silo ${Math.round(BAL.realistic.build.silo*BAL.realistic.buildTime)}s, an academy ${Math.round(BAL.realistic.build.academy*BAL.realistic.buildTime)}s) and do nothing until then; a gold ring shows progress. `:''}The switch beside Begin campaign halves gold income and doubles the cost of taking land for every nation, and weakens bloc loyalty so neighbours fight each other more. It is also harder to hold what you take: past ${BAL.realistic.overStart}% of the land your regen and troop cap shrink (overextension); land taken from a nation gives no gold or regen for ${BAL.realistic.unrest} s, and a captured capital rises back to its old owner if your troops drop below ${Math.round(BAL.realistic.revoltBelow*100)}% of your cap in that time. Rivals unite against any nation past ${BAL.realistic.leaderPct}% of the land, and decrees come less often with ${BAL.realistic.choices} choices each. Deals are cheaper and campaigns pay ${BAL.realistic.pearls}× pearls. Not used in the daily challenge.`],
+ ['realistic','Realistic mode',()=>`${BAL.realistic.academy?`Realistic is a slower war: every nation starts with a ${BAL.realistic.startLand}× bigger home region, and missiles, drones and artillery stay locked until you build a Military academy (${fmt(BAL.realistic.academyCost)} gold). Lose every academy and they lock again. `:''}${BAL.realistic.buildTime>0?`Buildings take time to finish (a city ${Math.round(BAL.realistic.build.city*BAL.realistic.buildTime)}s, a silo ${Math.round(BAL.realistic.build.silo*BAL.realistic.buildTime)}s, an academy ${Math.round(BAL.realistic.build.academy*BAL.realistic.buildTime)}s) and do nothing until then; a gold ring shows progress. `:''}The switch beside Begin campaign halves gold income and doubles the cost of taking land for every nation, and weakens bloc loyalty so neighbours fight each other more. It is also harder to hold what you take: past ${BAL.realistic.overStart}% of the land your regen and troop cap shrink (overextension); land taken from a nation gives no gold or regen for ${BAL.realistic.unrest} s, and a captured capital rises back to its old owner if your troops drop below ${Math.round(BAL.realistic.revoltBelow*100)}% of your cap in that time (only while that nation still holds ${BAL.realistic.revoltMinTiles} tiles, and at most once every ${BAL.realistic.revoltCooldown}s). Rivals unite against any nation past ${BAL.realistic.leaderPct}% of the land, and decrees come less often with ${BAL.realistic.choices} choices each. Deals are cheaper and campaigns pay ${BAL.realistic.pearls}× pearls. Not used in the daily challenge.`],
  ['diplomacy','Diplomacy',()=>`Tap a nation in the list at the top right to offer gold for a ceasefire or an alliance. Stronger, angrier nations charge more and refuse more often. Attacking a partner breaks the deal and everyone trusts you less.`],
  ['online','Play online',()=>`Sign in, create a game and share the code or invite link. Up to 9 players each pick a nation; the AI runs the rest. Everyone starts equal. The host's device runs the game, so the host keeps the tab open. Win with ${WIN_PCT}% of the land or as the last player standing.`],
  ['daily','Daily challenge',()=>`Every day everyone plays the same nation, heat and twist with the same random seed and no upgrades. Your score counts land, rivals eliminated, capitals taken and a fast win. Signed-in players appear on the leaderboard.`],

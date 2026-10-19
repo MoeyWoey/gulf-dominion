@@ -407,6 +407,8 @@ function renderBal(B){
       <span>Troop cap per tile</span><span>${numIn('combat.capPerTile',B.combat.capPerTile,'1')}</span>
       <span>Auto-claim empty pockets up to</span><span>${numIn('combat.fillPocket',B.combat.fillPocket,'1')} tiles <span class="hint">empty land enclosed by one nation joins it for free; 0 = off</span></span>
       <span>Cut-off pockets surrender up to</span><span>${numIn('combat.enclave',B.combat.enclave,'5')} tiles <span class="hint">a piece of a nation (no capital) surrounded by one other nation joins it at once; 0 = off</span></span>
+      <span>Last pocket with capital surrenders up to</span><span>${numIn('combat.enclaveLast',B.combat.enclaveLast,'1')} tiles <span class="hint">a nation's final surrounded pocket gives up even with its capital; 0 = never</span></span>
+      <span>Defenders spread over at least</span><span>${numIn('combat.minDefTiles',B.combat.minDefTiles,'5')} tiles <span class="hint">stops a tiny remnant stacking its whole army on its last tiles</span></span>
       <span>Missile crater size</span><span>${numIn('combat.crater',B.combat.crater,'0.05')} × blast radius <span class="hint">tiles there become empty land; 0 = off. Drones never crater</span></span>
       <span>Crater stays empty for</span><span>${numIn('combat.craterTime',B.combat.craterTime,'5')} seconds <span class="hint">before the auto-claim can refill it</span></span>
       <span>Fort radius</span><span>${numIn('combat.fortRadius',B.combat.fortRadius,'1')} tiles <span class="hint">land this close to a fort costs the Fort × above to take</span></span>
@@ -482,6 +484,8 @@ function renderBal(B){
       <span>Realistic: shrink floor ×</span><span>${numIn('realistic.overMin',B.realistic.overMin,'0.05')} <span class="hint">regen and cap never drop below this</span></span>
       <span>Realistic: unrest</span><span>${numIn('realistic.unrest',B.realistic.unrest,'5')} seconds <span class="hint">land taken from a nation gives no gold or regen for this long</span></span>
       <span>Realistic: capital revolt below</span><span>${numIn('realistic.revoltBelow',B.realistic.revoltBelow,'0.05')} × cap <span class="hint">a taken capital rebels if the taker's troops drop under this during unrest; 0 = off</span></span>
+      <span>Realistic: revolts need the old owner to hold</span><span>${numIn('realistic.revoltMinTiles',B.realistic.revoltMinTiles,'5')} tiles <span class="hint">a nation that is almost gone can't rise up</span></span>
+      <span>Realistic: time between revolts</span><span>${numIn('realistic.revoltCooldown',B.realistic.revoltCooldown,'10')} seconds <span class="hint">per nation</span></span>
       <span>Realistic: revolt radius</span><span>${numIn('realistic.revoltR',B.realistic.revoltR,'1')} tiles</span>
       <span>Realistic: leader coalition from</span><span>${numIn('realistic.leaderPct',B.realistic.leaderPct,'1')}% of the land <span class="hint">replaces the AI targeting value in Realistic</span></span>
       <span>Realistic: leader's attacks cost ×</span><span>${numIn('realistic.leaderDef',B.realistic.leaderDef,'0.05')}</span>

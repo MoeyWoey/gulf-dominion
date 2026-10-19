@@ -144,7 +144,7 @@ window.GD_BALANCE_DEFAULTS = {
   // nation's whole army that a drone or missile hit kills. fillPocket: empty pockets up to this many tiles that touch only one
   // nation's land are claimed by it automatically (0 = off). crater: missile hits empty the tiles within crater × blast radius
   // (0 = off); craterTime: seconds before an empty crater can be auto-claimed (anyone bordering it can still expand into it).
-  combat: { attackSpeed: 0.5, tileBase: 4, defDensity: 1.5, defLoss: 0.35, fort: 2.5, capital: 4, capitalRing: 2, regenBase: 30, regenPerTile: 0.3, capPerTile: 10, strikeTroops: 0.5, fortRadius: 4, fillPocket: 30, enclave: 150, crater: 0.5, craterTime: 30 },
+  combat: { attackSpeed: 0.5, tileBase: 4, defDensity: 1.5, defLoss: 0.35, fort: 2.5, capital: 4, capitalRing: 2, regenBase: 30, regenPerTile: 0.3, capPerTile: 10, strikeTroops: 0.5, fortRadius: 4, fillPocket: 30, enclave: 150, enclaveLast: 12, minDefTiles: 40, crater: 0.5, craterTime: 30 },
   // Nation perks. Multipliers: oil (oil income), cap (troop cap), regen (troop regen), gold (all gold), cityCost, mount (cost to
   // cross mountains), def (defense of all its land), mountDef (extra defense of its mountain tiles), missileCost, atk (cost of taking enemy land), neutral (cost of empty land).
   // Added amounts: coast (gold per coastal tile), cityCap (troop cap per city). startSilo: 1 = starts with a missile silo.
@@ -203,7 +203,7 @@ window.GD_BALANCE_DEFAULTS = {
   // taker's troops fall below revoltBelow × its cap during that time, freeing land within revoltR tiles), an earlier and harder
   // leader coalition (leaderPct, leaderDef replace the AI targeting values), decree milestones × decreeGap and choices per decree.
   realistic: { gold: 0.5, land: 2, pearls: 1.5, diplomacy: 0.75,
-    overStart: 20, overPer: 0.02, overMin: 0.4, unrest: 60, revoltBelow: 0.35, revoltR: 5,
+    overStart: 20, overPer: 0.02, overMin: 0.4, unrest: 60, revoltBelow: 0.15, revoltR: 5, revoltMinTiles: 60, revoltCooldown: 120,
     leaderPct: 20, leaderDef: 1.8, decreeGap: 1.5, choices: 2,
     // Realistic v2: every nation starts with startLand× the usual home region; missiles, drones and artillery need a Military academy
     // (academy 1 = on). It costs academyCost (×1.5 for each further one); AI nations start building one after academyAI seconds.
