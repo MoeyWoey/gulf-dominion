@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-19 (after commit `160f0c9`)_
+_Last updated: 2026-10-19 (after commit `4dbef15`)_
 
 ---
 
@@ -720,6 +720,30 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
   - Strikes on the player went up (12 → 19–29), because it survives longer.
 - These three keys aren't in the saved live config yet, so their defaults apply live at once. The old heat values in the saved config still apply until they're re-saved.
 
+### 48. Realistic v2: a slower war — `d95b02b`, `dc3a1a0`, `4dbef15`
+All three steps are Realistic only, and every value is in `BAL.realistic` (dashboard Rules card).
+- **Step 1: big home regions and the Military academy (`d95b02b`)**
+  - Each nation starts with 5× its own normal home region. Coastal nations reach further inland, and Yemen's and Lebanon's bigger start is added on top, not multiplied. Starting sizes are 40–81 tiles (Bahrain is smallest because it's an island). Home regions never swallow another capital.
+  - Missiles, drones and artillery, plus building silos, hangars and artillery, need a Military academy you own. It costs 1,500 gold, ×1.5 for each further one. Lose every academy and strikes lock again. AI strikes target academies, and AI nations save up for one after 4 minutes.
+  - New building code 13 with its own icon. The strike bar says what to build while locked.
+- **Step 2: build timers (`dc3a1a0`)**
+  - Build times: city 15 s, rig 15 s, fort 20 s, port 25 s, air defense and radar 30 s, counter-battery 35 s, artillery and coastal battery 45 s, hangar 75 s, silo 90 s, academy 120 s.
+  - A site (`bld` 14, with `bnext`/`bdone`) does nothing until it's finished. It shows a faded icon with a gold progress ring. It can be destroyed (the price step is refunded) or captured. Online, sites sync as [cell, 14, future type, finish time]. The AI counts sites as what they will become.
+- **Step 3: focused land attacks (`4dbef15`)**
+  - An attack on a nation advances only in a strip `focusR` (5) tiles either side of the line from the nearest border tile to the tap. When the strip is taken, the troops come home. Another tap on the same rival adds a strip.
+  - Taking a nation's land costs ×1.5 (`attackCost`). Attacks on empty land and normal games are unchanged.
+- **Sims (Realistic, 10 seeds, 15 min, all AI):**
+
+| | Old Realistic | After step 1 | After step 2 | After step 3 |
+|---|---|---|---|---|
+| First strike | 151 s | 263 s | 455 s | about 455 s |
+| Strikes | 399 | 309 | 207 | 205 |
+| Biggest / smallest nation | 18.6 / 4.6% | 19.9 / 4.4% | 18.3 / 5.4% | 18.9 / 5.1% |
+| Nations alive | 9 | 9 | 9 | 9 |
+
+  Top nations after step 3: Iran 5, Yemen 2, Saudi Arabia 2, Iraq Militias 1. Yemen and Iran also led under the old rules.
+- **Watch:** stacked with overextension, unrest and the earlier coalition, an 80% Realistic win may now be very hard. It needs a real playtest.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -749,7 +773,7 @@ Step 2 of the Middle East plan (1 map and nations, 2 artillery and anti-ship, 3 
 | World news | First at 200 s, then every 280–420 s, effects last 60 s |
 | Diplomacy | Ceasefire 60 s, alliance 180 s, price ×1 |
 | Counter-battery | 55-tile range, silos revealed 30 s |
-| Realistic mode | Gold ×0.5, land ×2 (everyone), per-bloc Realistic loyalty (default 0.6), pearls ×1.5, diplomacy ×0.75 · overextension from 20% (−2% regen/cap per %, floor 0.4) · unrest 60 s, capital revolt below 35% cap (5 tiles) · coalition from 20%, attacks ×1.8 · decree milestones ×1.5, 2 choices |
+| Realistic mode | v2: home regions ×5, Military academy unlocks strikes (1,500 gold), build timers (city 15 s … academy 120 s), focused attacks (5-tile strips, nation land ×1.5) · Gold ×0.5, land ×2 (everyone), per-bloc Realistic loyalty (default 0.6), pearls ×1.5, diplomacy ×0.75 · overextension from 20% (−2% regen/cap per %, floor 0.4) · unrest 60 s, capital revolt below 35% cap (5 tiles) · coalition from 20%, attacks ×1.8 · decree milestones ×1.5, 2 choices |
 | Heat (per level above 1) | AI regen +0.12, cap +0.12, starting troops +12%, attack threshold −0.06, send share +0.08, player focus +0.08, strikes 12 s earlier |
 | Tribes | 14 camps × 12 tiles (Gulf), +1 tile every 20 s up to 30, land cost ×2.5, 250 gold for the last tile |
 | Light drones | Buildings only, no troop losses |
