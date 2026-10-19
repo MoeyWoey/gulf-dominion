@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-19 (after commit `4dbef15`)_
+_Last updated: 2026-10-19 (after commit `ef582fa`)_
 
 ---
 
@@ -744,6 +744,15 @@ All three steps are Realistic only, and every value is in `BAL.realistic` (dashb
   Top nations after step 3: Iran 5, Yemen 2, Saudi Arabia 2, Iraq Militias 1. Yemen and Iran also led under the old rules.
 - **Watch:** stacked with overextension, unrest and the earlier coalition, an 80% Realistic win may now be very hard. It needs a real playtest.
 
+### 49. Realistic regen, cut-off pockets, army-like attacks — `ef582fa`
+- **Regen check (Kuwait, Realistic v2, 5 games):** regen speed was the same as normal mode, about 1.6% of the cap per second (empty to 90% in about 145 s). It felt fast because Realistic v2 spends troops slowly: attacks end early, and land costs 3×.
+- **Realistic regen ×0.6** (`realistic.regen`), for every nation. Empty to 90% now takes about 240 s. Kuwait's army sits at 35–46% of its cap on average, and its land at 15 min is unchanged at about 13%.
+- **Cut-off pockets (all modes, `combat.enclave: 150`):** part of a nation surrounded by one other nation's land surrenders at once. Sea counts as an edge, but empty land doesn't, and the pocket must hold no capital and be at most 150 tiles. It runs through `capture()`. In Realistic this was 4–22 tiles a game.
+- **Army-like Realistic attacks:**
+  - `attackPace: 0.6` and `attackMax: 6` tiles/s: a steady pace, so a bigger army goes further, not faster. Before, 28–51 tiles/s.
+  - `focusGrow: 0.6`: the front widens with depth, so it fans out in the general direction instead of a spear. It reached 9–10 tiles either side, against 5.
+  - Tiles are picked by distance plus own neighbours, so the front fills out as one mass.
+
 ---
 
 ## Current balance defaults (`docs/balance.js`)
@@ -773,7 +782,7 @@ All three steps are Realistic only, and every value is in `BAL.realistic` (dashb
 | World news | First at 200 s, then every 280–420 s, effects last 60 s |
 | Diplomacy | Ceasefire 60 s, alliance 180 s, price ×1 |
 | Counter-battery | 55-tile range, silos revealed 30 s |
-| Realistic mode | v2: home regions ×5, Military academy unlocks strikes (1,500 gold), build timers (city 15 s … academy 120 s), focused attacks (5-tile strips, nation land ×1.5) · Gold ×0.5, land ×2 (everyone), per-bloc Realistic loyalty (default 0.6), pearls ×1.5, diplomacy ×0.75 · overextension from 20% (−2% regen/cap per %, floor 0.4) · unrest 60 s, capital revolt below 35% cap (5 tiles) · coalition from 20%, attacks ×1.8 · decree milestones ×1.5, 2 choices |
+| Realistic mode | v2: home regions ×5, Military academy unlocks strikes (1,500 gold), build timers (city 15 s … academy 120 s), focused attacks (fan from 5 tiles wide, +0.6 per tile of depth, pace ×0.6, max 6 tiles/s, nation land ×1.5), regen ×0.6 · Gold ×0.5, land ×2 (everyone), per-bloc Realistic loyalty (default 0.6), pearls ×1.5, diplomacy ×0.75 · overextension from 20% (−2% regen/cap per %, floor 0.4) · unrest 60 s, capital revolt below 35% cap (5 tiles) · coalition from 20%, attacks ×1.8 · decree milestones ×1.5, 2 choices |
 | Heat (per level above 1) | AI regen +0.12, cap +0.12, starting troops +12%, attack threshold −0.06, send share +0.08, player focus +0.08, strikes 12 s earlier |
 | Tribes | 14 camps × 12 tiles (Gulf), +1 tile every 20 s up to 30, land cost ×2.5, 250 gold for the last tile |
 | Light drones | Buildings only, no troop losses |
@@ -782,6 +791,7 @@ All three steps are Realistic only, and every value is in `BAL.realistic` (dashb
 | AI targeting | Anti-pile-on: at most 2 nations open fronts on one target, breather protects the player, Heat focus floor 0.75 · Same-bloc target ×6, attacked 5% of the time · breather: no new AI attacks or landings on a nation that lost over 4% of its land recently (fades over 60 s); never shields the player |
 | Decrees | Common and Rare decrees carry a drawback (`BAL.decrees`); Epic ones don't |
 | Leader coalition | From 30% land: AI target weight ×3, bloc loyalty toward the leader ×0.3, the leader's attacks cost ×1.6 |
+| Cut-off pockets | A piece of a nation (no capital, ≤150 tiles) surrounded by one other nation surrenders to it |
 | Win condition | 80% of the land, or every rival eliminated (online: or last player standing) |
 
 Every value above can be changed live from the dashboard's **Balance** tab.
