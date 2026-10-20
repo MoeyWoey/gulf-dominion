@@ -2,7 +2,7 @@
 
 A slow-paced, phone-first, incremental rogue-lite strategy game across the Gulf, Iraq, Iran and Yemen, inspired by OpenFront. You expand from your capital, fight rival nations, trade drone and missile strikes, build air defense, and spend pearls on permanent upgrades between campaigns.
 
-_Last updated: 2026-10-19 (after commit `59a1db7`)_
+_Last updated: 2026-10-20 (after commit `a2e5832`)_
 
 ---
 
@@ -765,6 +765,10 @@ All three steps are Realistic only, and every value is in `BAL.realistic` (dashb
   - The same staged assault eliminated Bahrain in 98–151 s with 1 revolt per game.
   - A 9-tile surrounded remnant with its capital surrendered on the next second.
   - Its capital tile now costs 1,770 troops instead of 6,583.
+
+### 51. Greyed-out build buttons — `a2e5832`
+- A build button is greyed out when that building can't be built right now. The reasons are: not enough gold, no Military academy yet (silo, hangar and artillery in Realistic), no coastline (port and coastal battery), and no port or every port already full (warship).
+- The reason shows in the PC hover tooltip and the button title. Greyed buttons stay selectable. It uses `buildBlock()`.
 
 ---
 
