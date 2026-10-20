@@ -233,6 +233,8 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--sand);height:28px}
 .builds button small{font-size:.68rem;color:var(--muted);font-weight:500}
 .builds button.on{border-color:var(--sand);box-shadow:inset 0 0 0 1px var(--sand)}
 .builds button.poor small{color:var(--danger)}
+.builds button.na{opacity:.42;filter:grayscale(1)}
+.builds button.na.on{opacity:.7}
 .toast{position:absolute;z-index:4;left:max(10px,env(safe-area-inset-left,0px));top:calc(96px + env(safe-area-inset-top,0px));box-sizing:border-box;max-width:calc(100vw - 158px);text-align:left;box-shadow:0 6px 18px rgba(0,0,0,.35);background:var(--panel-a);border:1px solid var(--line-2);padding:7px 12px;border-radius:10px;font-size:.82rem;pointer-events:none;transition:opacity .3s}
 
 /* ---------- Modals ---------- */
@@ -2112,7 +2114,7 @@ function hud(){
   $('#lb').innerHTML=`<div class="lbh">${G.mp?'Online · '+esc(MP?MP.code:''):'Tap a nation to negotiate'}</div>`+rows.map(n=>{const t=treaty(n.id),me=n.id===G.pid&&!G.spec;return `<div class="r ${me?'me':''} ${n.alive?'':'dead'} ${!G.mp&&!n.isPlayer&&n.alive?'talk':''}" data-n="${n.id}"><span class="chip d" style="padding:0;border:0;width:8px;height:8px;border-radius:2px;background:${rgb(n.color)}"></span><span>${n.short||NAT[n.id].short}${t?`<em class="tr">${t==='alliance'?'ALLY':'TRUCE'}</em>`:''}${G.mp&&n.human&&!me?`<em class="tr hu">${esc((G.names[n.id]||'').slice(0,10))}</em>`:''}</span><span class="num">${(n.tiles/LANDN*100).toFixed(1)}%</span></div>`;}).join('');
   const hudEl=document.querySelector('.hud');$('#lb').style.top=(hudEl.offsetTop+hudEl.offsetHeight+4)+'px';placeTop();
   renderDecs();
-  for(const t of ['city','fort','rig','port','ship','silo','hangar','sam','radar','cb','arty','coastal','academy']){const c=costOf(p,t),el=$('#c'+t[0].toUpperCase()+t.slice(1));el.textContent=fmt(c)+' g';el.parentElement.classList.toggle('poor',p.gold<c);}
+  for(const t of ['city','fort','rig','port','ship','silo','hangar','sam','radar','cb','arty','coastal','academy']){const c=costOf(p,t),el=$('#c'+t[0].toUpperCase()+t.slice(1)),why=buildBlock(p,t,c),bt=el.parentElement;el.textContent=fmt(c)+' g';bt.classList.toggle('poor',p.gold<c);bt.classList.toggle('na',!!why);bt.title=why||'';}
   const rd={5:[0,1e9,false],6:[0,1e9,false],10:[0,1e9,false]};
   for(const j of blist)if(rd[bld[j]]&&owner[j]===G.pid){const r=rd[bld[j]];r[2]=true;r[0]+=Math.floor(ammo[j]);if(ammo[j]<1)r[1]=Math.min(r[1],bcool[j]);}
   document.querySelectorAll('#strikeRow small[data-c]').forEach(el=>{const w=weapon(G.pid,el.dataset.c);if(!w)return;const r=rd[LAUNCHER[w.kind]];
@@ -2211,10 +2213,19 @@ function mapTip(){
   placeTip(`<b>${nm}</b><span class="own"><i style="background:${rgb(n.color)}"></i>${who}</span><p>${desc}</p>${st?`<em>${st}</em>`:''}`,TIP.x,TIP.y);
 }
 // Build menu buttons: what it does and whether you can afford it
+// Why a building can't be built right now ('' = it can): shown greyed out in the build menu, with the reason on hover
+function buildBlock(p,t,c){
+  if((t==='silo'||t==='hangar'||t==='arty')&&needAcad(p.id))return 'Needs a Military academy';
+  if((t==='port'||t==='coastal')&&!p.coastT)return 'Needs coastline';
+  if(t==='ship'){const ports=blist.filter(j=>bld[j]===4&&owner[j]===p.id);if(!ports.length)return 'Needs a port';if(!ports.some(j=>ships.filter(w=>w.port===j&&!w.dead).length<2))return 'Every port already has 2 warships';}
+  if(p.gold<(c===undefined?costOf(p,t):c))return 'Not enough gold';
+  return '';
+}
 function btnTip(){
   const b=TIP.btn;if(!b||!G||screen!=='game'||!b.isConnected){hideTip();return;}
   const t=b.dataset.b,p=NATS[G.pid],[nm,desc]=bldInfo(t==='ship'?11:BCODE[t],p),c=costOf(p,t),poor=p.gold<c,r=b.getBoundingClientRect();
-  placeTip(`<b>${nm}</b><p>${desc}</p><em class="${poor?'bad':''}">${fmt(c)} gold${poor?` · need ${fmt(c-p.gold)} more`:' · you can afford it'}</em>`,r.left+r.width/2,r.top,true);
+  const why=buildBlock(p,t,c);
+  placeTip(`<b>${nm}</b><p>${desc}</p><em class="${poor?'bad':''}">${fmt(c)} gold${poor?` · need ${fmt(c-p.gold)} more`:' · you can afford it'}</em>${why&&why!=='Not enough gold'?`<em class="bad">${esc(why)}</em>`:''}`,r.left+r.width/2,r.top,true);
 }
 
 /* ================= Input ================= */
